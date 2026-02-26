@@ -436,25 +436,25 @@ async function generateTemplateHTML(
   if (page === 'home' || page === 'index') {
     switch (templateSlug) {
       case 'green-valley-industrial':
-        pageContent = renderGreenValleyPage(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
+        pageContent = await renderGreenValleyPage(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
         break;
       case 'modern-lawn-solutions':
-        pageContent = renderModernLawnHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
+        pageContent = await renderModernLawnHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
         break;
       case 'corporate-edge':
-        pageContent = renderCorporateEdgeHome(getContent, colors, manufacturers, sectionVisibility, site.subscription_tier || 'basic', siteId, displayProducts, isRealProducts, fmtPrice);
+        pageContent = await renderCorporateEdgeHome(getContent, colors, manufacturers, sectionVisibility, site.subscription_tier || 'basic', siteId, displayProducts, isRealProducts, fmtPrice);
         break;
       case 'vibe-dynamics':
-        pageContent = renderVibeDynamicsHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
+        pageContent = await renderVibeDynamicsHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
         break;
       case 'zenith-lawn':
-        pageContent = renderZenithLawnHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
+        pageContent = await renderZenithLawnHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
         break;
       case 'warm-earth-designs':
-        pageContent = renderWarmEarthHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
+        pageContent = await renderWarmEarthHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
         break;
       default:
-        pageContent = renderGenericHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
+        pageContent = await renderGenericHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
     }
   } else if (page === 'manufacturers') {
     pageContent = renderManufacturersPageContent(config, getContent, colors, manufacturers, templateSlug);
