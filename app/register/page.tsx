@@ -2,12 +2,21 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Mail, Lock, User, ArrowRight, CheckCircle } from 'lucide-react';
+
+const PLAN_INFO: Record<string, { name: string; price: string; description: string }> = {
+  base: { name: 'Base Package', price: '$200/mo', description: 'Professional dealer website with templates, forms & lead capture' },
+  plus1: { name: 'Base + 1 Add-on', price: '$300/mo', description: 'Base package plus your choice of Inventory, Service, or Rentals' },
+  full: { name: 'Full Suite', price: '$430/mo', description: 'Everything included — Inventory, Service scheduling & Rental booking' },
+};
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+  const selectedPlan = searchParams.get('plan');
+  const planDetails = selectedPlan ? PLAN_INFO[selectedPlan] : null;
   
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -53,7 +62,7 @@ export default function RegisterPage() {
         setSuccess(true);
         // Redirect to onboarding after brief success message
         setTimeout(() => {
-          router.push('/onboarding');
+          router.push(selectedPlan ? `/onboarding?plan=${selectedPlan}` : '/onboarding');
         }, 1500);
       }
     } catch (error: any) {
@@ -103,7 +112,7 @@ export default function RegisterPage() {
             </h1>
             
             <p className="text-xl text-gray-300 mb-8">
-              Join hundreds of equipment dealers growing their business with FleetMarket
+              Get your dealership online with a professional website and powerful management tools
             </p>
 
             {/* Benefits List */}
@@ -113,7 +122,7 @@ export default function RegisterPage() {
                 'Complete inventory and rental management',
                 'Built-in service scheduling and lead capture',
                 'Real-time analytics and reporting',
-                'No credit card required to start'
+                'Set up in as little as 15 minutes'
               ].map((benefit, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="w-6 h-6 bg-[#E8472F]/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -127,9 +136,9 @@ export default function RegisterPage() {
             {/* Trust Indicators */}
             <div className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-slate-700">
               {[
-                { value: '99.9%', label: 'Uptime' },
-                { value: '500+', label: 'Dealers' },
-                { value: '24/7', label: 'Support' }
+                { value: '15 min', label: 'Setup Time' },
+                { value: '6', label: 'Pro Templates' },
+                { value: '24/7', label: 'Your Site Works' }
               ].map((stat) => (
                 <div key={stat.label}>
                   <div className="text-2xl font-bold text-[#E8472F] mb-1">{stat.value}</div>
@@ -141,10 +150,28 @@ export default function RegisterPage() {
 
           {/* Right Side - Registration Form */}
           <div className="bg-slate-800 rounded-lg border-2 border-slate-700 p-8 lg:p-12">
+            {/* Selected Plan Banner */}
+            {planDetails && (
+              <div className="mb-6 p-4 bg-[#E8472F]/10 border border-[#E8472F]/30 rounded-lg">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[#E8472F] font-bold text-sm uppercase tracking-wide">Selected Plan</span>
+                  <span className="text-white font-bold">{planDetails.price}</span>
+                </div>
+                <div className="text-white font-semibold">{planDetails.name}</div>
+                <div className="text-gray-400 text-sm mt-1">{planDetails.description}</div>
+                <button
+                  onClick={() => router.push('/#pricing')}
+                  className="text-[#E8472F] text-xs font-medium mt-2 hover:underline"
+                >
+                  Change plan
+                </button>
+              </div>
+            )}
+
             <div className="mb-8">
               <h2 className="text-3xl font-bold text-white mb-2">Create Your Account</h2>
               <p className="text-gray-400">
-                Get started with your free account in seconds
+                {planDetails ? `Sign up to get started with ${planDetails.name}` : 'Get started with your account in seconds'}
               </p>
             </div>
 

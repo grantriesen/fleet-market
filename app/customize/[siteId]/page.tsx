@@ -15,6 +15,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
   
   const [activeTab, setActiveTab] = useState<Tab>('content');
   const [activeSection, setActiveSection] = useState<string>('hero');
+  const [activeSubsection, setActiveSubsection] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -241,6 +242,57 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
         ...field
       }))
       .sort((a, b) => (a.displayOrder || 999) - (b.displayOrder || 999));
+  };
+
+  // Extract subsections from _heading markers within a page section
+  const getSubsectionsForPageSection = (sectionKey: string) => {
+    if (!templateConfig?.sections?.[sectionKey]) return [];
+    
+    const section = templateConfig.sections[sectionKey];
+    const headings: { key: string; label: string; displayOrder: number }[] = [];
+    
+    Object.entries(section).forEach(([key, value]: [string, any]) => {
+      if (key.startsWith('_') && value?.type === 'heading') {
+        headings.push({
+          key,
+          label: value.label || key.replace(/^_/, '').replace(/Heading$/, ''),
+          displayOrder: value.displayOrder || 999,
+        });
+      }
+    });
+    
+    return headings.sort((a, b) => a.displayOrder - b.displayOrder);
+  };
+
+  // Group fields by their subsection (heading markers)
+  const getGroupedFieldsForSection = (sectionKey: string) => {
+    const allFields = getFieldsForSection(sectionKey);
+    const subsections = getSubsectionsForPageSection(sectionKey);
+    
+    if (subsections.length === 0) {
+      return [{ key: 'all', label: '', fields: allFields }];
+    }
+    
+    const groups: { key: string; label: string; fields: any[] }[] = [];
+    let currentGroup: { key: string; label: string; fields: any[] } | null = null;
+    
+    for (const field of allFields) {
+      if (field.type === 'heading' && field.key.startsWith('_')) {
+        // Start a new group
+        currentGroup = { key: field.key, label: field.label, fields: [] };
+        groups.push(currentGroup);
+      } else if (currentGroup) {
+        currentGroup.fields.push(field);
+      } else {
+        // Fields before any heading go into an unnamed group
+        if (groups.length === 0 || groups[0].key !== '_ungrouped') {
+          groups.unshift({ key: '_ungrouped', label: 'General', fields: [] });
+        }
+        groups[0].fields.push(field);
+      }
+    }
+    
+    return groups.filter(g => g.fields.length > 0 || g.key.startsWith('_'));
   };
 
   const handleSave = async () => {
@@ -501,6 +553,40 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
           </div>
         );
 
+      case 'pageLink':
+        // Dropdown of site pages so the user can pick where a button links
+        const pages = templateConfig?.pages || [];
+        return (
+          <div key={field.key}>
+            <label className="block text-sm font-medium mb-2">
+              {field.label}
+              {(field.helpText || field.help) && (
+                <span className="text-xs text-gray-500 block mt-1">{field.helpText || field.help}</span>
+              )}
+            </label>
+            <select
+              value={value}
+              onChange={(e) => updateContent(fieldKey, e.target.value)}
+              className="w-full px-3 py-2 border rounded bg-white"
+            >
+              <option value="">Default ({field.default || 'auto'})</option>
+              {pages.map((p: any) => (
+                <option key={p.slug} value={p.slug}>{p.name}</option>
+              ))}
+              <option value="__custom">Custom URL...</option>
+            </select>
+            {value === '__custom' && (
+              <input
+                type="text"
+                value={content[`${fieldKey}_custom`] || ''}
+                onChange={(e) => updateContent(`${fieldKey}_custom`, e.target.value)}
+                className="w-full px-3 py-2 border rounded mt-2"
+                placeholder="https://example.com"
+              />
+            )}
+          </div>
+        );
+
       case 'email':
         return (
           <div key={field.key}>
@@ -638,6 +724,12 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
 
   const sections = getSectionsForCurrentPage();
   const fields = getFieldsForSection(activeSection);
+  
+  // For subpages: extract subsections from heading markers for step navigation
+  const isSubpage = currentPage !== 'index';
+  const subsections = isSubpage && sections.length === 1 ? getSubsectionsForPageSection(sections[0].key) : [];
+  const groupedFields = isSubpage && sections.length === 1 ? getGroupedFieldsForSection(sections[0].key) : [];
+  const hasSubsections = subsections.length > 1;
 
   return (
     <div className="flex flex-col h-screen">
@@ -792,6 +884,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                           if (isLocked) return;
                           const newPage = page.slug === 'home' ? 'index' : page.slug;
                           setCurrentPage(newPage);
+                          setActiveSubsection(null);
                           if (newPage === 'index') {
                             setActiveSection('hero');
                           } else {
@@ -836,24 +929,62 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
           <div className="flex-1 overflow-y-auto overflow-x-hidden p-6">
             {activeTab === 'content' && (
               <div className="space-y-6">
-                {/* Content Fields for Active Section (works for all pages) */}
-                <div>
-                  <h3 className="font-semibold text-gray-700 mb-4">
-                    {sections.find(s => s.key === activeSection)?.label || 'Content'}
-                  </h3>
-                  {fields.map((field) => renderField(activeSection, field))}
-                  {fields.length === 0 && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                      <div className="text-3xl mb-3">📝</div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">
-                        No editable fields
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        This section doesn&apos;t have any customizable content fields.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {/* Content Fields - Grouped with alternating backgrounds */}
+                {isSubpage && hasSubsections ? (
+                  /* SUBPAGE: Show grouped fields by subsection with alternating backgrounds */
+                  <div className="space-y-0">
+                    {groupedFields
+                      .filter(group => {
+                        // If a subsection is selected, only show that group
+                        if (activeSubsection !== null) return group.key === activeSubsection;
+                        return true;
+                      })
+                      .map((group, groupIndex) => (
+                        <div
+                          key={group.key}
+                          className={`px-4 py-5 -mx-2 rounded-lg ${
+                            groupIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/80'
+                          }`}
+                        >
+                          {/* Subsection heading */}
+                          {group.label && (
+                            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+                              <div className="w-1 h-5 rounded-full bg-[#E85525]"></div>
+                              <h3 className="font-semibold text-gray-800 text-sm uppercase tracking-wide">
+                                {group.label}
+                              </h3>
+                            </div>
+                          )}
+                          {group.fields.map((field: any) => renderField(activeSection, field))}
+                          {group.fields.length === 0 && (
+                            <p className="text-xs text-gray-400 italic">No editable fields in this section.</p>
+                          )}
+                        </div>
+                      ))}
+                    {groupedFields.length === 0 && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                        <div className="text-3xl mb-3">📝</div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">No editable fields</p>
+                        <p className="text-xs text-gray-500">This section doesn&apos;t have any customizable content fields.</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* HOME PAGE: Standard single-section rendering */
+                  <div>
+                    <h3 className="font-semibold text-gray-700 mb-4">
+                      {sections.find(s => s.key === activeSection)?.label || 'Content'}
+                    </h3>
+                    {fields.map((field) => renderField(activeSection, field))}
+                    {fields.length === 0 && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                        <div className="text-3xl mb-3">📝</div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">No editable fields</p>
+                        <p className="text-xs text-gray-500">This section doesn&apos;t have any customizable content fields.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
 
                 {/* Management cards for special pages */}
@@ -1224,7 +1355,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
           {/* Top Bar - Sections & Visibility */}
           {activeTab === 'content' && (
             <div className="bg-white border-b flex-shrink-0">
-              {/* Section Tabs - Scrollable with indicators */}
+              {/* Section/Subsection Tabs - Scrollable with indicators */}
               <div className="relative">
                 {/* Left shadow indicator */}
                 <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
@@ -1232,7 +1363,72 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                 {/* Scrollable tabs */}
                 <div className="px-4 py-3 border-b overflow-x-auto scrollbar-thin scroll-smooth">
                   <div className="flex gap-2 pb-2">
-                    {sections.map((section) => {
+                    {/* For subpages with subsections: show subsection tabs */}
+                    {isSubpage && hasSubsections ? (
+                      <>
+                        {/* "All" tab to show everything */}
+                        <div className="relative flex-shrink-0">
+                          <button
+                            data-section="all"
+                            onClick={() => {
+                              setActiveSubsection(null);
+                              // Scroll preview to top of page
+                              const iframe = document.querySelector('iframe');
+                              if (iframe?.contentWindow) {
+                                iframe.contentWindow.postMessage({ type: 'scrollToSection', section: 'top' }, '*');
+                              }
+                            }}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                              activeSubsection === null
+                                ? 'bg-[#E85525] text-white shadow-md'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            <span>📋</span>
+                            <span>All Sections</span>
+                          </button>
+                        </div>
+                        {subsections.map((sub) => {
+                          const subIcons: Record<string, string> = {
+                            '_heroHeading': '🖼',
+                            '_servicesHeading': '⚙',
+                            '_service1Heading': '🔧',
+                            '_service2Heading': '🔧',
+                            '_service3Heading': '🔧',
+                            '_whyChooseHeading': '⭐',
+                            '_ctaHeading': '▶',
+                            '_formHeading': '✉',
+                            '_filtersHeading': '◧',
+                            '_rentalInfoHeading': '↻',
+                            '_contentHeading': '◈',
+                          };
+                          return (
+                          <div key={sub.key} className="relative flex-shrink-0">
+                            <button
+                              data-section={sub.key}
+                              onClick={() => {
+                                setActiveSubsection(sub.key);
+                                // Scroll preview to this subsection
+                                const iframe = document.querySelector('iframe');
+                                if (iframe?.contentWindow) {
+                                  iframe.contentWindow.postMessage({ type: 'scrollToSection', section: sub.key }, '*');
+                                }
+                              }}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                                activeSubsection === sub.key
+                                  ? 'bg-[#E85525] text-white shadow-md'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              <span>{subIcons[sub.key] || '📄'}</span>
+                              <span>{sub.label}</span>
+                            </button>
+                          </div>
+                        )})}
+                      </>
+                    ) : (
+                      /* For home page: show regular section tabs */
+                      sections.map((section) => {
                       // Check if this is a premium add-on section
                       const premiumAddOns: Record<string, { requiredTier: string; label: string }> = {
                         'inventoryPage': { requiredTier: 'professional', label: 'Inventory Management' },
@@ -1240,9 +1436,6 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                       };
                       const addOn = premiumAddOns[section.key];
                       const isLocked = addOn && !hasProfessionalAccess(subscriptionTier);
-                      
-                      // Check if service scheduling (not the service page itself) is premium
-                      // Service page content is free, scheduling is the add-on
                       
                       return (
                         <div key={section.key} className="relative group/sec flex-shrink-0">
@@ -1257,7 +1450,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                               isLocked
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 : activeSection === section.key
-                                  ? 'bg-[#1E3A6E] text-white shadow-md'
+                                  ? 'bg-[#E85525] text-white shadow-md'
                                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                           >
@@ -1279,7 +1472,8 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                           )}
                         </div>
                       );
-                    })}
+                    })
+                    )}
                   </div>
                 </div>
                 
@@ -1289,27 +1483,63 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
 
               {/* Section Visibility Controls */}
               <div className="px-4 py-2 flex items-center gap-2 flex-wrap">
-                {sections.map((section) => {
-                  const isVisible = sectionVisibility[section.key] !== false;
-                  return (
-                    <button
-                      key={section.key}
-                      onClick={() => toggleSectionVisibility(section.key)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                        isVisible 
-                          ? 'bg-[#E8DDD3] text-[#1E3A6E] hover:bg-[#D4C4B5]' 
-                          : 'bg-gray-100 text-gray-400 hover:bg-gray-200 line-through'
-                      }`}
-                      title={isVisible ? `Hide ${section.label}` : `Show ${section.label}`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${isVisible ? 'bg-[#F5F0EB]0' : 'bg-gray-300'}`}></span>
-                      {section.label}
-                    </button>
-                  );
-                })}
-                <span className="text-xs text-gray-400 ml-auto">
-                  {sections.filter(s => sectionVisibility[s.key] !== false).length}/{sections.length} visible
-                </span>
+                {isSubpage && hasSubsections ? (
+                  /* Subpage: visibility toggles for subsections */
+                  <>
+                    {subsections.map((sub) => {
+                      const visKey = `${activeSection}.${sub.key}`;
+                      const isVisible = sectionVisibility[visKey] !== false;
+                      return (
+                        <button
+                          key={sub.key}
+                          onClick={() => {
+                            setSectionVisibility({
+                              ...sectionVisibility,
+                              [visKey]: !isVisible,
+                            });
+                          }}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                            isVisible 
+                              ? 'bg-[#E8DDD3] text-[#1E3A6E] hover:bg-[#D4C4B5]' 
+                              : 'bg-gray-100 text-gray-400 hover:bg-gray-200 line-through'
+                          }`}
+                          title={isVisible ? `Hide ${sub.label}` : `Show ${sub.label}`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${isVisible ? 'bg-green-400' : 'bg-gray-300'}`}></span>
+                          {sub.label}
+                        </button>
+                      );
+                    })}
+                    <span className="text-xs text-gray-400 ml-auto">
+                      {subsections.filter(s => sectionVisibility[`${activeSection}.${s.key}`] !== false).length}/{subsections.length} visible
+                    </span>
+                  </>
+                ) : (
+                  /* Home page: visibility toggles for sections */
+                  <>
+                    {sections.map((section) => {
+                      const isVisible = sectionVisibility[section.key] !== false;
+                      return (
+                        <button
+                          key={section.key}
+                          onClick={() => toggleSectionVisibility(section.key)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                            isVisible 
+                              ? 'bg-[#E8DDD3] text-[#1E3A6E] hover:bg-[#D4C4B5]' 
+                              : 'bg-gray-100 text-gray-400 hover:bg-gray-200 line-through'
+                          }`}
+                          title={isVisible ? `Hide ${section.label}` : `Show ${section.label}`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${isVisible ? 'bg-green-400' : 'bg-gray-300'}`}></span>
+                          {section.label}
+                        </button>
+                      );
+                    })}
+                    <span className="text-xs text-gray-400 ml-auto">
+                      {sections.filter(s => sectionVisibility[s.key] !== false).length}/{sections.length} visible
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           )}

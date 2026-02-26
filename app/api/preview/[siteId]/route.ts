@@ -1,5 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { renderGreenValleyPage } from './templates/green-valley-industrial';
+import { renderVibeDynamicsPage } from './templates/vibe-dynamics';
+import { renderCorporateEdgePage } from './templates/corporate-edge';
+
+// ── Brand Logos (place in public/images/logos/) ──
+const BRAND_LOGOS: Record<string, string> = {
+  'Toro':       '/images/logos/toro.png',
+  'John Deere': '/images/logos/john-deere.png',
+  'Exmark':     '/images/logos/exmark.png',
+  'Stihl':      '/images/logos/stihl.png',
+  'STIHL':      '/images/logos/stihl.png',
+  'Husqvarna':  '/images/logos/husqvarna.png',
+  'Kubota':     '/images/logos/kubota.jpg',
+  'Scag':       '/images/logos/scag.png',
+  'Echo':       '/images/logos/echo.png',
+  'ECHO':       '/images/logos/echo.png',
+  'Honda':      '/images/logos/honda.png',
+  'Bobcat':     '/images/logos/bobcat.png',
+  'Ventrac':    '/images/logos/ventrac.png',
+  'Walker':     '/images/logos/walker.avif',
+  'EGO':        '/images/logos/ego.png',
+  'Cub Cadet':  '/images/logos/cub-cadet.png',
+};
+function getBrandLogo(name: string): string | null { return BRAND_LOGOS[name] || null; }
+import { renderZenithLawnPage } from './templates/zenith-lawn';
+import { renderModernLawnPage } from './templates/modern-lawn-solutions';
+import { renderWarmEarthPage } from './templates/warm-earth-designs';
+
+// CORS preflight for demo previews (used by beta landing page)
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
 
 export async function GET(
   request: NextRequest,
@@ -9,6 +47,86 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const page = searchParams.get('page') || 'home';
     
+    // ============================================
+    // DEMO MODE — for template previews
+    // Loads the real template config_json from DB
+    // and uses its defaults for content
+    // ============================================
+    if (params.siteId.startsWith('demo-')) {
+      const templateSlug = params.siteId.replace('demo-', '');
+      
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          cookies: { get() { return undefined; }, set() {}, remove() {} },
+          auth: { persistSession: false, autoRefreshToken: false },
+        }
+      );
+
+      // Load real template from DB
+      const { data: template } = await supabase
+        .from('templates')
+        .select('name, slug, config_json')
+        .eq('slug', templateSlug)
+        .single();
+
+      if (!template) {
+        return new NextResponse('Demo template not found', { status: 404 });
+      }
+
+      // Get demo-specific overrides (business name, etc.)
+      const demoOverrides = DEMO_OVERRIDES[templateSlug] || {};
+
+      // Build fake site object
+      const site = {
+        id: `demo-${templateSlug}`,
+        site_name: demoOverrides.businessName || 'Demo Dealer',
+        slug: templateSlug,
+        subscription_tier: 'full', // show all pages in demo
+        template: template,
+      };
+
+      // Build content from overrides — getContent will fallback to config_json defaults
+      const content: Record<string, string> = {
+        'businessInfo.businessName': demoOverrides.businessName || 'Demo Equipment Co.',
+        'businessInfo.phone': demoOverrides.phone || '(555) 123-4567',
+        'businessInfo.email': demoOverrides.email || 'info@demoequip.com',
+        'businessInfo.address': demoOverrides.address || '123 Main St',
+        ...(demoOverrides.extraContent || {}),
+      };
+
+      // Build demo manufacturers with brand logos
+      const mfgNames = demoOverrides.manufacturers || ['Toro', 'Exmark', 'Stihl', 'Honda', 'Husqvarna', 'Kubota'];
+      const manufacturers = mfgNames.map((name: string, i: number) => ({
+        id: `demo-mfg-${i}`, name, logo_url: getBrandLogo(name), website_url: null,
+        description: `Authorized ${name} dealer`, display_order: i,
+      }));
+
+      // Colors from overrides or let generateTemplateHTML use config defaults
+      const customizations: any = demoOverrides.colors ? {
+        colors: demoOverrides.colors,
+      } : {};
+
+      const sectionVisibility: Record<string, boolean> = {
+        hero: true, trustBadges: true, stats: true, services: true,
+        featured: true, manufacturers: true, cta: true,
+      };
+
+      const pageVisibility: Record<string, boolean> = {
+        index: true, service: true, inventory: true,
+        rentals: true, manufacturers: true, contact: true,
+      };
+
+      const demoHtml = await generateTemplateHTML(
+        site, content, customizations, manufacturers,
+        sectionVisibility, pageVisibility, page,
+        supabase, // pass supabase for sub-pages (will return empty results for demo siteId)
+        demoOverrides.sampleProducts || []
+      );
+      return new NextResponse(demoHtml, { headers: { 'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*', 'X-Frame-Options': 'ALLOWALL' } });
+    }
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -196,7 +314,122 @@ async function generateTemplateHTML(
     return site.subscription_tier !== 'basic';
   });
 
-  // Route to template-specific renderer
+  // Build Google Fonts URL
+  const fontFamilies = new Set([fonts.heading, fonts.body]);
+  const googleFontsUrl = Array.from(fontFamilies)
+    .map(font => `family=${font.replace(' ', '+')}:wght@300;400;500;600;700;800;900`)
+    .join('&');
+
+// ── Green Valley Industrial: Full custom layout ──
+  // This template owns its own <head>, header, footer, and all page renderers.
+  // It early-returns here, bypassing the shared nav/footer below.
+  if (templateSlug === 'green-valley-industrial') {
+    return await renderGreenValleyPage(
+      getContent,
+      colors,
+      fonts,
+      manufacturers,
+      sectionVisibility,
+      siteId,
+      site.site_name,
+      displayProducts,
+      isRealProducts,
+      fmtPrice,
+      availablePages,
+      page,
+      googleFontsUrl,
+      supabase
+    );
+  }
+
+  // ── Vibe Dynamics: Full custom layout ──
+  if (templateSlug === 'vibe-dynamics') {
+    return await renderVibeDynamicsPage(
+      getContent,
+      colors,
+      fonts,
+      manufacturers,
+      sectionVisibility,
+      siteId,
+      site.site_name,
+      displayProducts,
+      isRealProducts,
+      fmtPrice,
+      availablePages,
+      page,
+      googleFontsUrl,
+      supabase
+    );
+  }
+
+  // ── Corporate Edge: Full custom layout ──
+  if (templateSlug === 'corporate-edge') {
+    const ceVis: Record<string, boolean> = {};
+    Object.entries(sectionVisibility).forEach(([k, v]) => { ceVis[k] = v as boolean; });
+    const ceEnabledFeatures = new Set<string>();
+    try {
+      const { data: features } = await supabase
+        .from('site_features').select('feature_key').eq('site_id', site.id).eq('is_enabled', true);
+      if (features) features.forEach((f: any) => ceEnabledFeatures.add(f.feature_key));
+    } catch {}
+    return renderCorporateEdgePage(
+      siteId,
+      page,
+      availablePages,
+      displayProducts,
+      config,
+      customizations,
+      ceEnabledFeatures,
+      ceVis,
+    );
+  }
+
+  // ── Zenith Lawn: Full custom layout ──
+  if (templateSlug === 'zenith-lawn') {
+    const zlVis: Record<string, boolean> = {};
+    Object.entries(sectionVisibility).forEach(([k, v]) => { zlVis[k] = v as boolean; });
+    const zlFeatures = new Set<string>();
+    try {
+      const { data: features } = await supabase
+        .from('site_features').select('feature_key').eq('site_id', site.id).eq('is_enabled', true);
+      if (features) features.forEach((f: any) => zlFeatures.add(f.feature_key));
+    } catch {}
+    return renderZenithLawnPage(
+      siteId, page, availablePages, displayProducts,
+      config, customizations, zlFeatures, zlVis,
+    );
+  }
+
+  if (templateSlug === 'modern-lawn-solutions') {
+    const mlsVis: Record<string, boolean> = {};
+    Object.entries(sectionVisibility).forEach(([k, v]) => { mlsVis[k] = v as boolean; });
+    const mlsFeatures = new Set<string>();
+    try {
+      const { data: features } = await supabase
+        .from('site_features').select('feature_key').eq('site_id', site.id).eq('is_enabled', true);
+      if (features) features.forEach((f: any) => mlsFeatures.add(f.feature_key));
+    } catch {}
+    return renderModernLawnPage(
+      siteId, page, availablePages, displayProducts,
+      config, customizations, mlsFeatures, mlsVis, content,
+    );
+  }
+
+  if (templateSlug === 'warm-earth-designs') {
+    const weVis: Record<string, boolean> = {};
+    Object.entries(sectionVisibility).forEach(([k, v]) => { weVis[k] = v as boolean; });
+    const weFeatures = new Set<string>();
+    try {
+      const { data: features } = await supabase
+        .from('site_features').select('feature_key').eq('site_id', site.id).eq('is_enabled', true);
+      if (features) features.forEach((f: any) => weFeatures.add(f.feature_key));
+    } catch {}
+    return renderWarmEarthPage(
+      siteId, page, availablePages, displayProducts,
+      config, customizations, weFeatures, weVis, content,
+    );
+  }
+
  // Route to template-specific renderer
   let pageContent = '';
   
@@ -228,7 +461,7 @@ async function generateTemplateHTML(
   } else if (page === 'contact') {
     pageContent = renderContactPageContent(config, getContent, colors, templateSlug);
   } else if (page === 'service') {
-    pageContent = await renderServicePageWithIntegration(site.id, config, getContent, colors, supabase, site.subscription_tier || 'basic', templateSlug);
+    pageContent = await renderServicePageWithIntegration(site.id, config, getContent, colors, supabase, templateSlug);
   } else if (page === 'inventory') {
     if (site.subscription_tier === 'basic') {
       pageContent = renderPremiumPlaceholder('Inventory', config, getContent, colors);
@@ -236,20 +469,10 @@ async function generateTemplateHTML(
       pageContent = await renderInventoryPageWithIntegration(site.id, config, getContent, colors, supabase);
     }
   } else if (page === 'rentals') {
-    if (site.subscription_tier === 'basic') {
-      pageContent = renderPremiumPlaceholder('Rentals', config, getContent, colors);
-    } else {
-      pageContent = await renderRentalsPageWithIntegration(site.id, config, getContent, colors, supabase);
-    }
+    pageContent = await renderRentalsPageWithIntegration(site.id, config, getContent, colors, supabase);
   } else {
     pageContent = renderGenericHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
   }
-
-  // Build Google Fonts URL
-  const fontFamilies = new Set([fonts.heading, fonts.body]);
-  const googleFontsUrl = Array.from(fontFamilies)
-    .map(font => `family=${font.replace(' ', '+')}:wght@300;400;500;600;700;800;900`)
-    .join('&');
 
   return `
 <!DOCTYPE html>
@@ -318,6 +541,27 @@ async function generateTemplateHTML(
 
     @media (max-width: 768px) {
       .container { padding: 0 1.25rem; }
+      [style*="grid-template-columns: 1fr 1fr"],
+      [style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+      [style*="grid-template-columns: 2fr 1fr"],
+      [style*="grid-template-columns:2fr 1fr"] { grid-template-columns: 1fr !important; }
+      [data-section="hero"] { min-height: auto !important; }
+      [data-section="hero"][style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+      nav .container > div:last-child { display: none; }
+      section h1 { font-size: 2rem !important; }
+      section h2 { font-size: 1.5rem !important; }
+      [style*="font-size: 3rem"] { font-size: 2rem !important; }
+      [style*="font-size: 2.5rem"] { font-size: 1.75rem !important; }
+      [style*="padding: 5rem 0"] { padding: 3rem 0 !important; }
+      [style*="padding: 6rem 0"] { padding: 3rem 0 !important; }
+      [style*="padding: 8rem 0"] { padding: 3rem 0 !important; }
+      [style*="min-height: 600px"] { min-height: auto !important; }
+      [style*="min-height: 650px"] { min-height: auto !important; }
+    }
+    @media (max-width: 480px) {
+      [style*="grid-template-columns: repeat(auto"] { grid-template-columns: 1fr !important; }
+      [style*="gap: 3rem"] { gap: 1.5rem !important; }
+      [style*="gap: 4rem"] { gap: 1.5rem !important; }
     }
   </style>
 </head>
@@ -430,15 +674,43 @@ async function generateTemplateHTML(
       console.log('📨 [Preview] Received message:', event.data);
       
       if (event.data.type === 'scrollToSection') {
-        console.log('📍 [Preview] Scrolling to section:', event.data.section);
-        const section = document.querySelector(\`[data-section="\${event.data.section}"]\`);
-        console.log('🎯 [Preview] Section element found:', !!section);
+        const sectionId = event.data.section;
+        
+        // Handle scroll to top
+        if (sectionId === 'top') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        
+        // Map subsection config keys to template data-section IDs
+        const subsectionMap = {
+          '_heroHeading': null,
+          '_servicesHeading': 'serviceTypes',
+          '_ctaHeading': 'serviceCta',
+          '_whyChooseHeading': 'whyChoose',
+          '_formHeading': 'contactForm',
+          '_filtersHeading': 'inventoryGrid',
+          '_rentalInfoHeading': 'rentalInfo',
+          '_contentHeading': 'manufacturersList',
+        };
+        
+        let mappedId = subsectionMap[sectionId] !== undefined ? subsectionMap[sectionId] : sectionId;
+        
+        if (sectionId === '_heroHeading' || mappedId === null) {
+          const firstSection = document.querySelector('section[data-section]');
+          if (firstSection) {
+            firstSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+          }
+        }
+        
+        if (!mappedId) mappedId = sectionId;
+        
+        const section = document.querySelector(\`[data-section="\${mappedId}"]\`);
         if (section) {
-          console.log('⬇️ [Preview] Calling scrollIntoView');
           section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          console.log('✅ [Preview] scrollIntoView called');
         } else {
-          console.log('❌ [Preview] Section not found for:', event.data.section);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       }
       
@@ -455,132 +727,6 @@ async function generateTemplateHTML(
 </body>
 </html>
   `.trim();
-}
-
-// ============================================
-// TEMPLATE #1: GREEN VALLEY INDUSTRIAL
-// ============================================
-function getCtaSectionStyle(getContent: (key: string) => string, fallbackBg: string): string {
-  const bgImage = getContent('cta.backgroundImage');
-  if (bgImage) {
-    return `padding: 6rem 0; background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), url('${bgImage}'); background-size: cover; background-position: center; color: white; text-align: center; position: relative;`;
-  }
-  return `padding: 5rem 0; ${fallbackBg} color: white; text-align: center;`;
-}
-
-function renderGreenValleyHome(
-  getContent: (key: string) => string,
-  colors: any,
-  manufacturers: any[],
-  sectionVisibility: Record<string, boolean>,
-  siteId: string,
-  displayProducts: any[],
-  isRealProducts: boolean,
-  fmtPrice: (p: number | null) => string
-): string {
-  let html = '';
-
-  // Hero - Full-width with overlay
-  if (sectionVisibility.hero !== false) {
-    html += `
-    <section data-section="hero" style="position: relative; min-height: 600px; display: flex; align-items: center; background-image: url('${getContent('hero.image')}'); background-size: cover; background-position: center;">
-      <div class="hero-overlay" style="position: absolute; inset: 0; background: linear-gradient(135deg, var(--color-primary) 0%, rgba(0,0,0,0.7) 100%); opacity: 0.85;"></div>
-      <div class="container" style="position: relative; z-index: 10;">
-        <div style="max-width: 700px; color: white;">
-          <h1 style="color: white; font-size: 3.5rem; margin-bottom: 1.5rem; font-weight: 900;">${getContent('hero.heading')}</h1>
-          <p style="font-size: 1.25rem; margin-bottom: 2rem; color: rgba(255,255,255,0.9);">${getContent('hero.subheading')}</p>
-          <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <a href="/api/preview/${siteId}?page=contact" style="background-color: var(--color-secondary); color: white; padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${getContent('hero.ctaButton')}</a>
-          </div>
-        </div>
-      </div>
-    </section>
-    `;
-  }
-
-  // Featured Section
-  if (sectionVisibility.featured !== false) {
-    html += `
-    <section data-section="featured" style="padding: 5rem 0; background-color: #f9fafb;">
-      <div class="container">
-        <div style="text-align: center; margin-bottom: 3rem;">
-          <h2 style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--color-primary);">${getContent('featured.heading')}</h2>
-          <p style="color: #6b7280; font-size: 1.125rem;">${getContent('featured.subheading')}</p>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
-          ${displayProducts.map(item => `
-            <div style="background: white; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.3s;">
-              <div style="height: 200px; ${item.primary_image ? `background: url('${item.primary_image}') center/cover no-repeat;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));`}"></div>
-              <div style="padding: 1.5rem;">
-                <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #1f2937;">${item.title}</h3>
-                <p style="color: #6b7280; margin-bottom: 0.5rem; font-size: 0.875rem;">${item.description || item.category || 'Professional-grade equipment'}</p>
-                ${isRealProducts && item.price ? `<p style="font-size: 1.125rem; font-weight: 700; color: var(--color-primary); margin-bottom: 1rem;">${fmtPrice(item.price)}${item.sale_price ? ` <span style="font-size: 0.8rem; color: #dc2626; text-decoration: line-through;">${fmtPrice(item.sale_price)}</span>` : ''}</p>` : ''}
-                <a href="/api/preview/${siteId}?page=inventory" style="display: inline-block; background-color: var(--color-primary); color: white; padding: 0.75rem 1.5rem; border-radius: 0.375rem; text-decoration: none; font-weight: 600;">Learn More</a>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    </section>
-    `;
-  }
-
-  // Manufacturers
-  if (sectionVisibility.manufacturers !== false) {
-    html += `
-    <section data-section="manufacturers" style="padding: 5rem 0;">
-      <div class="container">
-        <div style="text-align: center; margin-bottom: 3rem;">
-          <h2 style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--color-primary);">${getContent('manufacturers.heading')}</h2>
-          <p style="color: #6b7280; font-size: 1.125rem;">${getContent('manufacturers.subheading')}</p>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 2rem;">
-          ${manufacturers.length > 0 ? manufacturers.map(m => `
-            <div style="background: white; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; min-height: 120px;">
-              ${m.logo_url ? `<img src="${m.logo_url}" alt="${m.name}" style="max-height: 60px; max-width: 100%;">` : `<span style="font-weight: 600; color: #4b5563; font-size: 1.125rem;">${m.name}</span>`}
-            </div>
-          `).join('') : '<div style="grid-column: 1 / -1; text-align: center; color: #9ca3af; padding: 3rem;">No manufacturers added yet</div>'}
-        </div>
-      </div>
-    </section>
-    `;
-  }
-
-  // Testimonials
-  if (sectionVisibility.testimonials !== false) {
-    html += `
-    <section data-section="testimonials" style="padding: 5rem 0; background-color: #f9fafb;">
-      <div class="container">
-        <h2 style="font-size: 2.5rem; text-align: center; margin-bottom: 3rem; color: var(--color-primary);">${getContent('testimonials.heading')}</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
-          ${[1, 2, 3].map(i => `
-            <div style="background: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              <div style="color: var(--color-secondary); font-size: 3rem; line-height: 1; margin-bottom: 1rem;">"</div>
-              <p style="font-style: italic; color: #4b5563; margin-bottom: 1.5rem;">Outstanding service and quality equipment. Highly recommend for any serious landscaping operation!</p>
-              <p style="font-weight: 600; color: #1f2937;">Professional Client ${i}</p>
-              <p style="color: #6b7280; font-size: 0.875rem;">Landscape Contractor</p>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    </section>
-    `;
-  }
-
-  // CTA
-  if (sectionVisibility.cta !== false) {
-    html += `
-    <section data-section="cta" style="padding: 5rem 0; background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); color: white; text-align: center;">
-      <div class="container">
-        <h2 style="color: white; font-size: 2.5rem; margin-bottom: 1.5rem;">${getContent('cta.heading')}</h2>
-        <p style="font-size: 1.25rem; margin-bottom: 2rem; color: rgba(255,255,255,0.9); max-width: 700px; margin-left: auto; margin-right: auto;">${getContent('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background: white; color: var(--color-primary); padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 1.125rem;">${getContent('cta.button')}</a>
-      </div>
-    </section>
-    `;
-  }
-
-  return html;
 }
 
 // ============================================
@@ -847,12 +993,12 @@ function renderVibeDynamicsHome(
   if (sectionVisibility.hero !== false) {
     html += `
     <section data-section="hero" style="position: relative; min-height: 650px; overflow: hidden;">
-      <div style="position: absolute; top: 0; left: 0; right: 40%; bottom: 0; background-color: var(--color-primary); transform: skewX(-10deg); transform-origin: top left;"></div>
-      <div style="position: absolute; top: 0; left: 60%; right: 0; bottom: 0; background-image: url('${getContent('hero.image')}'); background-size: cover; background-position: center;"></div>
+      <div style="position: absolute; inset: 0; background-image: url('${getContent('hero.image')}'); background-size: cover; background-position: center;"></div>
+      <div style="position: absolute; top: 0; left: 0; right: 35%; bottom: 0; background-color: var(--color-primary); transform: skewX(-10deg); transform-origin: top left;"></div>
       <div class="container" style="position: relative; z-index: 10; height: 650px; display: flex; align-items: center;">
         <div style="max-width: 600px; color: white;">
           <h1 style="color: white; font-size: 4rem; margin-bottom: 1rem; font-weight: 900; line-height: 1.1;">${getContent('hero.title')}</h1>
-          <h2 style="color: var(--color-accent); font-size: 2rem; margin-bottom: 1rem; font-weight: 700;">${getContent('hero.subtitle')}</h2>
+          <h2 style="font-size: 2rem; margin-bottom: 1rem; font-weight: 700; color: white;">${getContent('hero.subtitle')}</h2>
           <p style="font-size: 1.125rem; margin-bottom: 2rem; color: rgba(255,255,255,0.9);">${getContent('hero.description')}</p>
           <div style="display: flex; gap: 1rem;">
             <a href="/api/preview/${siteId}?page=contact" style="background: linear-gradient(135deg, var(--color-secondary), var(--color-accent)); color: white; padding: 1.25rem 2.5rem; border-radius: 9999px; text-decoration: none; font-weight: 700; font-size: 1.125rem;">${getContent('hero.ctaPrimary')}</a>
@@ -875,7 +1021,7 @@ function renderVibeDynamicsHome(
             if (!value) return '';
             return `
               <div>
-                <div style="font-size: 4rem; font-weight: 900; color: var(--color-accent); margin-bottom: 0.5rem;">${value}</div>
+                <div style="font-size: 4rem; font-weight: 900; color: white; margin-bottom: 0.5rem;">${value}</div>
                 <div style="color: white; font-size: 1.125rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">${label}</div>
               </div>
             `;
@@ -896,16 +1042,18 @@ function renderVibeDynamicsHome(
           <p style="color: #6b7280; font-size: 1.25rem; font-weight: 500;">${getContent('featured.subheading')}</p>
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
-          ${displayProducts.map((item, idx) => `
-            <div style="background: white; border: 3px solid; border-image: linear-gradient(135deg, var(--color-primary), var(--color-secondary)) 1; border-radius: 1rem; overflow: hidden; transform: rotate(${idx % 2 === 0 ? '2' : '-2'}deg); transition: transform 0.3s;">
+          ${displayProducts.map((item, idx) => {
+            const borderColor = idx % 3 === 0 ? 'var(--color-primary)' : idx % 3 === 1 ? 'var(--color-secondary)' : 'var(--color-accent)';
+            return `
+            <div style="background: white; border: 3px solid ${borderColor}; border-radius: 1rem; overflow: hidden; transition: transform 0.3s;">
               <div style="height: 200px; ${item.primary_image ? `background: url('${item.primary_image}') center/cover no-repeat;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-secondary), var(--color-accent));`}"></div>
-              <div style="padding: 1.5rem; transform: rotate(${idx % 2 === 0 ? '-2' : '2'}deg);">
+              <div style="padding: 1.5rem;">
                 <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 800; color: var(--color-primary);">${item.title.toUpperCase()}</h3>
-                <p style="color: #6b7280; margin-bottom: 0.5rem; font-weight: 600;">${isRealProducts && item.price ? fmtPrice(item.price) : 'PREMIUM EQUIPMENT'}</p>
+                <p style="color: #374151; margin-bottom: 0.5rem; font-weight: 700; font-size: 1.25rem;">${isRealProducts && item.price ? fmtPrice(item.sale_price || item.price) : 'PREMIUM EQUIPMENT'}${isRealProducts && item.sale_price ? ` <span style="text-decoration: line-through; color: #9ca3af; font-size: 1rem;">${fmtPrice(item.price)}</span>` : ''}</p>
                 <a href="/api/preview/${siteId}?page=inventory" style="display: inline-block; background-color: var(--color-secondary); color: white; padding: 0.75rem 1.5rem; border-radius: 9999px; text-decoration: none; font-weight: 700;">GRAB IT!</a>
               </div>
             </div>
-          `).join('')}
+          `}).join('')}
         </div>
       </div>
     </section>
@@ -946,7 +1094,7 @@ function renderVibeDynamicsHome(
             if (!title) return '';
             return `
               <div style="background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); padding: 2rem; border-radius: 1rem; color: white;">
-                <h3 style="color: var(--color-accent); margin-bottom: 1rem; font-size: 1.5rem; font-weight: 800;">${title}</h3>
+                <h3 style="color: white; margin-bottom: 1rem; font-size: 1.5rem; font-weight: 800;">${title}</h3>
                 <p style="color: rgba(255,255,255,0.9); font-weight: 500;">${description}</p>
               </div>
             `;
@@ -1458,14 +1606,14 @@ async function renderInventoryPageWithIntegration(
   const subheading = getContent('inventoryPage.subheading') || 'Browse our selection of professional equipment';
 
   // Load all available inventory items
-  const { data: items } = await supabase
+  const items = supabase ? (await supabase
     .from('inventory_items')
     .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, featured, status, hours')
     .eq('site_id', siteId)
     .eq('status', 'available')
     .order('featured', { ascending: false })
     .order('display_order')
-    .limit(50);
+    .limit(50)).data : null;
 
   const inventory = items || [];
 
@@ -1593,7 +1741,6 @@ async function renderServicePageWithIntegration(
   getContent: (key: string) => string,
   colors: any,
   supabase: any,
-  subscriptionTier: string = 'basic',
   templateSlug: string = ''
 ): Promise<string> {
   const heading = getContent('servicePage.heading') || 'Our Services';
@@ -1650,31 +1797,46 @@ async function renderServicePageWithIntegration(
   </section>
   `;
 
+  // Check if site has the service_scheduling add-on
+  let hasServiceFeature = false;
+  if (supabase) {
+    const { data: features } = await supabase
+      .from('site_features')
+      .select('feature_key')
+      .eq('site_id', siteId)
+      .eq('feature_key', 'service_scheduling')
+      .eq('enabled', true)
+      .single();
+    hasServiceFeature = !!features;
+  }
+
   // Load service types from DB
-  const { data: serviceTypesData } = await supabase
+  const serviceTypesData = supabase ? (await supabase
     .from('service_types')
     .select('id, name, description, duration_minutes, price_estimate, category')
     .eq('site_id', siteId)
     .eq('is_active', true)
-    .order('sort_order');
+    .order('sort_order')).data : null;
   const serviceTypes = serviceTypesData || [];
 
   // Premium add-on: online scheduling (Calendly or built-in form)
-  const isPremium = subscriptionTier && subscriptionTier !== 'basic';
   let schedulingSection = '';
 
-  if (isPremium) {
+  if (hasServiceFeature) {
+    // Check for Calendly integration
     let integration = null;
-    try {
-      const { data } = await supabase
-        .from('site_integrations')
-        .select('*')
-        .eq('site_id', siteId)
-        .eq('integration_type', 'service')
-        .single();
-      integration = data;
-    } catch (e) {
-      // No integration configured — that's fine, use built-in form
+    if (supabase) {
+      try {
+        const { data } = await supabase
+          .from('site_integrations')
+          .select('*')
+          .eq('site_id', siteId)
+          .eq('integration_type', 'service')
+          .single();
+        integration = data;
+      } catch (e) {
+        // No integration configured — will use built-in form
+      }
     }
 
     if (integration?.integration_id === 'calendly') {
@@ -1769,9 +1931,43 @@ async function renderServicePageWithIntegration(
       </section>
       `;
     }
+  } else {
+    // Basic tier: simple contact form (no scheduling)
+    schedulingSection = `
+    <section style="padding: 5rem 0;">
+      <div class="container" style="max-width: 700px;">
+        <h2 style="font-size: 2rem; font-weight: 700; text-align: center; margin-bottom: 0.5rem; color: var(--color-primary);">Request Service</h2>
+        <p style="text-align: center; color: #6b7280; margin-bottom: 2rem;">Fill out the form below and we'll get back to you within 1 business day.</p>
+        <form method="POST" action="/api/service/book/${siteId}" id="serviceContactForm" style="background: white; padding: 2.5rem; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">
+          <input type="hidden" name="siteId" value="${siteId}">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div>
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Name *</label>
+              <input type="text" name="customerName" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem;">
+            </div>
+            <div>
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Phone *</label>
+              <input type="tel" name="customerPhone" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem;">
+            </div>
+          </div>
+          <div style="margin-top: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Email *</label>
+            <input type="email" name="customerEmail" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem;">
+          </div>
+          <div style="margin-top: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Describe the Issue *</label>
+            <textarea name="customerNotes" required rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem;" placeholder="Please describe the problem or service needed..."></textarea>
+          </div>
+          <button type="submit" style="width: 100%; margin-top: 2rem; background-color: var(--color-primary); color: white; padding: 1rem; border: none; border-radius: 0.5rem; font-weight: 600; font-size: 1.125rem; cursor: pointer;">
+            ${getContent('servicePage.ctaButton') || 'Submit Service Request'}
+          </button>
+        </form>
+      </div>
+    </section>
+    `;
   }
 
-  const serviceBookingScript = schedulingSection ? `
+  const serviceBookingScript = `
   <script>
     function updateServiceInfo() {
       var sel = document.getElementById('serviceTypeSelect');
@@ -1779,6 +1975,7 @@ async function renderServicePageWithIntegration(
       if (sel && nameInput) nameInput.value = sel.options[sel.selectedIndex]?.text || '';
     }
     
+    // Premium scheduling form
     var sform = document.getElementById('serviceBookingForm');
     if (sform) {
       sform.addEventListener('submit', function(e) {
@@ -1827,8 +2024,42 @@ async function renderServicePageWithIntegration(
         });
       });
     }
+
+    // Basic contact form
+    var cform = document.getElementById('serviceContactForm');
+    if (cform) {
+      cform.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var fd = new FormData(cform);
+        var data = {};
+        fd.forEach(function(v, k) { data[k] = v; });
+        var btn = cform.querySelector('button[type=submit]');
+        btn.textContent = 'Submitting...';
+        btn.disabled = true;
+        fetch(cform.action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+          if (res.error) {
+            alert('Error: ' + res.error);
+            btn.textContent = 'Submit Service Request';
+            btn.disabled = false;
+          } else {
+            cform.innerHTML = '<div style="text-align:center;padding:3rem"><h3 style="color:var(--color-primary);font-size:1.5rem;margin-bottom:1rem">\\u2705 Service Request Submitted!</h3><p style="color:#6b7280">We will contact you within 1 business day.</p></div>';
+          }
+        })
+        .catch(function() {
+          alert('Something went wrong.');
+          btn.textContent = 'Submit Service Request';
+          btn.disabled = false;
+        });
+      });
+    }
   </script>
-  ` : '';
+  `;
 
   return `
   ${renderPageHero(heading, subheading, colors, heroImage, 'servicePage')}
@@ -1848,12 +2079,18 @@ async function renderRentalsPageWithIntegration(
   colors: any,
   supabase: any
 ): Promise<string> {
-  const { data: integration } = await supabase
-    .from('site_integrations')
-    .select('*')
-    .eq('site_id', siteId)
-    .eq('integration_type', 'rentals')
-    .single();
+  // Check if site has rental_scheduling add-on
+  let hasRentalFeature = false;
+  if (supabase) {
+    const { data: feature } = await supabase
+      .from('site_features')
+      .select('feature_key')
+      .eq('site_id', siteId)
+      .eq('feature_key', 'rental_scheduling')
+      .eq('enabled', true)
+      .single();
+    hasRentalFeature = !!feature;
+  }
 
   const heading = getContent('rentalsPage.heading') || 'Equipment Rentals';
   const subheading = getContent('rentalsPage.subheading') || 'Flexible rental options for any project';
@@ -1861,13 +2098,13 @@ async function renderRentalsPageWithIntegration(
   const contentHeading = getContent('rentalsPage.contentHeading') || '';
   const contentText = getContent('rentalsPage.contentText') || '';
 
-  if (integration?.integration_id === 'siteforge_rentals') {
-    const { data: rentals } = await supabase
+  if (hasRentalFeature) {
+    const rentals = supabase ? (await supabase
       .from('rental_inventory')
       .select('*')
       .eq('site_id', siteId)
       .eq('status', 'available')
-      .order('display_order');
+      .order('display_order')).data : null;
 
     return `
     ${renderPageHero(heading, subheading, colors, heroImage, 'rentalsPage')}
@@ -2290,3 +2527,347 @@ function renderStats(getContent: (key: string) => string, colors: any) {
   </section>
   `;
 }
+
+
+
+// ============================================
+// DEMO OVERRIDES
+// Minimal overrides per template for demo previews.
+// All other content comes from each template's
+// config_json defaults automatically.
+// ============================================
+
+const DEMO_OVERRIDES: Record<string, any> = {
+  'corporate-edge': {
+    businessName: 'Premier Equipment Co.',
+    phone: '(555) 123-4567',
+    email: 'info@premierequipment.com',
+    address: '1234 Industrial Blvd, Springfield, IL 62701',
+    manufacturers: ['John Deere', 'Exmark', 'Stihl', 'Husqvarna', 'Kubota', 'Scag', 'Toro', 'Echo'],
+    extraContent: {
+      'business.name': 'Premier Equipment Co.',
+      'business.phone': '(555) 123-4567',
+      'business.email': 'info@premierequipment.com',
+      'business.address': '1234 Industrial Blvd, Springfield, IL 62701',
+      'business.hours': JSON.stringify({
+        monday: { open: '07:00', close: '18:00' }, tuesday: { open: '07:00', close: '18:00' },
+        wednesday: { open: '07:00', close: '18:00' }, thursday: { open: '07:00', close: '18:00' },
+        friday: { open: '07:00', close: '18:00' }, saturday: { open: '08:00', close: '16:00' },
+        sunday: { open: '', close: '' },
+      }),
+      'social.facebook': 'https://facebook.com/premierequipment',
+      'social.linkedin': 'https://linkedin.com/company/premierequipment',
+      'social.youtube': 'https://youtube.com/@premierequipment',
+      'hero.heading': 'Professional Lawn Care Equipment You Can Trust',
+      'hero.subheading': 'Serving commercial landscapers and homeowners for over 25 years with quality equipment, expert service, and unmatched reliability.',
+      'hero.ctaPrimary': 'Browse Inventory',
+      'hero.ctaSecondary': 'Schedule Consultation',
+      'hero.image': '/images/hero-mower.jpg',
+      'footer.tagline': 'Your Trusted Partner in Professional Lawn Care Equipment',
+      'cta.heading': 'Ready to Upgrade Your Equipment?',
+      'cta.description': 'Schedule a consultation with our equipment specialists to find the perfect solution for your needs.',
+      'cta.button': 'Schedule Consultation',
+      'services.heading': 'Service Department',
+      'services.description': 'Factory-trained technicians providing expert repair and maintenance services for all major equipment brands.',
+      'services.items': JSON.stringify([
+        { icon: '🔧', title: 'Equipment Repair', description: 'Full-service repair for all major brands with certified technicians.', features: ['All major brands', 'Factory parts', 'Quick turnaround'] },
+        { icon: '⚙', title: 'Preventive Maintenance', description: 'Scheduled maintenance programs designed for commercial operators.', features: ['Seasonal tune-ups', 'Oil changes', 'Blade sharpening'] },
+        { icon: '📦', title: 'Parts Department', description: 'Extensive parts inventory for quick repairs with OEM and aftermarket parts.', features: ['OEM parts', 'Next-day delivery', 'Expert advice'] },
+        { icon: '📋', title: 'Warranty Work', description: 'Authorized warranty service center for all major manufacturers.', features: ['Factory authorized', 'No hassle claims', 'Loaner equipment'] },
+      ]),
+      'contact.heading': 'Contact Us',
+      'contact.description': "Get in touch with our team. We're here to help with sales, service, rentals, and any questions.",
+      'inventory.heading': 'Equipment Inventory',
+      'inventory.description': "Browse our complete selection of professional lawn care equipment.",
+      'rentals.heading': 'Equipment Rentals',
+      'rentals.description': 'Professional equipment when you need it. Flexible daily, weekly, and monthly rental options.',
+      'manufacturers.heading': 'Our Manufacturers',
+      'manufacturers.description': "We're proud to be an authorized dealer for the industry's most trusted brands.",
+      'whyChoose.heading': 'Why Choose Us',
+      'whyChoose.description': "We're committed to providing the highest level of service and support.",
+      'whyChoose.items': JSON.stringify([
+        { icon: '🛡', title: 'Authorized Dealer', description: 'Factory-authorized for all major brands' },
+        { icon: '🏆', title: 'Certified Technicians', description: 'Factory-trained service professionals' },
+        { icon: '📋', title: 'Warranty Available', description: 'Extended protection plans offered' },
+        { icon: '👥', title: 'Family Owned', description: 'Proudly serving since 1998' },
+      ]),
+      'stats.items': JSON.stringify([
+        { value: '25+', label: 'Years Experience' },
+        { value: '10,000+', label: 'Customers Served' },
+        { value: '5', label: 'Locations' },
+        { value: '50+', label: 'Certified Technicians' },
+      ]),
+      'testimonials.items': JSON.stringify([
+        { quote: "Premier Equipment has been our go-to dealer for over 15 years. Their service department is second to none.", name: 'Michael Thompson', title: 'Operations Manager', company: 'GreenScape Landscaping' },
+        { quote: "When we expanded our fleet, the team at Premier helped us choose the right equipment for our needs.", name: 'Sarah Martinez', title: 'Owner', company: 'Martinez Lawn Care' },
+        { quote: "The financing options and trade-in program made upgrading our equipment painless.", name: 'David Chen', title: 'Fleet Manager', company: 'ProCut Commercial Services' },
+      ]),
+    },
+sampleProducts: [
+      { id: 'demo-1', name: 'TimeCutter MyRIDE 54" Zero Turn Mower', brand: 'Toro', price: 5199, category: 'Mowers', condition: 'new', image_url: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/75757-1.jpeg', description: '54 in. TimeCutter MyRIDE Zero Turn Mower with Smart Speed technology.' },
+      { id: 'demo-2', name: 'Z Master Revolution 60" Commercial Mower', brand: 'Toro', price: 44443, category: 'Mowers', condition: 'new', image_url: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/1-22.png', description: 'Commercial zero-turn with 60 in. TURBO FORCE deck and Horizon Technology.' },
+      { id: 'demo-3', name: 'GrandStand 52" Stand-On Mower', brand: 'Toro', price: 13443, category: 'Mowers', condition: 'new', image_url: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/74513.jpeg', description: '52 in. stand-on mower with 22 HP Kohler engine and TURBO FORCE deck.' },
+      { id: 'demo-4', name: '30" TurfMaster HDX Walk-Behind', brand: 'Toro', price: 3110, category: 'Mowers', condition: 'new', image_url: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/22215-1.jpeg', description: '30 in. commercial walk-behind with Kawasaki engine and blade brake clutch.' },
+      { id: 'demo-5', name: '60V Brushless String Trimmer', brand: 'Toro', price: 229, category: 'Trimmers', condition: 'new', image_url: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/1-4.png', description: '14/16 in. dual-line trimmer head with brushless motor. 2.5Ah battery included.' },
+      { id: 'demo-6', name: '60V MAX Brushless Leaf Blower', brand: 'Toro', price: 229, category: 'Blowers', condition: 'new', image_url: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/120.png', description: '120 mph max air speed brushless handheld blower. 2.5Ah battery included.' },
+    ],
+  },
+  'green-valley-industrial': {
+    businessName: 'Valley Power Equipment',
+    phone: '(303) 555-0298',
+    email: 'info@valleypower.com',
+    address: '1200 Industrial Pkwy, Denver, CO 80221',
+    manufacturers: ['Toro', 'Bobcat', 'Ventrac', 'Stihl', 'Scag', 'Walker'],
+    extraContent: {
+      'businessInfo.city': 'Denver',
+      'businessInfo.state': 'CO',
+      'businessInfo.zip': '80221',
+      'hero.heading': 'Power Your Property',
+      'hero.subheading': 'Premium outdoor and turf equipment for professionals and homeowners. Sales, service, and rentals you can count on.',
+      'hero.image': '/images/hero-mower.jpg',
+      'hero.ctaButton': 'Browse Equipment',
+      'featured.heading': 'Featured Equipment',
+      'featured.subheading': 'Top picks from our showroom floor',
+      'cta.heading': 'Ready to Get Started?',
+      'cta.subheading': 'Visit our showroom or give us a call. Our expert team is ready to help you find the right equipment for your needs.',
+      'cta.primaryButton': 'Browse Inventory',
+      'cta.secondaryButton': 'Contact Us',
+      'testimonials.heading': 'What Our Customers Say',
+      'testimonials.quote': 'Valley Power Equipment has been instrumental in keeping our fleet running. Their Bobcat service team is the best in Colorado.',
+      'testimonials.author': 'Mark Henderson',
+      'testimonials.role': 'Fleet Manager, Henderson Landscaping',
+      'testimonials.items': JSON.stringify([
+        { quote: "Valley Power has been our go-to equipment dealer for 8 years. Their Bobcat and Toro expertise is unmatched.", name: 'Mark Henderson', title: 'Fleet Manager', company: 'Henderson Landscaping' },
+        { quote: "When our Ventrac went down mid-season, they had us back up and running the same day. That kind of service is priceless.", name: 'Lisa Ramirez', title: 'Owner', company: 'Rocky Mountain Turf Care' },
+        { quote: "The rental program helped us test equipment before committing to a purchase. Smart way to do business.", name: 'Tom Bradley', title: 'Operations Director', company: 'Front Range Property Services' },
+      ]),
+      'servicePage.heading': 'Expert Service & Repair',
+      'servicePage.subheading': 'Keep your equipment running at peak performance with our certified technicians.',
+      'servicePage.service1Title': 'Equipment Repair',
+      'servicePage.service1Description': 'Complete diagnostic and repair services for all major equipment brands. Factory-trained technicians with OEM parts.',
+      'servicePage.service2Title': 'Preventive Maintenance',
+      'servicePage.service2Description': 'Regular maintenance programs to extend equipment life and prevent costly breakdowns.',
+      'servicePage.service3Title': 'Parts & Accessories',
+      'servicePage.service3Description': 'Genuine OEM parts and quality aftermarket options. In-stock or next-day delivery available.',
+      'contactPage.heading': 'Get In Touch',
+      'contactPage.subheading': 'Have questions about our equipment or services? We are here to help.',
+      'contactPage.formHeading': 'Send Us a Message',
+      'contactPage.locationHeading': 'Visit Our Showroom',
+      'manufacturersPage.heading': 'Our Partner Manufacturers',
+      'manufacturersPage.subheading': 'Authorized dealer for industry-leading equipment brands.',
+      'manufacturersPage.introText': 'As an authorized dealer, we provide factory-trained service, genuine parts, and warranty support for every brand we carry.',
+      'inventoryPage.heading': 'Equipment Inventory',
+      'inventoryPage.subheading': 'Browse our complete selection of professional-grade equipment.',
+      'rentalsPage.heading': 'Equipment Rentals',
+      'rentalsPage.subheading': 'Professional-grade equipment available by the day, week, or month.',
+      'footer.tagline': 'Quality equipment. Expert service. Since 1998.',
+      'hours.monday': '7:30 AM - 5:30 PM',
+      'hours.tuesday': '7:30 AM - 5:30 PM',
+      'hours.wednesday': '7:30 AM - 5:30 PM',
+      'hours.thursday': '7:30 AM - 5:30 PM',
+      'hours.friday': '7:30 AM - 5:30 PM',
+      'hours.saturday': '8:00 AM - 3:00 PM',
+      'hours.sunday': 'Closed',
+      'social.facebook': 'https://facebook.com/valleypower',
+      'social.instagram': 'https://instagram.com/valleypower',
+    },
+sampleProducts: [
+      { id: 'demo-p1', title: 'TimeCutter\u00ae MyRIDE\u00ae 54" Zero Turn Mower', description: '54 in. TimeCutter MyRIDE Zero Turn Mower with Smart Speed technology.', price: 5199, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/75757-1.jpeg', model: '75757', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-timecutter-myride-54', featured: true, status: 'available' },
+      { id: 'demo-p2', title: 'Z Master Revolution 60" Commercial Mower', description: 'Commercial zero-turn with 60 in. TURBO FORCE deck and Horizon Technology.', price: 44443, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/1-22.png', model: 'Z Master Revolution', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-z-master-revolution-60', featured: true, status: 'available' },
+      { id: 'demo-p3', title: 'GrandStand\u00ae 52" Stand-On Mower', description: '52 in. stand-on mower with 22 HP Kohler engine and TURBO FORCE deck.', price: 13443, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/74513.jpeg', model: 'GrandStand 74513', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-grandstand-52', featured: true, status: 'available' },
+      { id: 'demo-p4', title: '30" TurfMaster\u00ae HDX Walk-Behind', description: '30 in. commercial walk-behind with Kawasaki engine and blade brake clutch.', price: 3110, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/22215-1.jpeg', model: 'TurfMaster HDX 22215', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-turfmaster-hdx-30', featured: true, status: 'available' },
+      { id: 'demo-p5', title: '60V Brushless String Trimmer', description: '14/16 in. dual-line trimmer head with brushless motor. 2.5Ah battery included.', price: 229, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/1-4.png', model: '51836T', year: 2025, category: 'Trimmers', condition: 'new', slug: 'toro-60v-string-trimmer', featured: false, status: 'available' },
+      { id: 'demo-p6', title: '60V MAX Brushless Leaf Blower', description: '120 mph max air speed brushless handheld blower. 2.5Ah battery included.', price: 229, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/120.png', model: '51820', year: 2025, category: 'Blowers', condition: 'new', slug: 'toro-60v-leaf-blower', featured: false, status: 'available' },
+    ],
+  },
+  'modern-lawn-solutions': {
+    businessName: 'Modern Lawn Solutions',
+    phone: '(512) 555-0198',
+    email: 'hello@modernlawn.com',
+    address: '900 Tech Row, Austin, TX 78701',
+    manufacturers: ['Toro', 'Exmark', 'ECHO', 'Honda', 'Husqvarna', 'Kubota'],
+    extraContent: {
+      'hero.heading': 'Your Trusted Equipment Partner',
+      'hero.subheading': 'Premium lawn care equipment, expert service, and everything you need to get the job done right.',
+      'hero.image': '/images/hero-mower.jpg',
+      'hero.ctaPrimary': 'Shop Equipment',
+      'hero.ctaSecondary': 'Book Service',
+      'testimonials.heading': 'What Our Customers Say',
+      'testimonials.items': JSON.stringify([
+        { quote: "Modern Lawn Solutions helped me find the perfect zero-turn for my 3-acre property. Their team really knows their stuff.", name: 'Mike Johnson', title: 'Homeowner', company: '' },
+        { quote: "I've been buying equipment here for 5 years. Their service department keeps our fleet running like new.", name: 'Sarah Williams', title: 'Owner', company: 'Williams Landscaping' },
+        { quote: "The staff took time to understand our commercial needs. We upgraded our entire fleet and couldn't be happier.", name: 'David Chen', title: 'Property Manager', company: 'Austin Property Group' },
+      ]),
+    },
+    sampleProducts: [
+      { id: 'demo-p1', title: 'TimeCutter\u00ae MyRIDE\u00ae 54" Zero Turn Mower', description: '54 in. TimeCutter MyRIDE Zero Turn Mower with Smart Speed technology.', price: 5199, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/75757-1.jpeg', model: '75757', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-timecutter-myride-54', featured: true, status: 'available' },
+      { id: 'demo-p2', title: 'Z Master Revolution 60" Commercial Mower', description: 'Commercial zero-turn with 60 in. TURBO FORCE deck and Horizon Technology.', price: 44443, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/1-22.png', model: 'Z Master Revolution', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-z-master-revolution-60', featured: true, status: 'available' },
+      { id: 'demo-p3', title: 'GrandStand\u00ae 52" Stand-On Mower', description: '52 in. stand-on mower with 22 HP Kohler engine and TURBO FORCE deck.', price: 13443, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/74513.jpeg', model: 'GrandStand 74513', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-grandstand-52', featured: true, status: 'available' },
+      { id: 'demo-p4', title: '30" TurfMaster\u00ae HDX Walk-Behind', description: '30 in. commercial walk-behind with Kawasaki engine and blade brake clutch.', price: 3110, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/22215-1.jpeg', model: 'TurfMaster HDX 22215', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-turfmaster-hdx-30', featured: true, status: 'available' },
+      { id: 'demo-p5', title: '60V Brushless String Trimmer', description: '14/16 in. dual-line trimmer head with brushless motor. 2.5Ah battery included.', price: 229, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/1-4.png', model: '51836T', year: 2025, category: 'Trimmers', condition: 'new', slug: 'toro-60v-string-trimmer', featured: false, status: 'available' },
+      { id: 'demo-p6', title: '60V MAX Brushless Leaf Blower', description: '120 mph max air speed brushless handheld blower. 2.5Ah battery included.', price: 229, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/120.png', model: '51820', year: 2025, category: 'Blowers', condition: 'new', slug: 'toro-60v-leaf-blower', featured: false, status: 'available' },
+    ],
+  },
+  'vibe-dynamics': {
+    businessName: 'VibePower Equipment',
+    phone: '(305) 555-0342',
+    email: 'hello@vibepower.com',
+    address: '200 Neon Ave, Miami, FL 33101',
+    manufacturers: ['Toro', 'Bobcat', 'EGO', 'ECHO', 'Husqvarna', 'Honda'],
+    extraContent: {
+      'businessInfo.city': 'Miami',
+      'businessInfo.state': 'FL',
+      'businessInfo.zip': '33101',
+      'hero.title': 'POWER YOUR LAWN',
+      'hero.subtitle': 'Premium Equipment. Expert Service.',
+      'hero.image': '/images/hero-mower.jpg',
+      'hero.description': 'We\'ve been helping homeowners and professionals get the job done right for over 25 years.',
+      'hero.ctaPrimary': 'Shop Equipment',
+      'hero.ctaSecondary': 'View Rentals',
+      'featured.heading': 'FEATURED EQUIPMENT',
+      'featured.subheading': 'Top-rated products from the brands you trust',
+      'stats.stat1Value': '25+',
+      'stats.stat1Label': 'Years Experience',
+      'stats.stat2Value': '5,000+',
+      'stats.stat2Label': 'Happy Customers',
+      'stats.stat3Value': '500+',
+      'stats.stat3Label': 'Products In Stock',
+      'stats.stat4Value': '24/7',
+      'stats.stat4Label': 'Support Available',
+      'services.heading': 'OUR SERVICES',
+      'services.service1Title': 'Equipment Repair',
+      'services.service1Description': 'Expert repair services for all major brands. Our certified technicians can fix anything.',
+      'services.service2Title': 'Scheduled Maintenance',
+      'services.service2Description': 'Keep your equipment running smoothly with our preventive maintenance packages.',
+      'services.service3Title': 'Parts & Accessories',
+      'services.service3Description': 'Genuine OEM parts and quality aftermarket accessories for all your equipment.',
+      'services.service4Title': 'Pickup & Delivery',
+      'services.service4Description': 'Convenient pickup and delivery service available for service and rentals.',
+      'testimonials.heading': 'WHAT PEOPLE SAY',
+      'testimonials.items': JSON.stringify([
+        { quote: "VibePower is hands down the best equipment dealer in Miami. They set us up with an EGO battery fleet that changed our business.", name: 'Carlos Rivera', title: 'Owner', company: 'Rivera Lawn & Garden' },
+        { quote: "These guys are AMAZING! Fast service, great selection, and the staff actually knows what they're talking about.", name: 'Jessica Nguyen', title: 'Operations Manager', company: 'Sunshine Property Care' },
+        { quote: "Switched from gas to battery-powered equipment with their help. Lower noise, zero emissions, and our clients love it.", name: 'Derek Williams', title: 'Founder', company: 'GreenWave Landscaping' },
+      ]),
+      'manufacturers.heading': 'TRUSTED BRANDS',
+      'manufacturers.subheading': 'Authorized dealer for the best names in outdoor power',
+      'cta.heading': 'READY TO POWER UP?',
+      'cta.subheading': 'Visit our showroom or call us today. Let\'s find the perfect equipment for your project.',
+      'cta.button': 'LET\'S GO!',
+      'cta.primaryButton': 'LET\'S GO!',
+      'servicePage.heading': 'Expert Service & Repair',
+      'servicePage.subheading': 'Factory-trained technicians keeping your gear in peak condition.',
+      'servicePage.service1Title': 'Equipment Repair',
+      'servicePage.service1Description': 'Complete diagnostic and repair for all major outdoor power equipment brands.',
+      'servicePage.service2Title': 'Tune-Ups & Maintenance',
+      'servicePage.service2Description': 'Seasonal maintenance programs to keep your equipment running at its best.',
+      'servicePage.service3Title': 'Parts Counter',
+      'servicePage.service3Description': 'Huge inventory of OEM and aftermarket parts. Walk-in or order online.',
+      'contactPage.heading': 'Get In Touch',
+      'contactPage.subheading': 'Drop us a line — we\'re always stoked to help.',
+      'inventoryPage.heading': 'Equipment Inventory',
+      'inventoryPage.subheading': 'Browse our full lineup of professional-grade equipment.',
+      'rentalsPage.heading': 'Equipment Rentals',
+      'rentalsPage.subheading': 'Pro-grade equipment available daily, weekly, or monthly.',
+      'manufacturersPage.heading': 'Our Partner Brands',
+      'manufacturersPage.subheading': 'We proudly carry and service these industry-leading brands.',
+      'footer.tagline': 'Your trusted partner for premium lawn care equipment, rentals, and expert service.',
+      'hours.monday': '8:00 AM - 6:00 PM',
+      'hours.tuesday': '8:00 AM - 6:00 PM',
+      'hours.wednesday': '8:00 AM - 6:00 PM',
+      'hours.thursday': '8:00 AM - 6:00 PM',
+      'hours.friday': '8:00 AM - 6:00 PM',
+      'hours.saturday': '9:00 AM - 4:00 PM',
+      'hours.sunday': 'Closed',
+      'social.facebook': 'https://facebook.com/vibepower',
+      'social.instagram': 'https://instagram.com/vibepower',
+    },
+sampleProducts: [
+      { id: 'demo-p1', title: 'TimeCutter\u00ae MyRIDE\u00ae 54" Zero Turn Mower', description: '54 in. TimeCutter MyRIDE Zero Turn Mower with Smart Speed technology.', price: 5199, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/75757-1.jpeg', model: '75757', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-timecutter-myride-54', featured: true, status: 'available' },
+      { id: 'demo-p2', title: 'Z Master Revolution 60" Commercial Mower', description: 'Commercial zero-turn with 60 in. TURBO FORCE deck and Horizon Technology.', price: 44443, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/1-22.png', model: 'Z Master Revolution', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-z-master-revolution-60', featured: true, status: 'available' },
+      { id: 'demo-p3', title: 'GrandStand\u00ae 52" Stand-On Mower', description: '52 in. stand-on mower with 22 HP Kohler engine and TURBO FORCE deck.', price: 13443, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/74513.jpeg', model: 'GrandStand 74513', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-grandstand-52', featured: true, status: 'available' },
+      { id: 'demo-p4', title: '30" TurfMaster\u00ae HDX Walk-Behind', description: '30 in. commercial walk-behind with Kawasaki engine and blade brake clutch.', price: 3110, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/22215-1.jpeg', model: 'TurfMaster HDX 22215', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-turfmaster-hdx-30', featured: true, status: 'available' },
+      { id: 'demo-p5', title: '60V Brushless String Trimmer', description: '14/16 in. dual-line trimmer head with brushless motor. 2.5Ah battery included.', price: 229, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/1-4.png', model: '51836T', year: 2025, category: 'Trimmers', condition: 'new', slug: 'toro-60v-string-trimmer', featured: false, status: 'available' },
+      { id: 'demo-p6', title: '60V MAX Brushless Leaf Blower', description: '120 mph max air speed brushless handheld blower. 2.5Ah battery included.', price: 229, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/120.png', model: '51820', year: 2025, category: 'Blowers', condition: 'new', slug: 'toro-60v-leaf-blower', featured: false, status: 'available' },
+    ],
+    colors: {
+      primary: '#d97706',
+      secondary: '#7c3aed',
+      accent: '#ca8a04',
+    },
+  },
+  'zenith-lawn': {
+    businessName: 'Zenith Equipment Co.',
+    phone: '(555) 246-8100',
+    email: 'info@zenithequipment.com',
+    address: '782 Garden Lane, Portland, OR 97201',
+    manufacturers: ['John Deere', 'Husqvarna', 'Stihl', 'Honda', 'Toro'],
+    extraContent: {
+      'business.name': 'Zenith Equipment Co.',
+      'business.phone': '(555) 246-8100',
+      'business.email': 'info@zenithequipment.com',
+      'business.address': '782 Garden Lane, Portland, OR 97201',
+      'business.hours': JSON.stringify({
+        monday: { open: '08:00', close: '18:00' }, tuesday: { open: '08:00', close: '18:00' },
+        wednesday: { open: '08:00', close: '18:00' }, thursday: { open: '08:00', close: '18:00' },
+        friday: { open: '08:00', close: '18:00' }, saturday: { open: '09:00', close: '16:00' },
+        sunday: { open: '', close: '' },
+      }),
+      'hero.heading': 'Premium lawn care equipment for professionals.',
+      'hero.subheading': "Quality equipment from the world's leading manufacturers. Expert service and support.",
+      'hero.ctaPrimary': 'View Inventory',
+      'hero.image': '/images/hero-mower.jpg',
+      'footer.tagline': 'Premium Lawn Care Solutions',
+      'services.heading': 'Service & Repair',
+      'services.description': 'Our certified technicians provide expert maintenance and repair services for all major brands.',
+      'contact.heading': 'Contact Us',
+      'contact.description': "We're here to help with any questions about our equipment, services, or rentals.",
+      'inventory.heading': 'Inventory',
+      'rentals.heading': 'Equipment Rentals',
+      'rentals.description': 'Professional-grade equipment available for short or long-term rental.',
+      'manufacturers.heading': 'Our Manufacturers',
+      'manufacturers.description': "We are proud to be an authorized dealer for the world's most trusted brands.",
+      'testimonials.items': JSON.stringify([
+        { quote: "Zenith Equipment transformed our commercial landscape operation. Their expertise in matching us with the right equipment has been invaluable.", name: 'Michael Torres', company: 'Torres Landscaping Co.' },
+        { quote: "The minimalist approach extends to their service — no upselling, just honest advice and quality work. Refreshing.", name: 'Anna Kowalski', company: 'Pacific Green Maintenance' },
+        { quote: "We spec'd our entire Honda and Husqvarna fleet through Zenith. Impeccable product knowledge and follow-through.", name: 'Ryan Okafor', company: 'Okafor Property Solutions' },
+      ]),
+    },
+sampleProducts: [
+      { id: 'demo-1', name: 'TimeCutter MyRIDE 54" Zero Turn Mower', brand: 'Toro', price: 5199, category: 'Mowers', condition: 'new', image_url: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/75757-1.jpeg', description: '54 in. TimeCutter MyRIDE Zero Turn Mower with Smart Speed technology.' },
+      { id: 'demo-2', name: 'Z Master Revolution 60" Commercial Mower', brand: 'Toro', price: 44443, category: 'Mowers', condition: 'new', image_url: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/1-22.png', description: 'Commercial zero-turn with 60 in. TURBO FORCE deck and Horizon Technology.' },
+      { id: 'demo-3', name: 'GrandStand 52" Stand-On Mower', brand: 'Toro', price: 13443, category: 'Mowers', condition: 'new', image_url: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/74513.jpeg', description: '52 in. stand-on mower with 22 HP Kohler engine and TURBO FORCE deck.' },
+      { id: 'demo-4', name: '30" TurfMaster HDX Walk-Behind', brand: 'Toro', price: 3110, category: 'Mowers', condition: 'new', image_url: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/22215-1.jpeg', description: '30 in. commercial walk-behind with Kawasaki engine and blade brake clutch.' },
+      { id: 'demo-5', name: '60V Brushless String Trimmer', brand: 'Toro', price: 229, category: 'Trimmers', condition: 'new', image_url: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/1-4.png', description: '14/16 in. dual-line trimmer head with brushless motor. 2.5Ah battery included.' },
+      { id: 'demo-6', name: '60V MAX Brushless Leaf Blower', brand: 'Toro', price: 229, category: 'Blowers', condition: 'new', image_url: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/120.png', description: '120 mph max air speed brushless handheld blower. 2.5Ah battery included.' },
+    ],
+  },
+  'warm-earth-designs': {
+    businessName: 'Heartland Outdoor Equipment',
+    phone: '(217) 555-0183',
+    email: 'hello@heartlandoutdoor.com',
+    address: '440 Main Street, Springfield, IL 62701',
+    manufacturers: ['Toro', 'John Deere', 'Stihl', 'Husqvarna', 'Cub Cadet', 'Honda'],
+    extraContent: {
+      'hero.heading': 'Equipment You Can Count On',
+      'hero.subheading': 'Family-owned and community-trusted since 1985. Sales, service, and rentals for every season.',
+      'hero.image': '/images/hero-mower.jpg',
+      'hero.ctaPrimary': 'View Equipment',
+      'hero.ctaSecondary': 'Contact Us',
+      'testimonials.heading': 'From Our Community',
+      'testimonials.items': JSON.stringify([
+        { quote: "These folks know their equipment. They helped me find the perfect tractor for my 40 acres and have been there for every service since.", name: 'Robert Mitchell', company: 'Timber Creek Ranch' },
+        { quote: "The rental program saved us thousands. We tried three different mowers before buying the one that was right for our property.", name: 'Sarah Thompson', company: 'Pine Ridge Farms' },
+        { quote: "Family-run businesses like this are rare. They treat us like neighbors, not customers. That means everything out here.", name: 'James Garcia', company: 'Valley View Homestead' },
+      ]),
+    },
+    sampleProducts: [
+      { id: 'demo-p1', title: 'TimeCutter\u00ae MyRIDE\u00ae 54" Zero Turn Mower', description: '54 in. TimeCutter MyRIDE Zero Turn Mower with Smart Speed technology.', price: 5199, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/75757-1.jpeg', model: '75757', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-timecutter-myride-54', featured: true, status: 'available' },
+      { id: 'demo-p2', title: 'Z Master Revolution 60" Commercial Mower', description: 'Commercial zero-turn with 60 in. TURBO FORCE deck and Horizon Technology.', price: 44443, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/1-22.png', model: 'Z Master Revolution', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-z-master-revolution-60', featured: true, status: 'available' },
+      { id: 'demo-p3', title: 'GrandStand\u00ae 52" Stand-On Mower', description: '52 in. stand-on mower with 22 HP Kohler engine and TURBO FORCE deck.', price: 13443, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/74513.jpeg', model: 'GrandStand 74513', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-grandstand-52', featured: true, status: 'available' },
+      { id: 'demo-p4', title: '30" TurfMaster\u00ae HDX Walk-Behind', description: '30 in. commercial walk-behind with Kawasaki engine and blade brake clutch.', price: 3110, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/22215-1.jpeg', model: 'TurfMaster HDX 22215', year: 2025, category: 'Mowers', condition: 'new', slug: 'toro-turfmaster-hdx-30', featured: true, status: 'available' },
+      { id: 'demo-p5', title: '60V Brushless String Trimmer', description: '14/16 in. dual-line trimmer head with brushless motor. 2.5Ah battery included.', price: 229, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/1-4.png', model: '51836T', year: 2025, category: 'Trimmers', condition: 'new', slug: 'toro-60v-string-trimmer', featured: false, status: 'available' },
+      { id: 'demo-p6', title: '60V MAX Brushless Leaf Blower', description: '120 mph max air speed brushless handheld blower. 2.5Ah battery included.', price: 229, sale_price: null, primary_image: 'http://southbayturfequip.turfstar.com/wp-content/uploads/2024/07/120.png', model: '51820', year: 2025, category: 'Blowers', condition: 'new', slug: 'toro-60v-leaf-blower', featured: false, status: 'available' },
+    ],
+  },
+};

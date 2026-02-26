@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fleet Market Beta — Exclusive Early Access</title>
+  <meta name="description" content="Limited beta access to Fleet Market — the all-in-one website platform for equipment dealers. No pay until May.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #1E3A6E;
+      --navy-deep: #0C1B33;
+      --navy-mid: #152C54;
+      --orange: #E85525;
+      --orange-glow: rgba(232, 85, 37, 0.2);
+      --orange-light: #F06A3E;
+      --slate: #94A3B8;
+      --light: #CBD5E1;
+      --white: #F1F5F9;
+      --card: rgba(30, 58, 110, 0.25);
+      --card-border: rgba(255, 255, 255, 0.08);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Barlow', system-ui, sans-serif;
+      background: var(--navy-deep);
+      color: var(--light);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Background ── */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(30,58,110,0.3) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30,58,110,0.3) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+    .bg-gradient {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(30,58,110,0.5) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(232,85,37,0.08) 0%, transparent 50%);
+    }
+
+    .content { position: relative; z-index: 1; }
+
+    /* ── Container ── */
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 1.5rem; }
+
+    /* ── Header ── */
+    header {
+      padding: 1.25rem 0;
+      border-bottom: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(12, 27, 51, 0.85);
+    }
+    .header-inner {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 0.75rem; text-decoration: none;
+    }
+    .logo img { height: 40px; }
+    .logo-fallback {
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .logo-mark {
+      width: 38px; height: 38px; border-radius: 8px;
+      background: var(--navy);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 1rem; color: white;
+      border: 2px solid rgba(255,255,255,0.15);
+    }
+    .logo-text span:first-child { font-weight: 800; color: white; font-size: 1.25rem; }
+    .logo-text span:last-child { font-weight: 800; color: var(--orange); font-size: 1.25rem; }
+
+    .header-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: var(--orange); color: white;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700; font-size: 0.8125rem; letter-spacing: 0.05em; text-transform: uppercase;
+      padding: 0.5rem 1rem; border-radius: 6px;
+    }
+    .header-badge .pulse {
+      width: 8px; height: 8px; border-radius: 50%; background: white;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 6rem 0 4rem; text-align: center;
+    }
+    .hero-overline {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700; font-size: 0.875rem; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--orange); margin-bottom: 1.5rem;
+      display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+    }
+    .hero-overline::before, .hero-overline::after {
+      content: ''; width: 40px; height: 1px; background: var(--orange); opacity: 0.4;
+    }
+    .hero h1 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800; font-size: clamp(2.5rem, 6vw, 4.25rem);
+      color: white; line-height: 1.1; margin-bottom: 1.5rem;
+      letter-spacing: -0.01em;
+    }
+    .hero h1 em {
+      font-style: normal; color: var(--orange);
+      position: relative;
+    }
+    .hero h1 em::after {
+      content: ''; position: absolute; bottom: 2px; left: 0; right: 0;
+      height: 3px; background: var(--orange); opacity: 0.4; border-radius: 2px;
+    }
+    .hero-sub {
+      font-size: 1.1875rem; color: var(--slate); max-width: 640px; margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+    .hero-cta {
+      display: inline-flex; align-items: center; gap: 0.625rem;
+      background: var(--orange); color: white;
+      font-weight: 700; font-size: 1.0625rem;
+      padding: 1rem 2.25rem; border-radius: 8px; border: none; cursor: pointer;
+      text-decoration: none; transition: all 0.2s;
+      box-shadow: 0 4px 24px rgba(232,85,37,0.3);
+    }
+    .hero-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(232,85,37,0.4); }
+    .hero-cta svg { transition: transform 0.2s; }
+    .hero-cta:hover svg { transform: translateX(3px); }
+
+    /* ── Countdown ── */
+    .countdown-bar {
+      background: var(--navy-mid); border: 1px solid var(--card-border);
+      border-radius: 12px; padding: 1.5rem 2rem; margin: -1rem auto 4rem;
+      max-width: 700px; text-align: center;
+    }
+    .countdown-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 600; font-size: 0.8125rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--slate); margin-bottom: 0.75rem;
+    }
+    .countdown-grid {
+      display: flex; justify-content: center; gap: 1.5rem;
+    }
+    .countdown-item { text-align: center; }
+    .countdown-num {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800; font-size: 2.25rem; color: white; line-height: 1;
+    }
+    .countdown-unit {
+      font-size: 0.6875rem; color: var(--slate); text-transform: uppercase;
+      letter-spacing: 0.08em; margin-top: 0.25rem;
+    }
+
+    /* ── Offer Cards ── */
+    .offers {
+      padding: 2rem 0 5rem;
+    }
+    .offers-heading {
+      text-align: center; margin-bottom: 3rem;
+    }
+    .offers-heading h2 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800; font-size: 2rem; color: white; margin-bottom: 0.5rem;
+    }
+    .offers-heading p { color: var(--slate); font-size: 1.0625rem; }
+
+    .offer-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;
+    }
+    .offer-card {
+      background: var(--card); border: 1px solid var(--card-border);
+      border-radius: 12px; padding: 2rem; position: relative; overflow: hidden;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .offer-card:hover { border-color: rgba(232,85,37,0.3); transform: translateY(-4px); }
+    .offer-card .accent-line {
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--orange), var(--orange-light));
+    }
+    .offer-icon {
+      width: 48px; height: 48px; border-radius: 10px;
+      background: rgba(232,85,37,0.12); border: 1px solid rgba(232,85,37,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem; margin-bottom: 1.25rem;
+    }
+    .offer-card h3 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700; font-size: 1.25rem; color: white; margin-bottom: 0.625rem;
+    }
+    .offer-card p { font-size: 0.9375rem; color: var(--slate); line-height: 1.6; }
+    .offer-highlight {
+      display: inline-block; background: rgba(232,85,37,0.12); color: var(--orange);
+      font-weight: 700; font-size: 0.8125rem; padding: 0.25rem 0.625rem;
+      border-radius: 4px; margin-top: 1rem;
+    }
+
+    /* ── What You Get ── */
+    .features { padding: 5rem 0; }
+    .features-heading {
+      text-align: center; margin-bottom: 3rem;
+    }
+    .features-heading h2 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800; font-size: 2rem; color: white; margin-bottom: 0.5rem;
+    }
+    .features-heading p { color: var(--slate); font-size: 1.0625rem; }
+
+    .feature-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;
+    }
+    .feature-item {
+      display: flex; align-items: flex-start; gap: 0.875rem;
+      background: var(--card); border: 1px solid var(--card-border);
+      border-radius: 10px; padding: 1.25rem 1.5rem;
+    }
+    .feature-check {
+      width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+      background: rgba(232,85,37,0.15); display: flex; align-items: center; justify-content: center;
+    }
+    .feature-check svg { width: 14px; height: 14px; color: var(--orange); }
+    .feature-item strong { color: white; font-weight: 600; font-size: 0.9375rem; }
+
+    /* ── Pricing Context ── */
+    .pricing { padding: 3rem 0 5rem; }
+    .pricing-card {
+      background: var(--card); border: 1px solid var(--card-border);
+      border-radius: 16px; padding: 3rem; max-width: 800px; margin: 0 auto;
+      position: relative; overflow: hidden;
+    }
+    .pricing-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--orange), var(--navy), var(--orange));
+    }
+    .pricing-heading { text-align: center; margin-bottom: 2rem; }
+    .pricing-heading h2 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800; font-size: 1.75rem; color: white; margin-bottom: 0.375rem;
+    }
+    .pricing-heading p { color: var(--slate); }
+
+    .pricing-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .pricing-col h4 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700; font-size: 1.0625rem; color: var(--orange);
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;
+    }
+    .pricing-col .price-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .pricing-col .price-label { color: var(--light); font-size: 0.9375rem; }
+    .pricing-col .price-val { color: white; font-weight: 700; font-size: 0.9375rem; }
+    .pricing-col .price-val del { color: var(--slate); font-weight: 400; margin-right: 0.5rem; }
+
+    .beta-savings {
+      text-align: center; margin-top: 2rem; padding-top: 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .beta-savings .tag {
+      display: inline-block; background: rgba(232,85,37,0.12); color: var(--orange);
+      font-weight: 700; font-size: 0.875rem; padding: 0.375rem 1rem; border-radius: 6px;
+    }
+
+    /* ── Timeline ── */
+    .timeline { padding: 3rem 0 5rem; }
+    .timeline-heading {
+      text-align: center; margin-bottom: 3rem;
+    }
+    .timeline-heading h2 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800; font-size: 2rem; color: white;
+    }
+    .timeline-steps {
+      display: flex; justify-content: center; gap: 0; position: relative; max-width: 800px; margin: 0 auto;
+    }
+    .timeline-step { flex: 1; text-align: center; position: relative; padding-top: 3rem; }
+    .timeline-step::before {
+      content: ''; position: absolute; top: 1rem; left: 50%; right: -50%; height: 2px;
+      background: var(--card-border);
+    }
+    .timeline-step:last-child::before { display: none; }
+    .timeline-dot {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--navy-mid); border: 2px solid var(--orange);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.75rem; color: var(--orange);
+      z-index: 1;
+    }
+    .timeline-step:first-child .timeline-dot { background: var(--orange); color: white; }
+    .timeline-date {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700; font-size: 1rem; color: white; margin-bottom: 0.25rem;
+    }
+    .timeline-desc { font-size: 0.8125rem; color: var(--slate); }
+
+    /* ── Form Section ── */
+    .form-section {
+      padding: 5rem 0 6rem;
+    }
+    .form-wrapper {
+      max-width: 560px; margin: 0 auto;
+      background: var(--navy-mid); border: 1px solid var(--card-border);
+      border-radius: 16px; padding: 3rem;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+      position: relative; overflow: hidden;
+    }
+    .form-wrapper::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--orange), var(--orange-light), var(--orange));
+    }
+    .form-heading {
+      text-align: center; margin-bottom: 2rem;
+    }
+    .form-heading h2 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800; font-size: 1.75rem; color: white; margin-bottom: 0.375rem;
+    }
+    .form-heading p { color: var(--slate); font-size: 0.9375rem; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label {
+      display: block; font-weight: 600; font-size: 0.8125rem; color: var(--light);
+      margin-bottom: 0.375rem; letter-spacing: 0.02em;
+    }
+    .form-group input, .form-group select {
+      width: 100%; padding: 0.75rem 1rem; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(12,27,51,0.6); color: white;
+      font-family: 'Barlow', sans-serif; font-size: 0.9375rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .form-group input::placeholder { color: #64748B; }
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px var(--orange-glow);
+    }
+    .form-group select {
+      appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2394A3B8' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 0.75rem center;
+    }
+    .form-group select option { background: var(--navy-deep); color: white; }
+
+    .form-submit {
+      width: 100%; padding: 1rem; border: none; border-radius: 8px;
+      background: var(--orange); color: white;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700; font-size: 1.125rem; letter-spacing: 0.02em;
+      cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 4px 20px rgba(232,85,37,0.3);
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .form-submit:hover { background: var(--orange-light); transform: translateY(-1px); box-shadow: 0 6px 28px rgba(232,85,37,0.4); }
+    .form-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .form-submit .spinner {
+      width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite;
+    }
+
+    .form-fine { text-align: center; margin-top: 1rem; font-size: 0.8125rem; color: var(--slate); }
+
+    .form-success {
+      text-align: center; padding: 2rem 0;
+    }
+    .form-success .check-circle {
+      width: 64px; height: 64px; border-radius: 50%; background: var(--orange);
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;
+    }
+    .form-success h3 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800; font-size: 1.5rem; color: white; margin-bottom: 0.5rem;
+    }
+    .form-success p { color: var(--slate); font-size: 0.9375rem; line-height: 1.7; }
+
+    .form-error {
+      background: rgba(220,38,38,0.12); border: 1px solid rgba(220,38,38,0.3);
+      border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem;
+      color: #FCA5A5; font-size: 0.875rem;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--card-border); padding: 2rem 0;
+      text-align: center; font-size: 0.8125rem; color: var(--slate);
+    }
+
+    /* ── Animations ── */
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.6s ease-out forwards; opacity: 0; }
+    .fade-up-d1 { animation-delay: 0.1s; }
+    .fade-up-d2 { animation-delay: 0.2s; }
+    .fade-up-d3 { animation-delay: 0.3s; }
+    .fade-up-d4 { animation-delay: 0.4s; }
+
+    /* ── Template Showcase ── */
+    .template-showcase {
+      padding: 1rem 0 2.5rem;
+      overflow: hidden;
+      -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+      mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+    }
+    .template-track {
+      display: flex; gap: 1.25rem;
+      animation: scrollTemplates 40s linear infinite;
+      width: max-content;
+    }
+    .template-track:hover { animation-play-state: paused; }
+
+    .template-frame {
+      width: 380px; flex-shrink: 0;
+      border-radius: 10px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: var(--navy-mid);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      transition: transform 0.3s, border-color 0.3s;
+    }
+    .template-frame:hover { transform: translateY(-6px) scale(1.02); border-color: rgba(232,85,37,0.4); }
+
+    .template-browser-bar {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .template-dots {
+      display: flex; gap: 4px;
+    }
+    .template-dots span {
+      width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.15);
+    }
+    .template-url {
+      flex: 1; font-size: 0.625rem; color: var(--slate);
+      background: rgba(0,0,0,0.2); border-radius: 4px; padding: 2px 8px;
+      text-align: center; white-space: nowrap; overflow: hidden;
+    }
+
+    .template-preview {
+      height: 220px; position: relative; overflow: hidden;
+      background: #0C1B33;
+    }
+    .template-preview iframe {
+      width: 1280px; height: 800px;
+      transform: scale(0.297); /* 380/1280 */
+      transform-origin: top left;
+      border: none; pointer-events: none;
+    }
+    .template-preview .tpl-loading {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      color: var(--slate); font-size: 0.75rem;
+    }
+    .template-preview .tpl-loading .dot-pulse {
+      display: inline-flex; gap: 4px;
+    }
+    .template-preview .tpl-loading .dot-pulse span {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--slate);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .template-preview .tpl-loading .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+    .template-preview .tpl-loading .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+
+    .template-label {
+      padding: 0.625rem 0.75rem;
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(0,0,0,0.15);
+    }
+    .template-label .tpl-name {
+      font-weight: 700; font-size: 0.8125rem; color: white;
+    }
+    .template-label .tpl-tag {
+      font-size: 0.625rem; font-weight: 600; color: var(--orange);
+      background: rgba(232,85,37,0.12); padding: 2px 6px; border-radius: 3px;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+
+    @keyframes scrollTemplates {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    @media (max-width: 768px) {
+      .template-frame { width: 300px; }
+      .template-preview { height: 175px; }
+      .template-preview iframe { transform: scale(0.234) !important; /* 300/1280 */ }
+      .template-showcase { padding: 0.5rem 0 2rem; }
+    }
+    @media (max-width: 768px) {
+      .hero { padding: 4rem 0 2.5rem; }
+      .hero h1 { font-size: 2.25rem; }
+      .hero-sub { font-size: 1rem; }
+      .offer-grid { grid-template-columns: 1fr; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .pricing-cols { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .form-wrapper { padding: 2rem 1.5rem; }
+      .countdown-grid { gap: 1rem; }
+      .countdown-num { font-size: 1.75rem; }
+      .timeline-steps { flex-direction: column; gap: 1.5rem; }
+      .timeline-step { padding-top: 0; padding-left: 3rem; text-align: left; }
+      .timeline-step::before { display: none; }
+      .timeline-dot { left: 0; transform: none; }
+      .header-badge { display: none; }
+    }
+    @media (max-width: 480px) {
+      .hero h1 { font-size: 1.875rem; }
+      .form-wrapper { padding: 1.5rem 1.25rem; margin: 0 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-gradient"></div>
+
+<div class="content">
+
+  <!-- Header -->
+  <header>
+    <div class="container header-inner">
+      <a href="#" class="logo">
+        <img src="/fmlogo3.jpg" alt="Fleet Market" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <div class="logo-fallback" style="display:none;">
+          <div class="logo-mark">FM</div>
+          <div class="logo-text"><span>Fleet</span><span>Market</span></div>
+        </div>
+      </a>
+      <div class="header-badge">
+        <span class="pulse"></span>
+        Beta Registration Open
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-overline fade-up">Exclusive Invitation</div>
+
+      <!-- Template Showcase -->
+      <div class="template-showcase fade-up fade-up-d1">
+        <div class="template-track">
+          <!-- Set 1 -->
+          <div class="template-frame">
+            <div class="template-browser-bar">
+              <div class="template-dots"><span></span><span></span><span></span></div>
+              <div class="template-url">premierequipment.com</div>
+            </div>
+            <div class="template-preview">
+              <div class="tpl-loading" data-preview-url="https://fleetmarket.us/api/preview/demo-corporate-edge?page=home"><div class="dot-pulse"><span></span><span></span><span></span></div></div>
+            </div>
+            <div class="template-label"><span class="tpl-name">Corporate Edge</span><span class="tpl-tag">Professional</span></div>
+          </div>
+
+          <div class="template-frame">
+            <div class="template-browser-bar">
+              <div class="template-dots"><span></span><span></span><span></span></div>
+              <div class="template-url">valleypowerequipment.com</div>
+            </div>
+            <div class="template-preview">
+              <div class="tpl-loading" data-preview-url="https://fleetmarket.us/api/preview/demo-green-valley-industrial?page=home"><div class="dot-pulse"><span></span><span></span><span></span></div></div>
+            </div>
+            <div class="template-label"><span class="tpl-name">Green Valley Industrial</span><span class="tpl-tag">Dark</span></div>
+          </div>
+
+          <div class="template-frame">
+            <div class="template-browser-bar">
+              <div class="template-dots"><span></span><span></span><span></span></div>
+              <div class="template-url">modernlawnsolutions.com</div>
+            </div>
+            <div class="template-preview">
+              <div class="tpl-loading" data-preview-url="https://fleetmarket.us/api/preview/demo-modern-lawn-solutions?page=home"><div class="dot-pulse"><span></span><span></span><span></span></div></div>
+            </div>
+            <div class="template-label"><span class="tpl-name">Modern Lawn Solutions</span><span class="tpl-tag">Minimal</span></div>
+          </div>
+
+          <div class="template-frame">
+            <div class="template-browser-bar">
+              <div class="template-dots"><span></span><span></span><span></span></div>
+              <div class="template-url">vibepowerequipment.com</div>
+            </div>
+            <div class="template-preview">
+              <div class="tpl-loading" data-preview-url="https://fleetmarket.us/api/preview/demo-vibe-dynamics?page=home"><div class="dot-pulse"><span></span><span></span><span></span></div></div>
+            </div>
+            <div class="template-label"><span class="tpl-name">Vibe Dynamics</span><span class="tpl-tag">Bold</span></div>
+          </div>
+
+          <div class="template-frame">
+            <div class="template-browser-bar">
+              <div class="template-dots"><span></span><span></span><span></span></div>
+              <div class="template-url">zenithlandscaping.com</div>
+            </div>
+            <div class="template-preview">
+              <div class="tpl-loading" data-preview-url="https://fleetmarket.us/api/preview/demo-zenith-lawn?page=home"><div class="dot-pulse"><span></span><span></span><span></span></div></div>
+            </div>
+            <div class="template-label"><span class="tpl-name">Zenith Lawn</span><span class="tpl-tag">Warm</span></div>
+          </div>
+
+          <div class="template-frame">
+            <div class="template-browser-bar">
+              <div class="template-dots"><span></span><span></span><span></span></div>
+              <div class="template-url">heartlandoutdoor.com</div>
+            </div>
+            <div class="template-preview">
+              <div class="tpl-loading" data-preview-url="https://fleetmarket.us/api/preview/demo-warm-earth-designs?page=home"><div class="dot-pulse"><span></span><span></span><span></span></div></div>
+            </div>
+            <div class="template-label"><span class="tpl-name">Warm Earth Designs</span><span class="tpl-tag">Rustic</span></div>
+          </div>
+
+          <!-- Set 2 (duplicate for seamless infinite scroll) -->
+          <div class="template-frame">
+            <div class="template-browser-bar"><div class="template-dots"><span></span><span></span><span></span></div><div class="template-url">premierequipment.com</div></div>
+            <div class="template-preview"><div class="tpl-loading" data-preview-url="https://fleetmarket.us/api/preview/demo-corporate-edge?page=home"><div class="dot-pulse"><span></span><span></span><span></span></div></div></div>
+            <div class="template-label"><span class="tpl-name">Corporate Edge</span><span class="tpl-tag">Professional</span></div>
+          </div>
+          <div class="template-frame">
+            <div class="template-browser-bar"><div class="template-dots"><span></span><span></span><span></span></div><div class="template-url">valleypowerequipment.com</div></div>
+            <div class="template-preview"><div class="tpl-loading" data-preview-url="https://fleetmarket.us/api/preview/demo-green-valley-industrial?page=home"><div class="dot-pulse"><span></span><span></span><span></span></div></div></div>
+            <div class="template-label"><span class="tpl-name">Green Valley Industrial</span><span class="tpl-tag">Dark</span></div>
+          </div>
+          <div class="template-frame">
+            <div class="template-browser-bar"><div class="template-dots"><span></span><span></span><span></span></div><div class="template-url">modernlawnsolutions.com</div></div>
+            <div class="template-preview"><div class="tpl-loading" data-preview-url="https://fleetmarket.us/api/preview/demo-modern-lawn-solutions?page=home"><div class="dot-pulse"><span></span><span></span><span></span></div></div></div>
+            <div class="template-label"><span class="tpl-name">Modern Lawn Solutions</span><span class="tpl-tag">Minimal</span></div>
+          </div>
+          <div class="template-frame">
+            <div class="template-browser-bar"><div class="template-dots"><span></span><span></span><span></span></div><div class="template-url">vibepowerequipment.com</div></div>
+            <div class="template-preview"><div class="tpl-loading" data-preview-url="https://fleetmarket.us/api/preview/demo-vibe-dynamics?page=home"><div class="dot-pulse"><span></span><span></span><span></span></div></div></div>
+            <div class="template-label"><span class="tpl-name">Vibe Dynamics</span><span class="tpl-tag">Bold</span></div>
+          </div>
+          <div class="template-frame">
+            <div class="template-browser-bar"><div class="template-dots"><span></span><span></span><span></span></div><div class="template-url">zenithlandscaping.com</div></div>
+            <div class="template-preview"><div class="tpl-loading" data-preview-url="https://fleetmarket.us/api/preview/demo-zenith-lawn?page=home"><div class="dot-pulse"><span></span><span></span><span></span></div></div></div>
+            <div class="template-label"><span class="tpl-name">Zenith Lawn</span><span class="tpl-tag">Warm</span></div>
+          </div>
+          <div class="template-frame">
+            <div class="template-browser-bar"><div class="template-dots"><span></span><span></span><span></span></div><div class="template-url">heartlandoutdoor.com</div></div>
+            <div class="template-preview"><div class="tpl-loading" data-preview-url="https://fleetmarket.us/api/preview/demo-warm-earth-designs?page=home"><div class="dot-pulse"><span></span><span></span><span></span></div></div></div>
+            <div class="template-label"><span class="tpl-name">Warm Earth Designs</span><span class="tpl-tag">Rustic</span></div>
+          </div>
+        </div>
+      </div>
+
+      <p style="text-align:center; font-size:0.75rem; color:var(--slate); margin-bottom:2rem;">6 professionally designed templates — choose yours during onboarding</p>
+      <h1 class="fade-up fade-up-d2">
+        Your Dealership Website.<br><em>Built. Launched. Done.</em>
+      </h1>
+      <p class="hero-sub fade-up fade-up-d3">
+        You've been selected for early access to Fleet Market — the only website platform built specifically for equipment dealers. Sign up now, don't pay until May.
+      </p>
+      <a href="#register" class="hero-cta fade-up fade-up-d4">
+        Claim Your Spot
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- Countdown -->
+  <div class="container">
+    <div class="countdown-bar fade-up fade-up-d4">
+      <div class="countdown-label">Registration closes</div>
+      <div class="countdown-grid" id="countdown">
+        <div class="countdown-item"><div class="countdown-num" id="cd-days">--</div><div class="countdown-unit">Days</div></div>
+        <div class="countdown-item"><div class="countdown-num" id="cd-hours">--</div><div class="countdown-unit">Hours</div></div>
+        <div class="countdown-item"><div class="countdown-num" id="cd-mins">--</div><div class="countdown-unit">Minutes</div></div>
+        <div class="countdown-item"><div class="countdown-num" id="cd-secs">--</div><div class="countdown-unit">Seconds</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Offer -->
+  <section class="offers">
+    <div class="container">
+      <div class="offers-heading">
+        <h2>Your Beta Offer</h2>
+        <p>Exclusive benefits for early adopters — available through March 23 only.</p>
+      </div>
+      <div class="offer-grid">
+        <div class="offer-card fade-up">
+          <div class="accent-line"></div>
+          <div class="offer-icon">💰</div>
+          <h3>No Pay Until May</h3>
+          <p>Sign up now and your first billing cycle doesn't start until May. Get your site live, configured, and generating leads — all before you pay a dime.</p>
+          <span class="offer-highlight">$0 through April 30</span>
+        </div>
+        <div class="offer-card fade-up fade-up-d1">
+          <div class="accent-line"></div>
+          <div class="offer-icon">⚡</div>
+          <h3>Free Premium Add-Ons</h3>
+          <p>Every premium feature — Inventory Management, Service Scheduling, Rental Systems — included free. 3 months free on monthly billing, 6 months free on annual.</p>
+          <span class="offer-highlight">Up to $1,800 in savings</span>
+        </div>
+        <div class="offer-card fade-up fade-up-d2">
+          <div class="accent-line"></div>
+          <div class="offer-icon">🚀</div>
+          <h3>All Sites Live March 23</h3>
+          <p>Every beta signup gets their site launched on March 23. Our team will help you configure your site during the onboarding period so you're ready from day one.</p>
+          <span class="offer-highlight">Guided setup included</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features">
+    <div class="container">
+      <div class="features-heading">
+        <h2>What's Included</h2>
+        <p>Everything an equipment dealer needs in one platform.</p>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-item">
+          <div class="feature-check"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+          <strong>Professional dealer website with your branding</strong>
+        </div>
+        <div class="feature-item">
+          <div class="feature-check"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+          <strong>Mobile-optimized for every device</strong>
+        </div>
+        <div class="feature-item">
+          <div class="feature-check"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+          <strong>Inventory management & online catalog</strong>
+        </div>
+        <div class="feature-item">
+          <div class="feature-check"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+          <strong>Service request scheduling system</strong>
+        </div>
+        <div class="feature-item">
+          <div class="feature-check"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+          <strong>Equipment rental management</strong>
+        </div>
+        <div class="feature-item">
+          <div class="feature-check"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+          <strong>Built-in lead capture & analytics</strong>
+        </div>
+        <div class="feature-item">
+          <div class="feature-check"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+          <strong>Manufacturer brand pages with logos</strong>
+        </div>
+        <div class="feature-item">
+          <div class="feature-check"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+          <strong>SSL, hosting, and support included</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Context -->
+  <section class="pricing">
+    <div class="container">
+      <div class="pricing-card">
+        <div class="pricing-heading">
+          <h2>Simple, Transparent Pricing</h2>
+          <p>Base platform + only the features you need.</p>
+        </div>
+        <div class="pricing-cols">
+          <div class="pricing-col">
+            <h4>Monthly Billing</h4>
+            <div class="price-row"><span class="price-label">Base Platform</span><span class="price-val">$200/mo</span></div>
+            <div class="price-row"><span class="price-label">Each Add-On</span><span class="price-val">$100/mo</span></div>
+            <div class="price-row"><span class="price-label">Beta Bonus</span><span class="price-val" style="color:var(--orange);">3 mo add-ons free</span></div>
+          </div>
+          <div class="pricing-col">
+            <h4>Annual Billing</h4>
+            <div class="price-row"><span class="price-label">Base Platform</span><span class="price-val"><del>$2,400</del> $2,000/yr</span></div>
+            <div class="price-row"><span class="price-label">Each Add-On</span><span class="price-val"><del>$1,200</del> $1,100/yr</span></div>
+            <div class="price-row"><span class="price-label">Beta Bonus</span><span class="price-val" style="color:var(--orange);">6 mo add-ons free</span></div>
+          </div>
+        </div>
+        <div class="beta-savings">
+          <span class="tag">Beta users save up to $1,800 in add-on costs alone</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Timeline -->
+  <section class="timeline">
+    <div class="container">
+      <div class="timeline-heading">
+        <h2>How It Works</h2>
+      </div>
+      <div class="timeline-steps">
+        <div class="timeline-step">
+          <div class="timeline-dot">1</div>
+          <div class="timeline-date">Feb 27 – Mar 23</div>
+          <div class="timeline-desc">Register & onboard</div>
+        </div>
+        <div class="timeline-step">
+          <div class="timeline-dot">2</div>
+          <div class="timeline-date">March 23</div>
+          <div class="timeline-desc">All sites go live</div>
+        </div>
+        <div class="timeline-step">
+          <div class="timeline-dot">3</div>
+          <div class="timeline-date">May 1</div>
+          <div class="timeline-desc">First billing begins</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Registration Form -->
+  <section class="form-section" id="register">
+    <div class="container">
+      <div class="form-wrapper">
+        <div id="form-content">
+          <div class="form-heading">
+            <h2>Register for the Beta</h2>
+            <p>Limited spots available through select manufacturers and distributors.</p>
+          </div>
+          <div id="form-error" class="form-error" style="display:none;"></div>
+          <form id="beta-form" onsubmit="handleSubmit(event)">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="firstName">First Name *</label>
+                <input type="text" id="firstName" name="firstName" placeholder="John" required>
+              </div>
+              <div class="form-group">
+                <label for="lastName">Last Name *</label>
+                <input type="text" id="lastName" name="lastName" placeholder="Smith" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="email">Email Address *</label>
+              <input type="email" id="email" name="email" placeholder="john@smithequipment.com" required>
+            </div>
+            <div class="form-group">
+              <label for="phone">Phone Number *</label>
+              <input type="tel" id="phone" name="phone" placeholder="(555) 123-4567" required>
+            </div>
+            <div class="form-group">
+              <label for="company">Company Name *</label>
+              <input type="text" id="company" name="company" placeholder="Smith Equipment Co." required>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="jobTitle">Job Title *</label>
+                <input type="text" id="jobTitle" name="jobTitle" placeholder="Owner / GM / President" required>
+              </div>
+              <div class="form-group">
+                <label for="billingPref">Billing Preference</label>
+                <select id="billingPref" name="billingPref">
+                  <option value="">Select preference...</option>
+                  <option value="monthly">Monthly — 3 mo add-ons free</option>
+                  <option value="annual">Annual — 6 mo add-ons free</option>
+                  <option value="undecided">I'll decide later</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="form-submit" id="submitBtn">
+              <span id="submitText">Register for Beta Access</span>
+              <div id="submitSpinner" class="spinner" style="display:none;"></div>
+            </button>
+          </form>
+          <p class="form-fine">No payment required now. Sites go live March 23. First billing begins May 1.</p>
+        </div>
+        <div id="form-success" class="form-success" style="display:none;">
+          <div class="check-circle">
+            <svg width="28" height="28" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <h3>You're In!</h3>
+          <p>We've reserved your beta spot. You'll receive an onboarding email within 24 hours with next steps to set up your dealership website.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Fleet Market by Good Life Advertising. All rights reserved.</p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  // ── Countdown to March 23, 2026 ──
+  const deadline = new Date('2026-03-23T23:59:59').getTime();
+  function updateCountdown() {
+    const now = Date.now();
+    const diff = deadline - now;
+    if (diff <= 0) {
+      document.getElementById('cd-days').textContent = '0';
+      document.getElementById('cd-hours').textContent = '0';
+      document.getElementById('cd-mins').textContent = '0';
+      document.getElementById('cd-secs').textContent = '0';
+      return;
+    }
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('cd-days').textContent = d;
+    document.getElementById('cd-hours').textContent = h;
+    document.getElementById('cd-mins').textContent = String(m).padStart(2, '0');
+    document.getElementById('cd-secs').textContent = String(s).padStart(2, '0');
+  }
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+
+  // ── Load Template Previews ──
+  // Fetches each template HTML and injects into scaled iframes
+  // Falls back to direct iframe src if fetch fails (works when same-origin)
+  document.addEventListener('DOMContentLoaded', function() {
+    const previews = document.querySelectorAll('[data-preview-url]');
+    const cache = {};
+
+    function injectIframe(container, el, html) {
+      var iframe = document.createElement('iframe');
+      iframe.setAttribute('sandbox', 'allow-same-origin');
+      iframe.setAttribute('tabindex', '-1');
+      iframe.style.cssText = 'width:1280px;height:800px;transform:scale(0.297);transform-origin:top left;border:none;pointer-events:none;';
+      if (html) {
+        iframe.srcdoc = html.replace('<head>', '<head><base href="https://fleetmarket.us/">');
+      } else {
+        iframe.src = el.getAttribute('data-preview-url');
+      }
+      el.style.display = 'none';
+      container.appendChild(iframe);
+    }
+
+    previews.forEach(function(el) {
+      var url = el.getAttribute('data-preview-url');
+      var container = el.parentElement;
+
+      if (cache[url]) {
+        cache[url].then(function(html) { injectIframe(container, el, html); });
+        return;
+      }
+
+      cache[url] = fetch(url)
+        .then(function(r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.text();
+        })
+        .then(function(html) {
+          injectIframe(container, el, html);
+          return html;
+        })
+        .catch(function() {
+          // Fallback: direct iframe src (works same-origin, blocked cross-origin)
+          injectIframe(container, el, null);
+        });
+    });
+  });
+  // TODO: Replace these with your actual Supabase + Google Sheet endpoints
+  const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const GOOGLE_SHEET_WEBHOOK = 'YOUR_GOOGLE_APPS_SCRIPT_URL';
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const text = document.getElementById('submitText');
+    const spinner = document.getElementById('submitSpinner');
+    const errorEl = document.getElementById('form-error');
+
+    btn.disabled = true;
+    text.style.display = 'none';
+    spinner.style.display = 'block';
+    errorEl.style.display = 'none';
+
+    const data = {
+      first_name: document.getElementById('firstName').value.trim(),
+      last_name: document.getElementById('lastName').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      company: document.getElementById('company').value.trim(),
+      job_title: document.getElementById('jobTitle').value.trim(),
+      billing_preference: document.getElementById('billingPref').value,
+      registered_at: new Date().toISOString(),
+    };
+
+    try {
+      // 1. Insert into Supabase beta_signups table
+      const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/beta_signups`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!sbRes.ok) {
+        const err = await sbRes.json().catch(() => ({}));
+        // Duplicate email check
+        if (err.code === '23505') throw new Error('This email has already been registered for the beta.');
+        throw new Error(err.message || 'Registration failed. Please try again.');
+      }
+
+      // 2. Send to Google Sheet (fire-and-forget)
+      if (GOOGLE_SHEET_WEBHOOK && GOOGLE_SHEET_WEBHOOK !== 'YOUR_GOOGLE_APPS_SCRIPT_URL') {
+        fetch(GOOGLE_SHEET_WEBHOOK, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        }).catch(() => {});
+      }
+
+      // 3. Show success
+      document.getElementById('form-content').querySelector('form').style.display = 'none';
+      document.querySelector('.form-heading').style.display = 'none';
+      document.querySelector('.form-fine').style.display = 'none';
+      document.getElementById('form-success').style.display = 'block';
+
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.style.display = 'block';
+      btn.disabled = false;
+      text.style.display = 'inline';
+      spinner.style.display = 'none';
+    }
+  }
+</script>
+
+</body>
+</html>

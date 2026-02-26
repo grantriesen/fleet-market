@@ -60,12 +60,18 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
     }
 
     // Build scheduled start/end if date+time provided
+    // Store as naive local time (no timezone) so display stays consistent
     let scheduledStart = null;
     let scheduledEnd = null;
     if (preferredDate && preferredTime && duration) {
       scheduledStart = `${preferredDate}T${preferredTime}:00`;
-      const endTime = new Date(new Date(scheduledStart).getTime() + duration * 60000);
-      scheduledEnd = endTime.toISOString();
+      // Calculate end time by adding duration in minutes manually (avoids timezone conversion)
+      const [hours, minutes] = preferredTime.split(':').map(Number);
+      const totalMinutes = hours * 60 + minutes + duration;
+      const endHours = Math.floor(totalMinutes / 60) % 24;
+      const endMinutes = totalMinutes % 60;
+      const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+      scheduledEnd = `${preferredDate}T${endTimeStr}:00`;
     }
 
     const appointment = {

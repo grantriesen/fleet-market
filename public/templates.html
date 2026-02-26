@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fleet Market — Template Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1E3A6E;
+      --navy-deep: #0C1B33;
+      --navy-mid: #152C54;
+      --orange: #E85525;
+      --orange-light: #F06A3E;
+      --slate: #94A3B8;
+      --light: #CBD5E1;
+      --card: rgba(30, 58, 110, 0.25);
+      --card-border: rgba(255,255,255,0.08);
+    }
+    body {
+      font-family: 'Barlow', system-ui, sans-serif;
+      background: var(--navy-deep); color: var(--light);
+      -webkit-font-smoothing: antialiased;
+    }
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(30,58,110,0.3) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30,58,110,0.3) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+    .content { position: relative; z-index: 1; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+
+    header {
+      padding: 1.25rem 0; border-bottom: 1px solid var(--card-border);
+      backdrop-filter: blur(12px); background: rgba(12,27,51,0.85);
+      position: sticky; top: 0; z-index: 50;
+    }
+    .header-inner { display: flex; justify-content: space-between; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
+    .logo img { height: 40px; }
+    .logo-fallback { display: flex; align-items: center; gap: 0.5rem; }
+    .logo-mark { width: 38px; height: 38px; border-radius: 8px; background: var(--navy); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1rem; color: white; border: 2px solid rgba(255,255,255,0.15); }
+    .logo-text span:first-child { font-weight: 800; color: white; font-size: 1.25rem; }
+    .logo-text span:last-child { font-weight: 800; color: var(--orange); font-size: 1.25rem; }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      color: var(--slate); text-decoration: none; font-weight: 600; font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+    .back-btn:hover { color: white; }
+
+    .page-heading {
+      text-align: center; padding: 4rem 0 3rem;
+    }
+    .page-heading h1 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800; font-size: 2.5rem; color: white; margin-bottom: 0.5rem;
+    }
+    .page-heading p { color: var(--slate); font-size: 1.0625rem; }
+
+    .template-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;
+      padding-bottom: 5rem;
+    }
+    .tpl-card {
+      background: var(--card); border: 1px solid var(--card-border);
+      border-radius: 12px; overflow: hidden;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .tpl-card:hover { border-color: rgba(232,85,37,0.3); transform: translateY(-4px); }
+
+    .tpl-browser {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.625rem 1rem;
+      background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .tpl-dots { display: flex; gap: 4px; }
+    .tpl-dots span { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.12); }
+    .tpl-url-bar {
+      flex: 1; font-size: 0.6875rem; color: var(--slate);
+      background: rgba(0,0,0,0.2); border-radius: 4px; padding: 3px 10px; text-align: center;
+    }
+
+    .tpl-iframe-wrap {
+      height: 320px; overflow: hidden; position: relative; background: var(--navy-deep);
+    }
+    .tpl-iframe-wrap iframe {
+      width: 1280px; height: 900px;
+      transform-origin: top left;
+      border: none; pointer-events: none;
+    }
+    .tpl-loading {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      color: var(--slate); font-size: 0.8125rem;
+    }
+
+    .tpl-info {
+      padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
+    }
+    .tpl-info-left h3 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700; font-size: 1.125rem; color: white; margin-bottom: 0.125rem;
+    }
+    .tpl-info-left p { font-size: 0.8125rem; color: var(--slate); }
+    .tpl-tag {
+      font-size: 0.6875rem; font-weight: 600; color: var(--orange);
+      background: rgba(232,85,37,0.12); padding: 3px 8px; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .tpl-actions {
+      padding: 0 1.5rem 1.25rem; display: flex; gap: 0.75rem;
+    }
+    .tpl-btn {
+      flex: 1; text-align: center; padding: 0.625rem; border-radius: 6px;
+      font-weight: 600; font-size: 0.8125rem; text-decoration: none; transition: all 0.2s;
+    }
+    .tpl-btn-primary { background: var(--orange); color: white; }
+    .tpl-btn-primary:hover { background: var(--orange-light); }
+    .tpl-btn-secondary { background: rgba(255,255,255,0.06); color: var(--light); border: 1px solid rgba(255,255,255,0.1); }
+    .tpl-btn-secondary:hover { background: rgba(255,255,255,0.1); }
+
+    footer {
+      border-top: 1px solid var(--card-border); padding: 2rem 0;
+      text-align: center; font-size: 0.8125rem; color: var(--slate);
+    }
+
+    @media (max-width: 768px) {
+      .template-grid { grid-template-columns: 1fr; }
+      .tpl-iframe-wrap { height: 240px; }
+      .page-heading h1 { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="content">
+
+  <header>
+    <div class="container header-inner">
+      <a href="/beta.html" class="logo">
+        <img src="/fmlogo3.jpg" alt="Fleet Market" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <div class="logo-fallback" style="display:none;">
+          <div class="logo-mark">FM</div>
+          <div class="logo-text"><span>Fleet</span><span>Market</span></div>
+        </div>
+      </a>
+      <a href="/beta.html" class="back-btn">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back to Beta Registration
+      </a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="page-heading">
+      <h1>Template Gallery</h1>
+      <p>Explore all 6 professionally designed templates. Click to open a full live preview.</p>
+    </div>
+
+    <div class="template-grid" id="gallery"></div>
+  </div>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Fleet Market by Good Life Advertising. All rights reserved.</p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  var templates = [
+    { slug: 'corporate-edge', name: 'Corporate Edge', tag: 'Professional', desc: 'Navy & red design with bold authority. Built for established dealerships.', url: 'premierequipment.com' },
+    { slug: 'green-valley-industrial', name: 'Green Valley Industrial', tag: 'Dark', desc: 'Dark industrial aesthetic with vibrant green accents. For commercial dealers.', url: 'valleypowerequipment.com' },
+    { slug: 'modern-lawn-solutions', name: 'Modern Lawn Solutions', tag: 'Minimal', desc: 'Clean, modern layout with a friendly feel. Great for growing dealers.', url: 'modernlawnsolutions.com' },
+    { slug: 'vibe-dynamics', name: 'Vibe Dynamics', tag: 'Bold', desc: 'Bold gradients and energetic styling. For dealers who stand out.', url: 'vibepowerequipment.com' },
+    { slug: 'zenith-lawn', name: 'Zenith Lawn', tag: 'Warm', desc: 'Warm tones with premium typography. Inviting and community-focused.', url: 'zenithlandscaping.com' },
+    { slug: 'warm-earth-designs', name: 'Warm Earth Designs', tag: 'Rustic', desc: 'Earthy textures and rustic charm. Perfect for rural and heritage dealers.', url: 'heartlandoutdoor.com' },
+  ];
+
+  var gallery = document.getElementById('gallery');
+  templates.forEach(function(t) {
+    var previewUrl = 'https://fleetmarket.us/api/preview/demo-' + t.slug + '?page=home';
+    var card = document.createElement('div');
+    card.className = 'tpl-card';
+    card.innerHTML = '<div class="tpl-browser"><div class="tpl-dots"><span></span><span></span><span></span></div><div class="tpl-url-bar">' + t.url + '</div></div>' +
+      '<div class="tpl-iframe-wrap"><div class="tpl-loading" data-url="' + previewUrl + '">Loading...</div></div>' +
+      '<div class="tpl-info"><div class="tpl-info-left"><h3>' + t.name + '</h3><p>' + t.desc + '</p></div><span class="tpl-tag">' + t.tag + '</span></div>' +
+      '<div class="tpl-actions"><a href="' + previewUrl + '" target="_blank" class="tpl-btn tpl-btn-primary">Open Full Preview</a><a href="/beta.html#register" class="tpl-btn tpl-btn-secondary">Register for Beta</a></div>';
+    gallery.appendChild(card);
+  });
+
+  // Load previews
+  var cache = {};
+  document.querySelectorAll('[data-url]').forEach(function(el) {
+    var url = el.getAttribute('data-url');
+    var wrap = el.parentElement;
+    var scale = wrap.clientWidth / 1280;
+
+    function inject(html) {
+      var iframe = document.createElement('iframe');
+      iframe.setAttribute('tabindex', '-1');
+      iframe.style.cssText = 'width:1280px;height:900px;transform:scale(' + scale + ');transform-origin:top left;border:none;pointer-events:none;';
+      if (html) {
+        iframe.srcdoc = html.replace('<head>', '<head><base href="https://fleetmarket.us/">');
+      } else {
+        iframe.src = url;
+      }
+      el.style.display = 'none';
+      wrap.appendChild(iframe);
+    }
+
+    if (cache[url]) {
+      cache[url].then(inject);
+    } else {
+      cache[url] = fetch(url).then(function(r) { return r.ok ? r.text() : Promise.reject(); })
+        .then(function(html) { inject(html); return html; })
+        .catch(function() { inject(null); });
+    }
+  });
+</script>
+</body>
+</html>

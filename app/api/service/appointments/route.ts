@@ -111,9 +111,20 @@ export async function PATCH(request: NextRequest) {
     if (updates.internalNotes !== undefined) safeUpdates.technician_notes = updates.internalNotes;
     if (updates.scheduledStart) {
       safeUpdates.scheduled_start = updates.scheduledStart;
-      if (updates.durationMinutes) {
-        const end = new Date(new Date(updates.scheduledStart).getTime() + updates.durationMinutes * 60000);
-        safeUpdates.scheduled_end = end.toISOString();
+      if (updates.scheduledEnd) {
+        // Use pre-calculated end time from dashboard (already local naive)
+        safeUpdates.scheduled_end = updates.scheduledEnd;
+        if (updates.durationMinutes) safeUpdates.duration_minutes = updates.durationMinutes;
+      } else if (updates.durationMinutes) {
+        // Calculate end time without timezone conversion
+        const match = updates.scheduledStart.match(/(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/);
+        if (match) {
+          const [, datePart, h, m] = match;
+          const totalMin = parseInt(h) * 60 + parseInt(m) + updates.durationMinutes;
+          const endH = Math.floor(totalMin / 60) % 24;
+          const endM = totalMin % 60;
+          safeUpdates.scheduled_end = `${datePart}T${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}:00`;
+        }
         safeUpdates.duration_minutes = updates.durationMinutes;
       }
     }
@@ -129,7 +140,18 @@ export async function PATCH(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ appointment: data });
+    // Normalize column names to match what the dashboard expects
+    const normalized = {
+      ...data,
+      service_type_name: data.service_type_name || data.service_type,
+      equipment_make: data.equipment_make || data.equipment_brand,
+      custom_description: data.custom_description || data.description,
+      technician: data.technician || data.assigned_technician,
+      internal_notes: data.internal_notes || data.technician_notes,
+      customer_notes: data.customer_notes || data.description,
+    };
+
+    return NextResponse.json({ appointment: normalized });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

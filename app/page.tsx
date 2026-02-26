@@ -71,23 +71,23 @@ export default function LandingPage() {
                   onClick={() => router.push('/register')}
                   className="px-8 py-4 bg-[#E8472F] text-white font-bold rounded hover:bg-[#D13A24] transition-all shadow-xl flex items-center gap-3"
                 >
-                  Start Building Free
+                  Get Started
                   <ArrowRight className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => router.push('/register')}
+                  onClick={() => router.push('/templates')}
                   className="px-8 py-4 bg-slate-700 text-white font-semibold rounded hover:bg-slate-600 transition-all"
                 >
-                  View Demo
+                  View Templates
                 </button>
               </div>
 
               {/* Trust Indicators */}
               <div className="grid grid-cols-3 gap-8 pt-8 border-t border-slate-700">
                 {[
-                  { value: '99.9%', label: 'Uptime' },
-                  { value: '500+', label: 'Active Dealers' },
-                  { value: '24/7', label: 'Support' }
+                  { value: '15 min', label: 'Setup Time' },
+                  { value: '6', label: 'Pro Templates' },
+                  { value: '24/7', label: 'Your Site Works' }
                 ].map((stat) => (
                   <div key={stat.label}>
                     <div className="text-3xl font-bold text-[#E8472F] mb-1">{stat.value}</div>
@@ -194,7 +194,7 @@ export default function LandingPage() {
               {
                 icon: Globe,
                 title: 'Professional Templates',
-                description: 'Choose from 6 industry-tested templates. Fully customizable with your branding, colors, and content.',
+                description: 'Choose from professionally designed templates. Fully customizable with your branding, colors, and content.',
               },
               {
                 icon: Zap,
@@ -238,9 +238,9 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { name: 'Basic', price: 'Free', features: ['Website builder', '6 professional templates', 'Contact forms & lead capture'], tier: 'basic' },
-              { name: 'Professional', price: '$49', period: '/month', features: ['Everything in Basic', 'Service request management', 'Inventory tracking'], tier: 'pro', popular: true },
-              { name: 'Enterprise', price: '$99', period: '/month', features: ['Everything in Professional', 'Rental management system', 'Advanced analytics dashboard'], tier: 'enterprise' }
+              { name: 'Base Package', price: '$200', period: '/month', features: ['Professional dealer website', 'Professionally designed templates', 'Contact forms & lead capture', 'Mobile optimized & SSL secured', 'Customizer dashboard'], tier: 'base' },
+              { name: 'Base + 1 Add-on', price: '$300', period: '/month', features: ['Everything in Base Package', 'Choose one: Inventory, Service, or Rentals', 'Full management dashboard', 'Customer-facing booking/browsing'], tier: 'plus1', popular: true },
+              { name: 'Full Suite', price: '$430', period: '/month', features: ['Everything in Base Package', 'Inventory management', 'Service scheduling', 'Rental booking system', 'Save $70/mo vs. individual'], tier: 'full' }
             ].map((plan) => (
               <div key={plan.name} className={`bg-slate-800 rounded-lg border-2 ${plan.popular ? 'border-[#E8472F] shadow-xl shadow-[#E8472F]/20' : 'border-slate-700'} p-8 relative`}>
                 {plan.popular && (
@@ -264,7 +264,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <button
-                  onClick={() => router.push('/register')}
+                  onClick={() => router.push(`/register?plan=${plan.tier}`)}
                   className={`w-full py-3 rounded font-bold transition-all ${
                     plan.popular
                       ? 'bg-[#E8472F] text-white hover:bg-[#D13A24] shadow-lg'
@@ -286,13 +286,13 @@ export default function LandingPage() {
             Ready to Build Your Website?
           </h2>
           <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
-            Join hundreds of equipment dealers growing their business with FleetMarket
+            Get your dealership online with a professional website and powerful management tools
           </p>
           <button
             onClick={() => router.push('/register')}
             className="px-10 py-5 bg-[#E8472F] text-white font-bold text-lg rounded hover:bg-[#D13A24] transition-all shadow-2xl inline-flex items-center gap-3"
           >
-            Start Building Free
+            Get Started
             <ArrowRight className="w-6 h-6" />
           </button>
         </div>

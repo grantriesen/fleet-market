@@ -8,7 +8,7 @@ import {
   Calendar, Clock, User, Phone, Mail, Wrench, AlertCircle,
   ChevronLeft, ChevronRight, Check, X, MessageSquare, Filter,
   Plus, Settings, Loader2, ArrowRight, MoreVertical, Search,
-  CalendarPlus, UserCheck, Ban, ChevronDown
+  UserCheck, Ban, ChevronDown
 } from 'lucide-react';
 
 // ============================================
@@ -91,6 +91,23 @@ const FM = { navy: '#1E3A6E', navyDark: '#152C54', orange: '#E85525', orangeGlow
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// Parse scheduled time as LOCAL time regardless of timezone suffix from DB
+// Supabase timestamptz returns "2026-03-02T08:00:00+00:00" but we stored local time
+function parseLocal(dateStr: string): Date {
+  // Strip any timezone suffix and parse as local
+  const clean = dateStr.replace(/[+-]\d{2}:\d{2}$/, '').replace(/Z$/, '');
+  const [datePart, timePart] = clean.split('T');
+  const [y, m, d] = datePart.split('-').map(Number);
+  const [h, min, s] = (timePart || '00:00:00').split(':').map(Number);
+  return new Date(y, m - 1, d, h, min, s || 0);
+}
+function fmtTime(dateStr: string): string {
+  return parseLocal(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+function fmtDateLocal(dateStr: string, opts?: Intl.DateTimeFormatOptions): string {
+  return parseLocal(dateStr).toLocaleDateString('en-US', opts);
+}
+
 // ============================================
 // MAIN COMPONENT
 // ============================================
@@ -108,6 +125,7 @@ export default function ServiceDashboard() {
   const [saving, setSaving] = useState(false);
   const [site, setSite] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterTechnician, setFilterTechnician] = useState('');
 
   // Calendar state
   const [calDate, setCalDate] = useState(new Date());
@@ -122,6 +140,17 @@ export default function ServiceDashboard() {
   const [showTechDropdown, setShowTechDropdown] = useState(false);
   const [techInput, setTechInput] = useState('');
 
+  // Manual booking modal state
+  const [showManualBooking, setShowManualBooking] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [manualForm, setManualForm] = useState({
+    customerName: '', customerEmail: '', customerPhone: '',
+    serviceType: '', equipmentType: '', equipmentMake: '', equipmentModel: '',
+    scheduledDate: '', scheduledTime: '09:00', duration: 60,
+    technician: '', notes: '',
+  });
+  const [manualSaving, setManualSaving] = useState(false);
+
   // Availability state
   const [availability, setAvailability] = useState<AvailabilityDay[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
@@ -129,7 +158,7 @@ export default function ServiceDashboard() {
   const [newBlockedReason, setNewBlockedReason] = useState('');
   // settingsTab removed - now separate main tabs
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { setMounted(true); loadData(); }, []);
 
   async function loadData() {
     try {
@@ -225,8 +254,15 @@ export default function ServiceDashboard() {
 
   async function scheduleAppointment(id: string) {
     if (!scheduleDate || !scheduleTime) return;
+    // Calculate end time as naive local time string
+    const [h, m] = scheduleTime.split(':').map(Number);
+    const totalMin = h * 60 + m + scheduleDuration;
+    const endH = Math.floor(totalMin / 60) % 24;
+    const endM = totalMin % 60;
+    const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
     await updateAppointment(id, {
       scheduledStart: `${scheduleDate}T${scheduleTime}:00`,
+      scheduledEnd: `${scheduleDate}T${endTimeStr}:00`,
       durationMinutes: scheduleDuration,
       status: 'confirmed',
     });
@@ -239,6 +275,111 @@ export default function ServiceDashboard() {
     await updateAppointment(id, { technician: tech });
     setShowTechDropdown(false);
     setTechInput('');
+  }
+
+  // Manual booking
+  async function submitManualBooking() {
+    if (!site || !manualForm.customerName || !manualForm.scheduledDate || !manualForm.scheduledTime) return;
+    setManualSaving(true);
+    try {
+      const [h, m] = manualForm.scheduledTime.split(':').map(Number);
+      const totalMin = h * 60 + m + manualForm.duration;
+      const endH = Math.floor(totalMin / 60) % 24;
+      const endM = totalMin % 60;
+      const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+      const supabaseAdmin = createClient();
+      const { error } = await supabaseAdmin.from('service_appointments').insert({
+        site_id: site.id,
+        customer_name: manualForm.customerName,
+        customer_email: manualForm.customerEmail || null,
+        customer_phone: manualForm.customerPhone || null,
+        service_type: manualForm.serviceType || 'Walk-in / Phone Booking',
+        service_type_name: manualForm.serviceType || 'Walk-in / Phone Booking',
+        is_custom_request: false,
+        equipment_type: manualForm.equipmentType || null,
+        equipment_make: manualForm.equipmentMake || null,
+        equipment_brand: manualForm.equipmentMake || null,
+        equipment_model: manualForm.equipmentModel || null,
+        scheduled_start: `${manualForm.scheduledDate}T${manualForm.scheduledTime}:00`,
+        scheduled_end: `${manualForm.scheduledDate}T${endTimeStr}:00`,
+        duration_minutes: manualForm.duration,
+        preferred_date: manualForm.scheduledDate,
+        preferred_time: manualForm.scheduledTime,
+        assigned_technician: manualForm.technician || null,
+        customer_notes: manualForm.notes || null,
+        status: 'confirmed',
+      });
+      if (error) throw error;
+
+      setShowManualBooking(false);
+      setManualForm({ customerName: '', customerEmail: '', customerPhone: '', serviceType: '', equipmentType: '', equipmentMake: '', equipmentModel: '', scheduledDate: '', scheduledTime: '09:00', duration: 60, technician: '', notes: '' });
+      // Reload everything
+      const res = await fetch('/api/service/appointments');
+      if (res.ok) {
+        const data = await res.json();
+        setAppointments(data.appointments || []);
+        setCounts(data.counts || counts);
+      }
+    } catch (err: any) {
+      console.error('Manual booking error:', err);
+      alert('Failed to create appointment: ' + (err.message || 'Unknown error'));
+    } finally {
+      setManualSaving(false);
+    }
+  }
+
+  // ---- Capacity calculation ----
+  function getCapacityForDate(dateStr: string): { booked: number; total: number; percent: number } {
+    const date = new Date(dateStr + 'T12:00:00');
+    const dayOfWeek = date.getDay();
+    const avail = availability.find(a => a.day_of_week === dayOfWeek);
+    if (!avail || !avail.is_available) return { booked: 0, total: 0, percent: 0 };
+
+    // Total slots = hours available × max concurrent
+    const [startH, startM] = avail.start_time.split(':').map(Number);
+    const [endH, endM] = avail.end_time.split(':').map(Number);
+    const totalHours = (endH * 60 + endM - startH * 60 - startM) / 60;
+    const totalSlots = Math.floor(totalHours) * avail.max_concurrent;
+
+    // Booked = active appointments on that date
+    const booked = appointments.filter(a => {
+      if (['canceled', 'completed'].includes(a.status)) return false;
+      if (a.scheduled_start) return a.scheduled_start.startsWith(dateStr);
+      if (a.preferred_date) return a.preferred_date === dateStr;
+      return false;
+    }).length;
+
+    const percent = totalSlots > 0 ? Math.min(Math.round((booked / totalSlots) * 100), 100) : 0;
+    return { booked, total: totalSlots, percent };
+  }
+
+  // Today and this week capacity
+  const todayDate = new Date();
+  const todayStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
+  const todayCapacity = getCapacityForDate(todayStr);
+
+  // Next 5 business days capacity
+  const weekCapacity: { date: string; label: string; cap: ReturnType<typeof getCapacityForDate> }[] = [];
+  {
+    const now = new Date();
+    let added = 0;
+    let offset = 0;
+    while (added < 5 && offset < 14) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const dayOfWeek = d.getDay();
+      const avail = availability.find(a => a.day_of_week === dayOfWeek);
+      if (avail?.is_available) {
+        weekCapacity.push({
+          date: ds,
+          label: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+          cap: getCapacityForDate(ds),
+        });
+        added++;
+      }
+      offset++;
+    }
   }
 
   // ---- Service Types ----
@@ -342,7 +483,11 @@ export default function ServiceDashboard() {
       a.equipment_model,
     ].some(field => field?.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    return statusMatch && searchMatch;
+    // Technician filter
+    const techMatch = !filterTechnician
+      || (filterTechnician === 'unassigned' ? !a.technician : a.technician === filterTechnician);
+
+    return statusMatch && searchMatch && techMatch;
   });
 
   // ---- Calendar helpers ----
@@ -356,9 +501,10 @@ export default function ServiceDashboard() {
   const getApptForDate = (day: number) => {
     const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return appointments.filter(a => {
-      if (a.scheduled_start) return a.scheduled_start.startsWith(dateStr);
-      if (a.preferred_date) return a.preferred_date === dateStr;
-      return false;
+      const dateMatch = a.scheduled_start ? a.scheduled_start.startsWith(dateStr) : a.preferred_date === dateStr;
+      const techMatch = !filterTechnician
+        || (filterTechnician === 'unassigned' ? !a.technician : a.technician === filterTechnician);
+      return dateMatch && techMatch;
     });
   };
 
@@ -375,6 +521,140 @@ export default function ServiceDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+
+      {/* MANUAL BOOKING MODAL */}
+      {mounted && showManualBooking && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '2rem', paddingBottom: '2rem', overflowY: 'auto' }}>
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)' }} onClick={() => !manualSaving && setShowManualBooking(false)} />
+          <div style={{ position: 'relative', background: 'white', borderRadius: 16, boxShadow: '0 25px 50px rgba(0,0,0,0.25)', width: '100%', maxWidth: 512, margin: '0 1rem' }}>
+            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a' }}>Add Appointment</h2>
+                <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: 2 }}>For phone bookings, walk-ins, or internal scheduling</p>
+              </div>
+              <button onClick={() => !manualSaving && setShowManualBooking(false)} style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}><X className="w-5 h-5" style={{ color: '#94a3b8' }} /></button>
+            </div>
+            <div style={{ padding: '1.25rem 1.5rem', maxHeight: 'calc(100vh - 14rem)', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                {/* Customer Info */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>Customer Name *</label>
+                  <input type="text" value={manualForm.customerName} onChange={e => setManualForm(p => ({ ...p, customerName: e.target.value }))} placeholder="John Smith"
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.875rem' }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>Email</label>
+                    <input type="email" value={manualForm.customerEmail} onChange={e => setManualForm(p => ({ ...p, customerEmail: e.target.value }))} placeholder="john@email.com"
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.875rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>Phone</label>
+                    <input type="tel" value={manualForm.customerPhone} onChange={e => setManualForm(p => ({ ...p, customerPhone: e.target.value }))} placeholder="402-555-1234"
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.875rem' }} />
+                  </div>
+                </div>
+                {/* Service */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>Service Type</label>
+                  <select value={manualForm.serviceType} onChange={e => {
+                    const st = serviceTypes.find(s => s.name === e.target.value);
+                    setManualForm(p => ({ ...p, serviceType: e.target.value, duration: st?.duration_minutes || p.duration }));
+                  }} style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.875rem' }}>
+                    <option value="">— Select or leave blank —</option>
+                    {serviceTypes.filter(s => s.is_active).map(s => <option key={s.id} value={s.name}>{s.name} ({s.duration_minutes} min)</option>)}
+                    <option value="Walk-in / Phone Booking">Walk-in / Phone Booking</option>
+                  </select>
+                </div>
+                {/* Equipment */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>Equipment</label>
+                    <input type="text" value={manualForm.equipmentType} onChange={e => setManualForm(p => ({ ...p, equipmentType: e.target.value }))} placeholder="Mower"
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.875rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>Make</label>
+                    <input type="text" value={manualForm.equipmentMake} onChange={e => setManualForm(p => ({ ...p, equipmentMake: e.target.value }))} placeholder="Toro"
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.875rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>Model</label>
+                    <input type="text" value={manualForm.equipmentModel} onChange={e => setManualForm(p => ({ ...p, equipmentModel: e.target.value }))} placeholder="TimeCutter"
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.875rem' }} />
+                  </div>
+                </div>
+                {/* Schedule */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>Date *</label>
+                    <input type="date" value={manualForm.scheduledDate} onChange={e => setManualForm(p => ({ ...p, scheduledDate: e.target.value }))}
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.875rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>Time *</label>
+                    <input type="time" value={manualForm.scheduledTime} onChange={e => setManualForm(p => ({ ...p, scheduledTime: e.target.value }))}
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.875rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>Duration (min)</label>
+                    <select value={manualForm.duration} onChange={e => setManualForm(p => ({ ...p, duration: parseInt(e.target.value) }))}
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.875rem' }}>
+                      <option value={30}>30 min</option><option value={60}>1 hour</option><option value={90}>1.5 hours</option>
+                      <option value={120}>2 hours</option><option value={180}>3 hours</option><option value={240}>4 hours</option>
+                      <option value={480}>Full day</option>
+                    </select>
+                  </div>
+                </div>
+                {/* Technician */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>Assign Technician</label>
+                  <select value={manualForm.technician} onChange={e => setManualForm(p => ({ ...p, technician: e.target.value }))}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.875rem' }}>
+                    <option value="">— None —</option>
+                    {existingTechnicians.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                {/* Notes */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>Notes</label>
+                  <textarea value={manualForm.notes} onChange={e => setManualForm(p => ({ ...p, notes: e.target.value }))} rows={2} placeholder="Any details about the job..."
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.875rem', resize: 'none' }} />
+                </div>
+                {/* Capacity indicator */}
+                {manualForm.scheduledDate && (() => {
+                  const cap = getCapacityForDate(manualForm.scheduledDate);
+                  return cap.total > 0 ? (
+                    <div style={{ padding: '0.75rem', borderRadius: 8, background: cap.percent >= 80 ? '#fef2f2' : cap.percent >= 50 ? '#fffbeb' : '#f0fdf4', border: '1px solid', borderColor: cap.percent >= 80 ? '#fca5a5' : cap.percent >= 50 ? '#fde68a' : '#bbf7d0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: cap.percent >= 80 ? '#dc2626' : cap.percent >= 50 ? '#d97706' : '#16a34a' }}>
+                          {cap.percent >= 80 ? 'Near capacity' : cap.percent >= 50 ? 'Filling up' : 'Plenty of room'} — {cap.booked}/{cap.total} slots
+                        </span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: cap.percent >= 80 ? '#dc2626' : cap.percent >= 50 ? '#d97706' : '#16a34a' }}>{cap.percent}%</span>
+                      </div>
+                      <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.6)', borderRadius: 3 }}>
+                        <div style={{ width: `${cap.percent}%`, height: '100%', borderRadius: 3, background: cap.percent >= 80 ? '#dc2626' : cap.percent >= 50 ? '#d97706' : '#16a34a' }} />
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            </div>
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between' }}>
+              <button onClick={() => setShowManualBooking(false)} disabled={manualSaving}
+                style={{ padding: '0.5rem 1rem', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={submitManualBooking} disabled={manualSaving || !manualForm.customerName || !manualForm.scheduledDate || !manualForm.scheduledTime}
+                style={{ padding: '0.5rem 1.25rem', borderRadius: 8, border: 'none', background: FM.orange, color: 'white', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', opacity: (manualSaving || !manualForm.customerName || !manualForm.scheduledDate || !manualForm.scheduledTime) ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                {manualSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                Add Appointment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Bar */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-[1600px] mx-auto px-6 py-3 flex items-center justify-between">
@@ -387,8 +667,8 @@ export default function ServiceDashboard() {
       </div>
 
       <div className="max-w-[1600px] mx-auto px-6 py-6">
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {/* Stats + Capacity */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           {[
             { label: 'Today', value: counts.today, sub: `${counts.this_week} this week`, icon: Calendar, color: FM.navy },
             { label: 'Pending', value: counts.pending, sub: '', icon: Clock, color: '#d97706' },
@@ -400,20 +680,62 @@ export default function ServiceDashboard() {
               <div><p className="text-2xl font-bold text-slate-800">{s.value}</p><p className="text-xs text-slate-500">{s.label}{s.sub ? ` · ${s.sub}` : ''}</p></div>
             </div>
           ))}
+          {/* Capacity gauge */}
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: todayCapacity.percent >= 80 ? '#fef2f2' : todayCapacity.percent >= 50 ? '#fffbeb' : '#f0fdf4' }}>
+                <ArrowRight className="w-5 h-5" style={{ color: todayCapacity.percent >= 80 ? '#dc2626' : todayCapacity.percent >= 50 ? '#d97706' : '#16a34a' }} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-slate-800">{todayCapacity.percent}%</p>
+                <p className="text-xs text-slate-500">Today's Capacity</p>
+              </div>
+            </div>
+            <div style={{ width: '100%', height: 6, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ width: `${todayCapacity.percent}%`, height: '100%', borderRadius: 3, background: todayCapacity.percent >= 80 ? '#dc2626' : todayCapacity.percent >= 50 ? '#d97706' : '#16a34a', transition: 'width 0.3s' }} />
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1">{todayCapacity.booked} of {todayCapacity.total} slots filled</p>
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-white rounded-xl border border-slate-200 p-1 w-fit">
-          {([
-            { key: 'queue' as ViewMode, label: 'Queue', icon: MessageSquare },
-            { key: 'calendar' as ViewMode, label: 'Calendar', icon: Calendar },
-            { key: 'services' as ViewMode, label: 'Services', icon: Wrench },
-            { key: 'availability' as ViewMode, label: 'Availability', icon: Clock },
-          ]).map(v => (
-            <button key={v.key} onClick={() => setView(v.key)} className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${view === v.key ? 'text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'}`} style={view === v.key ? { background: FM.navy } : {}}>
-              <v.icon className="w-4 h-4" />{v.label}
-            </button>
-          ))}
+        {/* Week capacity bar */}
+        {weekCapacity.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Upcoming Capacity</p>
+            <div className="grid grid-cols-5 gap-3">
+              {weekCapacity.map(({ date, label, cap }) => (
+                <div key={date}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-slate-600">{label}</span>
+                    <span className="text-xs font-bold" style={{ color: cap.percent >= 80 ? '#dc2626' : cap.percent >= 50 ? '#d97706' : '#16a34a' }}>{cap.percent}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ width: `${cap.percent}%`, height: '100%', borderRadius: 4, background: cap.percent >= 80 ? '#dc2626' : cap.percent >= 50 ? '#d97706' : '#16a34a', transition: 'width 0.3s' }} />
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-0.5">{cap.booked}/{cap.total} slots</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tabs + Add Button */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex gap-1 bg-white rounded-xl border border-slate-200 p-1 w-fit">
+            {([
+              { key: 'queue' as ViewMode, label: 'Queue', icon: MessageSquare },
+              { key: 'calendar' as ViewMode, label: 'Calendar', icon: Calendar },
+              { key: 'services' as ViewMode, label: 'Services', icon: Wrench },
+              { key: 'availability' as ViewMode, label: 'Availability', icon: Clock },
+            ]).map(v => (
+              <button key={v.key} onClick={() => setView(v.key)} className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${view === v.key ? 'text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'}`} style={view === v.key ? { background: FM.navy } : {}}>
+                <v.icon className="w-4 h-4" />{v.label}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => { console.log('CLICK - setting showManualBooking to true'); setShowManualBooking(true); }} className="inline-flex items-center gap-2 px-4 py-2.5 text-white font-semibold rounded-lg text-sm" style={{ background: FM.orange }}>
+            <Plus className="w-4 h-4" />Add Appointment
+          </button>
         </div>
 
         {/* Alert Chip */}
@@ -464,6 +786,17 @@ export default function ServiceDashboard() {
                   </button>
                 ))}
               </div>
+              {existingTechnicians.length > 0 && (
+                <select
+                  value={filterTechnician}
+                  onChange={(e) => setFilterTechnician(e.target.value)}
+                  style={{ padding: '0.375rem 0.625rem', borderRadius: 6, border: '1px solid', borderColor: filterTechnician ? '#3b82f6' : '#e2e8f0', background: filterTechnician ? '#eff6ff' : 'white', color: filterTechnician ? '#2563eb' : '#64748b', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer', appearance: 'auto' as any }}
+                >
+                  <option value="">All Technicians</option>
+                  <option value="unassigned">Unassigned</option>
+                  {existingTechnicians.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              )}
             </div>
 
             {filtered.length === 0 ? (
@@ -501,7 +834,7 @@ export default function ServiceDashboard() {
                           {appt.scheduled_start && (
                             <>
                               <span>·</span>
-                              <span>{new Date(appt.scheduled_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(appt.scheduled_start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+                              <span>{fmtDateLocal(appt.scheduled_start!, { month: 'short', day: 'numeric' })} at {fmtTime(appt.scheduled_start!)}</span>
                             </>
                           )}
                           {!appt.scheduled_start && appt.preferred_date && (
@@ -572,11 +905,11 @@ export default function ServiceDashboard() {
                 {selectedAppt.scheduled_start ? (
                   <div>
                     <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1e40af' }}>
-                      {new Date(selectedAppt.scheduled_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                      {fmtDateLocal(selectedAppt.scheduled_start!, { weekday: 'long', month: 'long', day: 'numeric' })}
                     </div>
                     <div style={{ fontSize: '0.875rem', color: '#3b82f6' }}>
-                      {new Date(selectedAppt.scheduled_start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                      {selectedAppt.scheduled_end && ` – ${new Date(selectedAppt.scheduled_end).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
+                      {fmtTime(selectedAppt.scheduled_start!)}
+                      {selectedAppt.scheduled_end && ` – ${fmtTime(selectedAppt.scheduled_end)}`}
                     </div>
                     {!['completed', 'canceled'].includes(selectedAppt.status) && (
                       <button onClick={() => { setShowScheduleModal(true); setScheduleDate(selectedAppt.scheduled_start!.split('T')[0]); setScheduleTime(selectedAppt.scheduled_start!.split('T')[1]?.substring(0, 5) || ''); setScheduleDuration(selectedAppt.duration_minutes || 60); }}
@@ -689,10 +1022,14 @@ export default function ServiceDashboard() {
                   <div style={{ position: 'relative' }}>
                     <input
                       type="text"
-                      placeholder="Type technician name..."
+                      placeholder="Type or select technician..."
                       value={techInput}
                       onChange={(e) => { setTechInput(e.target.value); setShowTechDropdown(true); }}
                       onFocus={() => setShowTechDropdown(true)}
+                      onBlur={(e) => {
+                        // Delay closing so dropdown button clicks can register
+                        setTimeout(() => setShowTechDropdown(false), 200);
+                      }}
                       onKeyDown={(e) => { if (e.key === 'Enter' && techInput.trim()) { assignTechnician(selectedAppt.id, techInput.trim()); } }}
                       style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.8125rem' }}
                     />
@@ -701,7 +1038,9 @@ export default function ServiceDashboard() {
                         {existingTechnicians
                           .filter(t => !techInput || t.toLowerCase().includes(techInput.toLowerCase()))
                           .map(tech => (
-                            <button key={tech} onClick={() => assignTechnician(selectedAppt.id, tech)}
+                            <button key={tech}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => assignTechnician(selectedAppt.id, tech)}
                               style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8125rem', color: '#0f172a' }}
                               onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
                               onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}>
@@ -709,7 +1048,9 @@ export default function ServiceDashboard() {
                             </button>
                           ))}
                         {techInput.trim() && !existingTechnicians.includes(techInput.trim()) && (
-                          <button onClick={() => assignTechnician(selectedAppt.id, techInput.trim())}
+                          <button
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => assignTechnician(selectedAppt.id, techInput.trim())}
                             style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', borderTop: '1px solid #f1f5f9', background: '#f0fdf4', cursor: 'pointer', fontSize: '0.8125rem', color: '#16a34a', fontWeight: 600 }}>
                             <Plus className="w-3.5 h-3.5" /> Assign "{techInput.trim()}"
                           </button>
@@ -792,7 +1133,7 @@ export default function ServiceDashboard() {
               <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid #f1f5f9', fontSize: '0.8125rem', color: '#94a3b8' }}>
                 <div>Created: {new Date(selectedAppt.created_at).toLocaleString()}</div>
                 {selectedAppt.contacted_at && <div>Contacted: {new Date(selectedAppt.contacted_at).toLocaleString()}</div>}
-                {selectedAppt.scheduled_start && <div>Scheduled: {new Date(selectedAppt.scheduled_start).toLocaleString()}</div>}
+                {selectedAppt.scheduled_start && <div>Scheduled: {fmtDateLocal(selectedAppt.scheduled_start, { month: 'short', day: 'numeric' })} at {fmtTime(selectedAppt.scheduled_start)}</div>}
               </div>
             </div>
           )}
@@ -808,7 +1149,20 @@ export default function ServiceDashboard() {
             </button>
             <div style={{ textAlign: 'center' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>{monthName}</h2>
-              <button onClick={() => setCalDate(new Date())} style={{ fontSize: '0.75rem', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Today</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center', marginTop: '0.25rem' }}>
+                <button onClick={() => setCalDate(new Date())} style={{ fontSize: '0.75rem', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Today</button>
+                {existingTechnicians.length > 0 && (
+                  <select
+                    value={filterTechnician}
+                    onChange={(e) => setFilterTechnician(e.target.value)}
+                    style={{ padding: '0.25rem 0.5rem', borderRadius: 6, border: '1px solid', borderColor: filterTechnician ? '#3b82f6' : '#e2e8f0', background: filterTechnician ? '#eff6ff' : 'white', color: filterTechnician ? '#2563eb' : '#64748b', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer' }}
+                  >
+                    <option value="">All Technicians</option>
+                    <option value="unassigned">Unassigned</option>
+                    {existingTechnicians.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                )}
+              </div>
             </div>
             <button onClick={() => setCalDate(new Date(calYear, calMonth + 1, 1))} style={{ background: '#f1f5f9', border: 'none', borderRadius: 8, padding: '0.5rem', cursor: 'pointer' }}>
               <ChevronRight className="w-5 h-5" style={{ color: '#475569' }} />
@@ -843,7 +1197,7 @@ export default function ServiceDashboard() {
                     return (
                       <button key={a.id} onClick={() => { setSelectedAppt(a); setView('queue'); }}
                         style={{ display: 'block', width: '100%', padding: '2px 4px', marginBottom: 2, borderRadius: 4, background: sc.bg, border: 'none', cursor: 'pointer', fontSize: '0.6875rem', color: sc.color, fontWeight: 500, textAlign: 'left', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                        {a.scheduled_start && new Date(a.scheduled_start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} {a.customer_name.split(' ')[0]}
+                        {a.scheduled_start && fmtTime(a.scheduled_start)} {a.customer_name.split(' ')[0]}
                       </button>
                     );
                   })}
@@ -1098,6 +1452,7 @@ function ServiceTypeManager({ types, onSave, onDelete, saving }: {
       <div style={{ marginTop: '1.5rem', padding: '1rem 1.25rem', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', fontSize: '0.8125rem', color: '#64748b' }}>
         <strong style={{ color: '#475569' }}>How it works:</strong> Customers will see these service options when booking on your website. Each service type has a set duration that determines which time slots are available. There's always an "Other" option that creates a contact request instead of a direct booking.
       </div>
+
     </div>
   );
 }

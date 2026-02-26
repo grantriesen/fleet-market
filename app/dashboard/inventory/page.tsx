@@ -87,9 +87,78 @@ export default function InventoryDashboard() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+  // Catalog search state
+  const [catalogQuery, setCatalogQuery] = useState('');
+  const [catalogResults, setCatalogResults] = useState<any[]>([]);
+  const [catalogSearching, setCatalogSearching] = useState(false);
+  const [showCatalogResults, setShowCatalogResults] = useState(false);
+  const [catalogApplied, setCatalogApplied] = useState<any>(null);
+  const catalogDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type }); setTimeout(() => setToast(null), 3000);
   }, []);
+
+  // Catalog search with debounce
+  const searchCatalog = useCallback(async (query: string) => {
+    if (query.length < 2) { setCatalogResults([]); setShowCatalogResults(false); return; }
+    setCatalogSearching(true);
+    try {
+      const res = await fetch(`/api/catalog/search?q=${encodeURIComponent(query)}&limit=8`);
+      const data = await res.json();
+      setCatalogResults(data.results || []);
+      setShowCatalogResults(true);
+    } catch (err) { console.error('Catalog search error:', err); }
+    finally { setCatalogSearching(false); }
+  }, []);
+
+  const handleCatalogQueryChange = (value: string) => {
+    setCatalogQuery(value);
+    if (catalogDebounceRef.current) clearTimeout(catalogDebounceRef.current);
+    catalogDebounceRef.current = setTimeout(() => searchCatalog(value), 300);
+  };
+
+  const mapCatalogCategory = (cat: string): string => {
+    const c = (cat || '').toLowerCase();
+    if (c.includes('mower') || c.includes('mowing')) return 'Mowers';
+    if (c.includes('tractor') || c.includes('riding')) return 'Tractors';
+    if (c.includes('trimmer') || c.includes('edger')) return 'Trimmers & Edgers';
+    if (c.includes('blower')) return 'Blowers';
+    if (c.includes('chainsaw') || c.includes('arborist')) return 'Chainsaws';
+    if (c.includes('attach') || c.includes('accessor') || c.includes('part')) return 'Parts & Accessories';
+    if (c.includes('construction') || c.includes('skid')) return 'Utility Vehicles';
+    if (c.includes('sprayer')) return 'Sprayers';
+    if (c.includes('aerator')) return 'Aerators';
+    if (c.includes('snow')) return 'Snow Equipment';
+    return 'Other';
+  };
+
+  const applyCatalogProduct = (product: any) => {
+    const msrp = product.specs?.MSRP?.replace(/[$,]/g, '');
+    const specs: Record<string, string> = {};
+    if (product.specs) {
+      Object.entries(product.specs).forEach(([k, v]) => {
+        if (k !== 'MSRP') specs[k] = String(v);
+      });
+    }
+    setForm(prev => ({
+      ...prev,
+      title: product.product_name,
+      description: product.short_description || product.full_description?.slice(0, 500) || '',
+      model: product.sku || '',
+      sku: product.sku || '',
+      category: mapCatalogCategory(product.category),
+      price: msrp ? parseFloat(msrp) : null,
+      primary_image: product.primary_image || null,
+      images: product.image_urls || (product.primary_image ? [product.primary_image] : []),
+      specifications: specs,
+    }));
+    setCatalogApplied(product);
+    setShowCatalogResults(false);
+    setCatalogQuery('');
+  };
+
+  const clearCatalogSelection = () => { setCatalogApplied(null); };
   const allCategories = [...new Set([...CATEGORIES, ...customCategories])];
   const uf = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }));
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
@@ -128,7 +197,7 @@ export default function InventoryDashboard() {
   }, [siteId]);
 
   const handleSort = (field: SortField) => { if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else { setSortField(field); setSortDir('asc'); } setPage(0); };
-  const openAddModal = () => { setEditingItem(null); setForm({ ...EMPTY_FORM }); setActiveFormTab('details'); setFormError(''); setModalOpen(true); };
+  const openAddModal = () => { setEditingItem(null); setForm({ ...EMPTY_FORM }); setActiveFormTab('details'); setFormError(''); setCatalogApplied(null); setCatalogQuery(''); setCatalogResults([]); setShowCatalogResults(false); setModalOpen(true); };
   const openEditModal = (item: InventoryItem) => {
     setEditingItem(item);
     setForm({ title: item.title||'', description: item.description||'', category: item.category||'Mowers', condition: item.condition||'new', price: item.price, sale_price: item.sale_price, financing_available: item.financing_available||false, model: item.model||'', year: item.year||new Date().getFullYear(), serial_number: item.serial_number||'', hours: item.hours, specifications: item.specifications||{}, images: item.images||[], primary_image: item.primary_image, stock_quantity: item.stock_quantity||1, sku: item.sku||'', location: item.location||'', status: item.status||'available', featured: item.featured||false, display_order: item.display_order||0, slug: item.slug||'' });
@@ -241,16 +310,63 @@ export default function InventoryDashboard() {
     setImporting(true);
     setImportProgress({ done: 0, total: csvData.length, errors: 0 });
     let errors = 0;
+    let updated = 0;
+    let inserted = 0;
 
-    // Process in batches of 50
-    const BATCH = 50;
-    for (let i = 0; i < csvData.length; i += BATCH) {
-      const batch = csvData.slice(i, i + BATCH);
-      const records = batch.map(row => {
-        const get = (key: string) => csvMapping[key] ? (row[csvMapping[key]] || '').trim() : '';
-        const title = get('title');
-        if (!title) return null;
-        return {
+    for (let i = 0; i < csvData.length; i++) {
+      const row = csvData[i];
+      const get = (key: string) => csvMapping[key] ? (row[csvMapping[key]] || '').trim() : '';
+      const title = get('title');
+      if (!title) { errors++; setImportProgress({ done: i + 1, total: csvData.length, errors }); continue; }
+
+      const serialNumber = get('serial_number');
+
+      // Check for existing item by serial number
+      let existingItem: InventoryItem | null = null;
+      if (serialNumber) {
+        const { data } = await supabase
+          .from('inventory_items')
+          .select('*')
+          .eq('site_id', siteId)
+          .eq('serial_number', serialNumber)
+          .maybeSingle();
+        existingItem = data;
+      }
+
+      if (existingItem) {
+        // UPDATE — only fields that have non-empty values in CSV
+        const updates: Record<string, any> = { updated_at: new Date().toISOString() };
+        if (get('title')) updates.title = get('title');
+        if (get('description')) updates.description = get('description');
+        if (get('category')) updates.category = get('category');
+        if (get('condition')) updates.condition = get('condition');
+        if (get('model')) updates.model = get('model');
+        if (get('year')) updates.year = parseInt(get('year'));
+        if (get('price')) updates.price = parseFloat(get('price').replace(/[$,]/g, ''));
+        if (get('sale_price')) updates.sale_price = parseFloat(get('sale_price').replace(/[$,]/g, ''));
+        if (get('status')) updates.status = get('status');
+        if (get('stock_quantity')) updates.stock_quantity = parseInt(get('stock_quantity'));
+        if (get('sku')) updates.sku = get('sku');
+        if (get('hours')) updates.hours = parseInt(get('hours'));
+        if (get('location')) updates.location = get('location');
+        if (get('primary_image')) {
+          updates.primary_image = get('primary_image');
+          // Merge new image into existing gallery without duplicates
+          const existingImages = existingItem.images || [];
+          if (!existingImages.includes(get('primary_image'))) {
+            updates.images = [...existingImages, get('primary_image')];
+          }
+        }
+
+        const { error } = await supabase
+          .from('inventory_items')
+          .update(updates)
+          .eq('id', existingItem.id);
+        if (error) errors++;
+        else updated++;
+      } else {
+        // INSERT — new product
+        const record = {
           site_id: siteId,
           title,
           description: get('description') || null,
@@ -263,7 +379,7 @@ export default function InventoryDashboard() {
           status: get('status') || 'available',
           stock_quantity: get('stock_quantity') ? parseInt(get('stock_quantity')) : 1,
           sku: get('sku') || null,
-          serial_number: get('serial_number') || null,
+          serial_number: serialNumber || null,
           hours: get('hours') ? parseInt(get('hours')) : null,
           location: get('location') || null,
           primary_image: get('primary_image') || null,
@@ -275,13 +391,13 @@ export default function InventoryDashboard() {
           slug: generateSlug(title),
           updated_at: new Date().toISOString(),
         };
-      }).filter(Boolean);
 
-      if (records.length > 0) {
-        const { error } = await supabase.from('inventory_items').insert(records);
-        if (error) errors += records.length;
+        const { error } = await supabase.from('inventory_items').insert([record]);
+        if (error) errors++;
+        else inserted++;
       }
-      setImportProgress({ done: Math.min(i + BATCH, csvData.length), total: csvData.length, errors });
+
+      setImportProgress({ done: i + 1, total: csvData.length, errors });
     }
 
     setImporting(false);
@@ -289,7 +405,12 @@ export default function InventoryDashboard() {
     setCsvData([]);
     setCsvHeaders([]);
     setCsvMapping({});
-    showToast(errors > 0 ? `Imported with ${errors} error(s)` : `Imported ${csvData.length} products!`, errors > 0 ? 'error' : 'success');
+
+    const parts = [];
+    if (inserted > 0) parts.push(`${inserted} added`);
+    if (updated > 0) parts.push(`${updated} updated`);
+    if (errors > 0) parts.push(`${errors} error(s)`);
+    showToast(parts.join(', ') || 'Import complete', errors > 0 ? 'error' : 'success');
     loadItems();
   };
 
@@ -301,6 +422,59 @@ export default function InventoryDashboard() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'inventory-template.csv'; a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const exportInventory = async () => {
+    if (!siteId) return;
+    showToast('Exporting inventory...');
+    const { data, error } = await supabase
+      .from('inventory_items')
+      .select('*')
+      .eq('site_id', siteId)
+      .order('created_at', { ascending: false });
+
+    if (error || !data || data.length === 0) {
+      showToast(error ? 'Export failed' : 'No products to export', 'error');
+      return;
+    }
+
+    const escCsv = (val: any): string => {
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    };
+
+    const headers = ['Title','Description','Category','Condition','Model','Year','Price','Sale Price','Status','Stock Qty','SKU','Serial Number','Hours','Location','Image URL'];
+    const rows = data.map((item: any) => [
+      escCsv(item.title),
+      escCsv(item.description),
+      escCsv(item.category),
+      escCsv(item.condition),
+      escCsv(item.model),
+      escCsv(item.year),
+      escCsv(item.price),
+      escCsv(item.sale_price),
+      escCsv(item.status),
+      escCsv(item.stock_quantity),
+      escCsv(item.sku),
+      escCsv(item.serial_number),
+      escCsv(item.hours),
+      escCsv(item.location),
+      escCsv(item.primary_image),
+    ].join(','));
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inventory-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exported ${data.length} product${data.length !== 1 ? 's' : ''}`);
   };
   if (loading) return (<div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>);
 
@@ -320,6 +494,7 @@ export default function InventoryDashboard() {
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
               Google Feed
             </button>
+            <button onClick={exportInventory} className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 font-medium rounded-lg text-sm hover:bg-slate-50"><Download className="w-4 h-4" />Export CSV</button>
             <button onClick={()=>csvInputRef.current?.click()} className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 font-medium rounded-lg text-sm hover:bg-slate-50"><FileUp className="w-4 h-4" />Import CSV</button>
             <input ref={csvInputRef} type="file" accept=".csv,.tsv,.txt" onChange={handleCSVFile} className="hidden" />
             <button onClick={openAddModal} className="inline-flex items-center gap-2 px-4 py-2 text-white font-semibold rounded-lg text-sm" style={{background:FM.orange}}><Plus className="w-4 h-4" />Add Product</button>
@@ -442,6 +617,71 @@ export default function InventoryDashboard() {
             </div>
             <div className="px-6 py-5 overflow-y-auto" style={{maxHeight:'calc(100vh - 16rem)'}}>
               {formError && <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2"><AlertCircle className="w-4 h-4" />{formError}</div>}
+
+              {/* Catalog Autofill — only for new items */}
+              {!editingItem && (
+                <div className="mb-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                    <span className="text-sm font-semibold text-blue-900">Quick Add from Catalog</span>
+                    <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-medium ml-1">Optional</span>
+                  </div>
+
+                  {catalogApplied ? (
+                    <div className="flex items-center gap-3 bg-white border border-blue-200 rounded-lg p-2.5">
+                      {catalogApplied.primary_image && <img src={catalogApplied.primary_image} alt="" className="w-10 h-10 object-cover rounded" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-xs text-slate-800 truncate">{catalogApplied.product_name}</div>
+                        <div className="text-[10px] text-slate-500">{catalogApplied.manufacturer} · SKU: {catalogApplied.sku}</div>
+                      </div>
+                      <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">Autofilled</span>
+                      <button onClick={clearCatalogSelection} className="text-slate-400 hover:text-red-500 p-0.5"><X className="w-3.5 h-3.5" /></button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 w-3.5 h-3.5" />
+                        <input
+                          type="text"
+                          value={catalogQuery}
+                          onChange={(e) => handleCatalogQueryChange(e.target.value)}
+                          placeholder='Type a product name or SKU to autofill...'
+                          className="w-full pl-9 pr-3 py-2 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none"
+                        />
+                        {catalogSearching && <div className="absolute right-3 top-1/2 -translate-y-1/2"><div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>}
+                      </div>
+
+                      {showCatalogResults && catalogResults.length > 0 && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-2xl max-h-72 overflow-y-auto">
+                          {catalogResults.map((product: any) => (
+                            <button key={product.id} onClick={() => applyCatalogProduct(product)} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 border-b border-slate-50 last:border-0 text-left transition-colors">
+                              {product.primary_image ? (
+                                <img src={product.primary_image} alt="" className="w-12 h-12 object-cover rounded flex-shrink-0" />
+                              ) : (
+                                <div className="w-12 h-12 bg-slate-100 rounded flex items-center justify-center flex-shrink-0"><Package className="w-5 h-5 text-slate-400" /></div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm text-slate-800 truncate">{product.product_name}</div>
+                                <div className="text-xs text-slate-500">
+                                  {product.manufacturer} · SKU: {product.sku}
+                                  {product.specs?.MSRP && <span className="ml-2 font-semibold text-green-700">MSRP {product.specs.MSRP}</span>}
+                                </div>
+                              </div>
+                              <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {showCatalogResults && catalogResults.length === 0 && catalogQuery.length >= 2 && !catalogSearching && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg p-3 text-center">
+                          <p className="text-xs text-slate-500">No catalog match for "{catalogQuery}" — fill in manually below</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {activeFormTab === 'details' && (
                 <div className="space-y-4">
@@ -568,7 +808,7 @@ export default function InventoryDashboard() {
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-800">Import from CSV</h2>
-                <p className="text-sm text-slate-500 mt-0.5">{csvData.length} row{csvData.length!==1?'s':''} found</p>
+                <p className="text-sm text-slate-500 mt-0.5">{csvData.length} row{csvData.length!==1?'s':''} found · {Object.values(csvMapping).filter(Boolean).length} of {CSV_FIELDS.length} fields mapped</p>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={downloadTemplate} className="text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-1"><Download className="w-3 h-3" />Template</button>
@@ -588,44 +828,71 @@ export default function InventoryDashboard() {
                 </div>
               ) : (
                 <>
-                  <p className="text-sm text-slate-600 mb-4">Map your CSV columns to inventory fields. We auto-matched what we could.</p>
-                  <div className="space-y-3">
-                    {CSV_FIELDS.map(field => (
-                      <div key={field.key} className="flex items-center gap-3">
-                        <label className="w-32 text-sm font-medium text-slate-700 flex-shrink-0">
-                          {field.label}
-                          {field.required && <span className="text-red-500 ml-0.5">*</span>}
-                        </label>
-                        <select
-                          value={csvMapping[field.key] || ''}
-                          onChange={(e) => setCsvMapping(prev => ({...prev, [field.key]: e.target.value}))}
-                          className={`flex-1 px-3 py-2 border rounded-lg text-sm bg-white ${csvMapping[field.key] ? 'border-slate-300' : 'border-slate-200 text-slate-400'}`}
-                        >
-                          <option value="">— Skip —</option>
-                          {csvHeaders.map(h => <option key={h} value={h}>{h}</option>)}
-                        </select>
-                        {csvMapping[field.key] && csvData[0] && (
-                          <span className="text-xs text-slate-400 truncate max-w-[140px]" title={csvData[0][csvMapping[field.key]]}>
-                            e.g. {csvData[0][csvMapping[field.key]] || '(empty)'}
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                  <p className="text-sm text-slate-600 mb-1">Map your CSV columns to inventory fields.</p>
+                  <p className="text-xs text-slate-400 mb-4">Items with matching <strong>Serial Numbers</strong> will be updated. New serial numbers will be added.</p>
+                  <div className="bg-slate-50 rounded-xl border border-slate-200 divide-y divide-slate-200">
+                    {CSV_FIELDS.map(field => {
+                      const isMapped = !!csvMapping[field.key];
+                      const preview = isMapped && csvData[0] ? csvData[0][csvMapping[field.key]] : '';
+                      return (
+                        <div key={field.key} className={`flex items-center gap-3 px-4 py-2.5 ${isMapped ? 'bg-white' : ''}`}>
+                          <div className="w-8 flex justify-center">
+                            {isMapped ? (
+                              <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{background: FM.orange + '18', color: FM.orange}}>
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                              </div>
+                            ) : (
+                              <div className="w-5 h-5 rounded-full border-2 border-slate-200" />
+                            )}
+                          </div>
+                          <label className="w-28 text-sm font-medium text-slate-700 flex-shrink-0">
+                            {field.label}
+                            {field.required && <span className="text-red-500 ml-0.5">*</span>}
+                          </label>
+                          <div className="flex-1 relative">
+                            <select
+                              value={csvMapping[field.key] || ''}
+                              onChange={(e) => setCsvMapping(prev => ({...prev, [field.key]: e.target.value}))}
+                              className={`w-full px-3 py-2 border rounded-lg text-sm bg-white appearance-none cursor-pointer transition-colors ${
+                                isMapped
+                                  ? 'border-slate-300 text-slate-800 font-medium'
+                                  : 'border-slate-200 text-slate-400'
+                              }`}
+                              style={isMapped ? {borderColor: FM.orange + '60'} : {}}
+                            >
+                              <option value="">— Skip —</option>
+                              {csvHeaders.map(h => <option key={h} value={h}>{h}</option>)}
+                            </select>
+                            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 rotate-90 pointer-events-none" />
+                          </div>
+                          <div className="w-36 flex-shrink-0">
+                            {preview ? (
+                              <span className="text-xs text-slate-400 truncate block" title={preview}>
+                                {preview.length > 24 ? preview.slice(0, 24) + '…' : preview}
+                              </span>
+                            ) : isMapped ? (
+                              <span className="text-xs text-slate-300 italic">empty</span>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Preview */}
                   {csvData.length > 0 && csvMapping.title && (
-                    <div className="mt-6">
+                    <div className="mt-5">
                       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Preview (first 3 rows)</p>
-                      <div className="border border-slate-200 rounded-lg overflow-hidden">
+                      <div className="border border-slate-200 rounded-xl overflow-hidden">
                         <table className="w-full text-xs">
-                          <thead><tr className="bg-slate-50">{['Title','Category','Price','Status'].map(h=><th key={h} className="px-3 py-2 text-left font-semibold text-slate-500">{h}</th>)}</tr></thead>
+                          <thead><tr className="bg-slate-50">{['Title','Category','Price','Serial #','Status'].map(h=><th key={h} className="px-3 py-2.5 text-left font-semibold text-slate-500">{h}</th>)}</tr></thead>
                           <tbody>{csvData.slice(0,3).map((row,i)=>(
                             <tr key={i} className="border-t border-slate-100">
-                              <td className="px-3 py-2 text-slate-800 font-medium">{csvMapping.title?row[csvMapping.title]:'—'}</td>
-                              <td className="px-3 py-2 text-slate-600">{csvMapping.category?row[csvMapping.category]:'Other'}</td>
-                              <td className="px-3 py-2 text-slate-600">{csvMapping.price?row[csvMapping.price]:'—'}</td>
-                              <td className="px-3 py-2 text-slate-600">{csvMapping.status?row[csvMapping.status]:'available'}</td>
+                              <td className="px-3 py-2.5 text-slate-800 font-medium">{csvMapping.title?row[csvMapping.title]:'—'}</td>
+                              <td className="px-3 py-2.5 text-slate-600">{csvMapping.category?row[csvMapping.category]:'Other'}</td>
+                              <td className="px-3 py-2.5 text-slate-600">{csvMapping.price?('$'+row[csvMapping.price]):'—'}</td>
+                              <td className="px-3 py-2.5 text-slate-600 font-mono">{csvMapping.serial_number?row[csvMapping.serial_number]:'—'}</td>
+                              <td className="px-3 py-2.5"><StatusBadge status={csvMapping.status?row[csvMapping.status]:'available'} /></td>
                             </tr>
                           ))}</tbody>
                         </table>
@@ -636,9 +903,10 @@ export default function InventoryDashboard() {
               )}
             </div>
             {!importing && (
-              <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+              <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between rounded-b-2xl">
                 <button onClick={()=>{setImportModalOpen(false);setCsvData([]);setCsvHeaders([]);setCsvMapping({});}} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
                 <button onClick={runImport} disabled={!csvMapping.title || csvData.length===0} className="px-6 py-2.5 text-sm font-semibold text-white rounded-lg disabled:opacity-40 flex items-center gap-2" style={{background:FM.orange}}>
+                  <FileUp className="w-4 h-4" />
                   Import {csvData.length} Product{csvData.length!==1?'s':''}
                 </button>
               </div>

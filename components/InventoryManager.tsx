@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, Edit, Trash2, Search, DollarSign, Package, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, DollarSign, Package, X, Upload, Image as ImageIcon, Sparkles, ChevronRight } from 'lucide-react';
 
 interface InventoryItem {
   id: string;
@@ -23,6 +23,20 @@ interface InventoryItem {
   created_at: string;
 }
 
+interface CatalogProduct {
+  id: string;
+  sku: string;
+  product_name: string;
+  manufacturer: string;
+  category: string;
+  subcategory: string;
+  short_description: string;
+  full_description: string;
+  primary_image: string;
+  image_urls: string[];
+  specs: Record<string, string>;
+}
+
 export default function InventoryManager({ siteId }: { siteId: string }) {
   const supabase = createClient();
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -33,6 +47,77 @@ export default function InventoryManager({ siteId }: { siteId: string }) {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Catalog search state
+  const [catalogQuery, setCatalogQuery] = useState('');
+  const [catalogResults, setCatalogResults] = useState<CatalogProduct[]>([]);
+  const [catalogSearching, setCatalogSearching] = useState(false);
+  const [showCatalogResults, setShowCatalogResults] = useState(false);
+  const [catalogApplied, setCatalogApplied] = useState<CatalogProduct | null>(null);
+  const catalogDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Catalog search with debounce
+  const searchCatalog = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setCatalogResults([]);
+      setShowCatalogResults(false);
+      return;
+    }
+
+    setCatalogSearching(true);
+    try {
+      const res = await fetch(`/api/catalog/search?q=${encodeURIComponent(query)}&limit=8`);
+      const data = await res.json();
+      setCatalogResults(data.results || []);
+      setShowCatalogResults(true);
+    } catch (err) {
+      console.error('Catalog search error:', err);
+    } finally {
+      setCatalogSearching(false);
+    }
+  }, []);
+
+  const handleCatalogQueryChange = (value: string) => {
+    setCatalogQuery(value);
+    if (catalogDebounceRef.current) clearTimeout(catalogDebounceRef.current);
+    catalogDebounceRef.current = setTimeout(() => searchCatalog(value), 300);
+  };
+
+  // Map catalog categories to our form categories
+  const mapCategory = (catalogCategory: string): string => {
+    const cat = (catalogCategory || '').toLowerCase();
+    if (cat.includes('mower') || cat.includes('mowing')) return 'mower';
+    if (cat.includes('tractor') || cat.includes('riding')) return 'tractor';
+    if (cat.includes('trimmer') || cat.includes('edger')) return 'trimmer';
+    if (cat.includes('blower')) return 'blower';
+    if (cat.includes('attach') || cat.includes('accessor')) return 'attachment';
+    if (cat.includes('construction') || cat.includes('skid')) return 'other';
+    return 'other';
+  };
+
+  // Autofill form from catalog product
+  const applyCatalogProduct = (product: CatalogProduct) => {
+    const msrp = product.specs?.MSRP?.replace(/[$,]/g, '') || '';
+
+    setFormData({
+      ...formData,
+      title: product.product_name,
+      description: product.short_description || product.full_description?.slice(0, 500) || '',
+      model: product.sku || '',
+      category: mapCategory(product.category),
+      price: msrp,
+      primary_image: product.primary_image || '',
+      image_gallery: product.image_urls || (product.primary_image ? [product.primary_image] : []),
+    });
+
+    setCatalogApplied(product);
+    setShowCatalogResults(false);
+    setCatalogQuery('');
+  };
+
+  const clearCatalogSelection = () => {
+    setCatalogApplied(null);
+  };
 
   // Form state
   const [formData, setFormData] = useState({
@@ -68,6 +153,10 @@ export default function InventoryManager({ siteId }: { siteId: string }) {
 
   const openAddModal = () => {
     setEditingItem(null);
+    setCatalogApplied(null);
+    setCatalogQuery('');
+    setCatalogResults([]);
+    setShowCatalogResults(false);
     setFormData({
       title: '',
       description: '',
@@ -415,6 +504,98 @@ export default function InventoryManager({ siteId }: { siteId: string }) {
             </div>
 
             <div className="p-6 space-y-6">
+              {/* Catalog Autofill Section — only for new items */}
+              {!editingItem && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="w-5 h-5 text-blue-600" />
+                    <h3 className="font-semibold text-blue-900">Quick Add from Catalog</h3>
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Optional</span>
+                  </div>
+                  <p className="text-sm text-blue-700 mb-3">
+                    Search by product name or SKU to autofill with manufacturer details, images, and specs.
+                  </p>
+
+                  {catalogApplied ? (
+                    <div className="flex items-center gap-3 bg-white border border-blue-200 rounded-lg p-3">
+                      {catalogApplied.primary_image && (
+                        <img src={catalogApplied.primary_image} alt="" className="w-12 h-12 object-cover rounded" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm text-gray-900 truncate">{catalogApplied.product_name}</div>
+                        <div className="text-xs text-gray-500">{catalogApplied.manufacturer} · SKU: {catalogApplied.sku}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Autofilled</span>
+                        <button
+                          onClick={clearCatalogSelection}
+                          className="text-gray-400 hover:text-red-500 transition-colors"
+                          title="Clear selection"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 w-4 h-4" />
+                        <input
+                          type="text"
+                          value={catalogQuery}
+                          onChange={(e) => handleCatalogQueryChange(e.target.value)}
+                          placeholder='Search "Recycler", "GrandStand 52", "21311"...'
+                          className="w-full pl-10 pr-4 py-2.5 border border-blue-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none text-sm"
+                        />
+                        {catalogSearching && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Catalog Search Results Dropdown */}
+                      {showCatalogResults && catalogResults.length > 0 && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-y-auto">
+                          {catalogResults.map((product) => (
+                            <button
+                              key={product.id}
+                              onClick={() => applyCatalogProduct(product)}
+                              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50 border-b border-gray-100 last:border-0 text-left transition-colors"
+                            >
+                              {product.primary_image ? (
+                                <img src={product.primary_image} alt="" className="w-14 h-14 object-cover rounded flex-shrink-0" />
+                              ) : (
+                                <div className="w-14 h-14 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                                  <Package className="w-6 h-6 text-gray-400" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm text-gray-900 truncate">{product.product_name}</div>
+                                <div className="text-xs text-gray-500 mt-0.5">
+                                  {product.manufacturer} · SKU: {product.sku}
+                                  {product.specs?.MSRP && <span className="ml-2 font-semibold text-green-700">MSRP {product.specs.MSRP}</span>}
+                                </div>
+                                {product.short_description && (
+                                  <div className="text-xs text-gray-400 mt-0.5 truncate">{product.short_description}</div>
+                                )}
+                              </div>
+                              <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {showCatalogResults && catalogResults.length === 0 && catalogQuery.length >= 2 && !catalogSearching && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-center">
+                          <p className="text-sm text-gray-500">No products found for "{catalogQuery}"</p>
+                          <p className="text-xs text-gray-400 mt-1">You can still add the item manually below</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               {/* Image Gallery Section */}
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
