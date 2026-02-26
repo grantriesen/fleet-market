@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Mail, Lock, User, ArrowRight, CheckCircle } from 'lucide-react';
@@ -11,7 +11,7 @@ const PLAN_INFO: Record<string, { name: string; price: string; description: stri
   full: { name: 'Full Suite', price: '$430/mo', description: 'Everything included — Inventory, Service scheduling & Rental booking' },
 };
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -31,7 +31,6 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
 
-    // Validation
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
@@ -60,7 +59,6 @@ export default function RegisterPage() {
       if (data.user) {
         console.log('✅ User created:', data.user.id);
         setSuccess(true);
-        // Redirect to onboarding after brief success message
         setTimeout(() => {
           router.push(selectedPlan ? `/onboarding?plan=${selectedPlan}` : '/onboarding');
         }, 1500);
@@ -115,7 +113,6 @@ export default function RegisterPage() {
               Get your dealership online with a professional website and powerful management tools
             </p>
 
-            {/* Benefits List */}
             <div className="space-y-4">
               {[
                 'Professional templates designed for equipment dealers',
@@ -133,7 +130,6 @@ export default function RegisterPage() {
               ))}
             </div>
 
-            {/* Trust Indicators */}
             <div className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-slate-700">
               {[
                 { value: '15 min', label: 'Setup Time' },
@@ -150,7 +146,6 @@ export default function RegisterPage() {
 
           {/* Right Side - Registration Form */}
           <div className="bg-slate-800 rounded-lg border-2 border-slate-700 p-8 lg:p-12">
-            {/* Selected Plan Banner */}
             {planDetails && (
               <div className="mb-6 p-4 bg-[#E8472F]/10 border border-[#E8472F]/30 rounded-lg">
                 <div className="flex items-center justify-between mb-1">
@@ -183,111 +178,54 @@ export default function RegisterPage() {
               )}
 
               <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">
-                  Full Name
-                </label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                    placeholder="John Smith"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent transition-all"
-                  />
+                  <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required placeholder="John Smith" className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent transition-all" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">
-                  Email Address
-                </label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    placeholder="you@company.com"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent transition-all"
-                  />
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@company.com" className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent transition-all" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">
-                  Password
-                </label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent transition-all"
-                    minLength={6}
-                  />
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent transition-all" minLength={6} />
                 </div>
-                <p className="mt-2 text-xs text-gray-500">
-                  Must be at least 6 characters
-                </p>
+                <p className="mt-2 text-xs text-gray-500">Must be at least 6 characters</p>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">
-                  Confirm Password
-                </label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Confirm Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent transition-all"
-                    minLength={6}
-                  />
+                  <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required placeholder="••••••••" className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent transition-all" minLength={6} />
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 bg-[#E8472F] text-white font-bold rounded hover:bg-[#D13A24] disabled:bg-gray-700 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg"
-              >
+              <button type="submit" disabled={loading} className="w-full py-4 bg-[#E8472F] text-white font-bold rounded hover:bg-[#D13A24] disabled:bg-gray-700 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg">
                 {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Creating account...
-                  </>
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Creating account...</>
                 ) : (
-                  <>
-                    Create Account
-                    <ArrowRight className="w-5 h-5" />
-                  </>
+                  <>Create Account <ArrowRight className="w-5 h-5" /></>
                 )}
               </button>
             </form>
 
-            {/* Sign In Link */}
             <div className="mt-8 text-center">
               <p className="text-sm text-gray-400">
                 Already have an account?{' '}
-                <button
-                  onClick={() => router.push('/login')}
-                  className="text-[#E8472F] font-semibold hover:text-[#D13A24] transition-colors"
-                >
-                  Sign in
-                </button>
+                <button onClick={() => router.push('/login')} className="text-[#E8472F] font-semibold hover:text-[#D13A24] transition-colors">Sign in</button>
               </p>
             </div>
 
-            {/* Terms */}
             <p className="text-center text-xs text-gray-500 mt-6">
               By creating an account, you agree to our{' '}
               <a href="#" className="text-[#E8472F] hover:underline">Terms of Service</a>
@@ -298,5 +236,13 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>}>
+      <RegisterContent />
+    </Suspense>
   );
 }
