@@ -431,31 +431,12 @@ async function generateTemplateHTML(
   }
 
  // Route to template-specific renderer
+  // Note: All 6 standalone templates (GVI, Vibe, CE, Zenith, MLS, WE) 
+  // early-return above. This section only runs for unknown/future templates.
   let pageContent = '';
   
   if (page === 'home' || page === 'index') {
-    switch (templateSlug) {
-      case 'green-valley-industrial':
-        pageContent = await renderGreenValleyPage(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
-        break;
-      case 'modern-lawn-solutions':
-        pageContent = await renderModernLawnHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
-        break;
-      case 'corporate-edge':
-        pageContent = await renderCorporateEdgeHome(getContent, colors, manufacturers, sectionVisibility, site.subscription_tier || 'basic', siteId, displayProducts, isRealProducts, fmtPrice);
-        break;
-      case 'vibe-dynamics':
-        pageContent = await renderVibeDynamicsHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
-        break;
-      case 'zenith-lawn':
-        pageContent = await renderZenithLawnHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
-        break;
-      case 'warm-earth-designs':
-        pageContent = await renderWarmEarthHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
-        break;
-      default:
-        pageContent = await renderGenericHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
-    }
+    pageContent = renderGenericHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
   } else if (page === 'manufacturers') {
     pageContent = renderManufacturersPageContent(config, getContent, colors, manufacturers, templateSlug);
   } else if (page === 'contact') {
@@ -1373,7 +1354,7 @@ function renderGenericHome(
   isRealProducts: boolean,
   fmtPrice: (p: number | null) => string
 ): string {
-  return renderGreenValleyHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
+  return renderModernLawnHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
 }
 
 // Shared page renderers
