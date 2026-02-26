@@ -436,7 +436,7 @@ async function generateTemplateHTML(
   if (page === 'home' || page === 'index') {
     switch (templateSlug) {
       case 'green-valley-industrial':
-        pageContent = renderGreenValleyHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
+        pageContent = renderGreenValleyPage(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
         break;
       case 'modern-lawn-solutions':
         pageContent = renderModernLawnHome(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice);
