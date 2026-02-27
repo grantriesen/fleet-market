@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const GOOGLE_SHEET_WEBHOOK = process.env.GOOGLE_SHEET_WEBHOOK || '';
 
 export async function POST(req: NextRequest) {
   try {
@@ -94,7 +95,29 @@ export async function POST(req: NextRequest) {
       console.log('RESEND_API_KEY not set — skipping confirmation email for:', email);
     }
 
-    // 3. Return success
+    // 3. Send to Google Sheet (fire-and-forget)
+    if (GOOGLE_SHEET_WEBHOOK) {
+      try {
+        fetch(GOOGLE_SHEET_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            first_name,
+            last_name,
+            email,
+            phone,
+            company,
+            job_title,
+            billing_preference: billing_preference || 'undecided',
+            registered_at: new Date().toISOString(),
+          }),
+        }).catch((err) => console.error('Google Sheet webhook error:', err));
+      } catch (sheetError) {
+        console.error('Google Sheet error (non-blocking):', sheetError);
+      }
+    }
+
+    // 4. Return success
     return NextResponse.json({ success: true });
 
   } catch (error) {
