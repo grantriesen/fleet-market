@@ -9,11 +9,29 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { first_name, last_name, email, phone, company, job_title, billing_preference } = body;
+    const { first_name, last_name, email, phone, company, job_title, billing_preference, recaptcha_token } = body;
 
     // Validate required fields
     if (!first_name || !last_name || !email || !phone || !company || !job_title) {
       return NextResponse.json({ error: 'All fields are required.' }, { status: 400 });
+    }
+
+    // Verify reCAPTCHA
+    const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
+    if (recaptchaSecret && recaptcha_token) {
+      try {
+        const rcRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `secret=${recaptchaSecret}&response=${recaptcha_token}`,
+        });
+        const rcData = await rcRes.json();
+        if (!rcData.success) {
+          return NextResponse.json({ error: 'reCAPTCHA verification failed. Please try again.' }, { status: 400 });
+        }
+      } catch (rcError) {
+        console.error('reCAPTCHA verification error:', rcError);
+      }
     }
 
     // 1. Insert into Supabase beta_signups table
@@ -108,11 +126,8 @@ function buildConfirmationEmail(firstName: string, companyName: string): string 
             <td style="background:linear-gradient(135deg,#0C1B33,#1E3A6E);padding:32px 40px;border-radius:12px 12px 0 0;text-align:center;">
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
                 <tr>
-                  <td style="background:#1E3A6E;border:2px solid rgba(255,255,255,0.15);border-radius:8px;padding:6px 10px;">
-                    <span style="color:#ffffff;font-weight:900;font-size:16px;letter-spacing:0.5px;">FM</span>
-                  </td>
-                  <td style="padding-left:10px;">
-                    <span style="color:#ffffff;font-weight:800;font-size:22px;">Fleet</span><span style="color:#E85525;font-weight:800;font-size:22px;">Market</span>
+                  <td style="text-align:center;">
+                    <img src="https://www.fleetmarket.us/fmlogo3.jpg" alt="Fleet Market" width="200" style="max-width:200px;height:auto;display:block;margin:0 auto;">
                   </td>
                 </tr>
               </table>
@@ -217,19 +232,9 @@ function buildConfirmationEmail(firstName: string, companyName: string): string 
               <!-- Divider -->
               <hr style="border:none;border-top:1px solid #e2e8f0;margin:28px 0 24px;">
 
-              <!-- CTA -->
-              <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
-                <tr>
-                  <td align="center">
-                    <p style="margin:0 0 16px;font-size:15px;color:#64748b;">
-                      In the meantime, take a look at what your dashboard will look like:
-                    </p>
-                    <a href="https://www.fleetmarket.us/dashboard-preview" style="display:inline-block;background:linear-gradient(135deg,#E85525,#F06A3E);color:#ffffff;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;text-decoration:none;box-shadow:0 4px 14px rgba(232,85,37,0.3);">
-                      Preview Your Dashboard →
-                    </a>
-                  </td>
-                </tr>
-              </table>
+              <p style="margin:0;font-size:15px;color:#64748b;text-align:center;line-height:1.6;">
+                We're excited to have you on board. Keep an eye on your inbox — your dashboard access is coming March 9!
+              </p>
             </td>
           </tr>
 
