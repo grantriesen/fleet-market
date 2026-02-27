@@ -25,16 +25,18 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center gap-4">
               <button
-                onClick={() => router.push('/login')}
-                className="px-5 py-2 text-gray-200 hover:text-white font-semibold transition-colors"
+                disabled
+                className="px-5 py-2 text-gray-500 font-semibold cursor-not-allowed relative group"
               >
                 Sign In
+                <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-wider text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Coming Soon</span>
               </button>
               <button
-                onClick={() => router.push('/register')}
-                className="px-6 py-3 bg-[#E8472F] text-white font-bold rounded hover:bg-[#D13A24] transition-all shadow-lg"
+                disabled
+                className="px-6 py-3 bg-[#E8472F]/30 text-white/50 font-bold rounded cursor-not-allowed relative group"
               >
                 Get Started
+                <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-wider text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Coming Soon</span>
               </button>
             </div>
           </div>
@@ -68,11 +70,11 @@ export default function LandingPage() {
               
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-12">
                 <button
-                  onClick={() => router.push('/register')}
-                  className="px-8 py-4 bg-[#E8472F] text-white font-bold rounded hover:bg-[#D13A24] transition-all shadow-xl flex items-center gap-3"
+                  disabled
+                  className="px-8 py-4 bg-[#E8472F]/30 text-white/50 font-bold rounded cursor-not-allowed relative group"
                 >
                   Get Started
-                  <ArrowRight className="w-5 h-5" />
+                  <span className="ml-2 text-[10px] uppercase tracking-wider opacity-70">Coming Soon</span>
                 </button>
                 <button
                   onClick={() => router.push('/templates')}
@@ -264,14 +266,14 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <button
-                  onClick={() => router.push(`/register?plan=${plan.tier}`)}
-                  className={`w-full py-3 rounded font-bold transition-all ${
+                  disabled
+                  className={`w-full py-3 rounded font-bold cursor-not-allowed ${
                     plan.popular
-                      ? 'bg-[#E8472F] text-white hover:bg-[#D13A24] shadow-lg'
-                      : 'bg-slate-700 text-white hover:bg-slate-600'
+                      ? 'bg-[#E8472F]/30 text-white/50'
+                      : 'bg-slate-700/50 text-white/50'
                   }`}
                 >
-                  Get Started
+                  Coming Soon
                 </button>
               </div>
             ))}
@@ -289,11 +291,10 @@ export default function LandingPage() {
             Get your dealership online with a professional website and powerful management tools
           </p>
           <button
-            onClick={() => router.push('/register')}
-            className="px-10 py-5 bg-[#E8472F] text-white font-bold text-lg rounded hover:bg-[#D13A24] transition-all shadow-2xl inline-flex items-center gap-3"
+            disabled
+            className="px-10 py-5 bg-[#E8472F]/30 text-white/50 font-bold text-lg rounded cursor-not-allowed inline-flex items-center gap-3"
           >
-            Get Started
-            <ArrowRight className="w-6 h-6" />
+            Coming Soon
           </button>
         </div>
       </section>
