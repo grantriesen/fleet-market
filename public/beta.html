@@ -497,6 +497,25 @@
       100% { transform: translateX(-50%); }
     }
 
+    /* ── Preview Buttons ── */
+    .preview-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.75rem 1.5rem; border-radius: 8px;
+      font-weight: 600; font-size: 0.9375rem;
+      text-decoration: none; transition: all 0.2s; cursor: pointer;
+      background: var(--orange); color: white; border: 2px solid var(--orange);
+    }
+    .preview-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(232,85,37,0.3); }
+    .preview-btn-outline {
+      background: transparent; color: var(--light); border: 2px solid rgba(255,255,255,0.15);
+    }
+    .preview-btn-outline:hover { border-color: rgba(255,255,255,0.3); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    .coming-soon-tag {
+      font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+      background: rgba(232,85,37,0.15); color: var(--orange);
+      padding: 2px 6px; border-radius: 4px; margin-left: 0.25rem;
+    }
+
     @media (max-width: 768px) {
       .template-frame { width: 300px; }
       .template-preview { height: 175px; }
@@ -660,6 +679,19 @@
       </div>
 
       <p style="text-align:center; font-size:0.75rem; color:var(--slate); margin-bottom:2rem;">6 professionally designed templates — choose yours during onboarding</p>
+
+      <!-- Template & Dashboard CTAs -->
+      <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-bottom:2rem;">
+        <a href="/templates.html" target="_blank" class="preview-btn">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          Browse Live Templates
+        </a>
+        <a href="#" id="dashboard-demo-btn" class="preview-btn preview-btn-outline" onclick="alert('Dashboard demo coming soon! Check back before March 23.');return false;">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          See the Dashboard
+          <span class="coming-soon-tag">Coming Soon</span>
+        </a>
+      </div>
       <h1 class="fade-up fade-up-d2">
         Your Dealership Website.<br><em>Built. Launched. Done.</em>
       </h1>
@@ -919,50 +951,21 @@
   setInterval(updateCountdown, 1000);
 
   // ── Load Template Previews ──
-  // Fetches each template HTML and injects into scaled iframes
-  // Falls back to direct iframe src if fetch fails (works when same-origin)
+  // Direct iframe loading (same-origin, no CORS issues)
   document.addEventListener('DOMContentLoaded', function() {
-    const previews = document.querySelectorAll('[data-preview-url]');
-    const cache = {};
-
-    function injectIframe(container, el, html) {
-      var iframe = document.createElement('iframe');
-      iframe.setAttribute('sandbox', 'allow-same-origin');
-      iframe.setAttribute('tabindex', '-1');
-      iframe.style.cssText = 'width:1280px;height:800px;transform:scale(0.297);transform-origin:top left;border:none;pointer-events:none;';
-      if (html) {
-        iframe.srcdoc = html.replace('<head>', '<head><base href="https://fleetmarket.us/">');
-      } else {
-        iframe.src = el.getAttribute('data-preview-url');
-      }
-      el.style.display = 'none';
-      container.appendChild(iframe);
-    }
-
+    var previews = document.querySelectorAll('[data-preview-url]');
     previews.forEach(function(el) {
       var url = el.getAttribute('data-preview-url');
       var container = el.parentElement;
-
-      if (cache[url]) {
-        cache[url].then(function(html) { injectIframe(container, el, html); });
-        return;
-      }
-
-      cache[url] = fetch(url)
-        .then(function(r) {
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          return r.text();
-        })
-        .then(function(html) {
-          injectIframe(container, el, html);
-          return html;
-        })
-        .catch(function() {
-          // Fallback: direct iframe src (works same-origin, blocked cross-origin)
-          injectIframe(container, el, null);
-        });
+      var iframe = document.createElement('iframe');
+      iframe.setAttribute('tabindex', '-1');
+      iframe.style.cssText = 'width:1280px;height:800px;transform:scale(0.297);transform-origin:top left;border:none;pointer-events:none;';
+      iframe.src = url;
+      el.style.display = 'none';
+      container.appendChild(iframe);
     });
   });
+
   // TODO: Replace these with your actual Supabase + Google Sheet endpoints
   const SUPABASE_URL = 'YOUR_SUPABASE_URL';
   const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
