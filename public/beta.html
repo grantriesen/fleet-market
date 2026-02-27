@@ -373,6 +373,13 @@
 
     .form-fine { text-align: center; margin-top: 1rem; font-size: 0.8125rem; color: var(--slate); }
 
+    .form-consent { display:flex; align-items:flex-start; gap:0.625rem; margin-bottom:1.25rem; cursor:pointer; }
+    .form-consent input[type="checkbox"] { width:18px; height:18px; margin-top:2px; accent-color:var(--orange); cursor:pointer; flex-shrink:0; }
+    .form-consent label { font-size:0.8125rem; color:var(--slate); line-height:1.5; cursor:pointer; }
+    .form-consent label a { color:var(--orange); text-decoration:none; }
+    .form-consent label a:hover { text-decoration:underline; }
+    .recaptcha-wrap { margin-bottom:1.25rem; display:flex; justify-content:center; }
+
     .form-success {
       text-align: center; padding: 2rem 0;
     }
@@ -544,6 +551,7 @@
       .form-wrapper { padding: 1.5rem 1.25rem; margin: 0 0.5rem; }
     }
   </style>
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
 
@@ -897,6 +905,13 @@
                 </select>
               </div>
             </div>
+            <div class="form-consent">
+              <input type="checkbox" id="consent" name="consent" required>
+              <label for="consent">I agree to receive emails from Fleet Market about my account, onboarding updates, and product news. You can unsubscribe at any time.</label>
+            </div>
+            <div class="recaptcha-wrap">
+              <div class="g-recaptcha" data-sitekey="6Ldc0XksAAAAAD3_tvXLj1HuUdAHyT3EOYJvX_vQ"></div>
+            </div>
             <button type="submit" class="form-submit" id="submitBtn">
               <span id="submitText">Register for Beta Access</span>
               <div id="submitSpinner" class="spinner" style="display:none;"></div>
@@ -949,20 +964,31 @@
   updateCountdown();
   setInterval(updateCountdown, 1000);
 
-  // ── Load Template Previews ──
-  // Direct iframe loading (same-origin, no CORS issues)
+  // ── Lazy Load Template Previews ──
+  // Only load iframes when they scroll into view (IntersectionObserver)
   document.addEventListener('DOMContentLoaded', function() {
     var previews = document.querySelectorAll('[data-preview-url]');
-    previews.forEach(function(el) {
-      var url = el.getAttribute('data-preview-url');
-      var container = el.parentElement;
-      var iframe = document.createElement('iframe');
-      iframe.setAttribute('tabindex', '-1');
-      iframe.style.cssText = 'width:1280px;height:800px;transform:scale(0.297);transform-origin:top left;border:none;pointer-events:none;';
-      iframe.src = url;
-      el.style.display = 'none';
-      container.appendChild(iframe);
-    });
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var el = entry.target;
+          var url = el.getAttribute('data-preview-url');
+          if (!url) return;
+          var container = el.parentElement;
+          var iframe = document.createElement('iframe');
+          iframe.setAttribute('tabindex', '-1');
+          iframe.setAttribute('loading', 'lazy');
+          iframe.style.cssText = 'width:1280px;height:800px;transform:scale(0.297);transform-origin:top left;border:none;pointer-events:none;';
+          iframe.src = url;
+          el.style.display = 'none';
+          container.appendChild(iframe);
+          el.removeAttribute('data-preview-url');
+          observer.unobserve(el);
+        }
+      });
+    }, { rootMargin: '200px' });
+
+    previews.forEach(function(el) { observer.observe(el); });
   });
 
   async function handleSubmit(e) {
@@ -971,6 +997,14 @@
     const text = document.getElementById('submitText');
     const spinner = document.getElementById('submitSpinner');
     const errorEl = document.getElementById('form-error');
+
+    // Validate reCAPTCHA
+    const recaptchaResponse = grecaptcha.getResponse();
+    if (!recaptchaResponse) {
+      errorEl.textContent = 'Please complete the reCAPTCHA.';
+      errorEl.style.display = 'block';
+      return;
+    }
 
     btn.disabled = true;
     text.style.display = 'none';
@@ -985,6 +1019,7 @@
       company: document.getElementById('company').value.trim(),
       job_title: document.getElementById('jobTitle').value.trim(),
       billing_preference: document.getElementById('billingPref').value,
+      recaptcha_token: recaptchaResponse,
     };
 
     try {
