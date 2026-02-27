@@ -2,9 +2,9 @@
 // Handles beta registration: Supabase insert + confirmation email via Resend
 import { NextRequest, NextResponse } from 'next/server';
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY!;
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,9 +21,9 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Prefer': 'return=representation',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer': 'return=minimal',
       },
       body: JSON.stringify({
         first_name,
@@ -46,31 +46,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Registration failed. Please try again.' }, { status: 500 });
     }
 
-    // 2. Send confirmation email via Resend
-    try {
-      const emailHtml = buildConfirmationEmail(first_name, company);
+    // 2. Send confirmation email via Resend (skip if not configured)
+    if (RESEND_API_KEY) {
+      try {
+        const emailHtml = buildConfirmationEmail(first_name, company);
 
-      const emailRes = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${RESEND_API_KEY}`,
-        },
-        body: JSON.stringify({
-          from: 'Fleet Market <hello@fleetmarket.us>',
-          to: [email],
-          subject: `Welcome to Fleet Market Beta, ${first_name}!`,
-          html: emailHtml,
-        }),
-      });
+        const emailRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
+          },
+          body: JSON.stringify({
+            from: 'Fleet Market <hello@fleetmarket.us>',
+            to: [email],
+            subject: `Welcome to Fleet Market Beta, ${first_name}!`,
+            html: emailHtml,
+          }),
+        });
 
-      if (!emailRes.ok) {
-        const emailErr = await emailRes.json().catch(() => ({}));
-        console.error('Resend error (non-blocking):', emailErr);
-        // Don't fail the signup if email fails — they're already registered
+        if (!emailRes.ok) {
+          const emailErr = await emailRes.json().catch(() => ({}));
+          console.error('Resend error (non-blocking):', emailErr);
+        }
+      } catch (emailError) {
+        console.error('Email send error (non-blocking):', emailError);
       }
-    } catch (emailError) {
-      console.error('Email send error (non-blocking):', emailError);
+    } else {
+      console.log('RESEND_API_KEY not set — skipping confirmation email for:', email);
     }
 
     // 3. Return success
