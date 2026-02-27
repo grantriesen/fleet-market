@@ -4,8 +4,6 @@
 //         utility bar in header, bottom wave on hero.
 // ──────────────────────────────────────────────────────────────────────────
 
-import { productModalScript, registerProductsScript, serviceBookingSection, rentalBookingSection } from './product-modal';
-
 /* ── DEMO overrides ── */
 export const CORPORATE_EDGE_DEMO_OVERRIDES = {
   'business.name': 'Premier Equipment Co.',
@@ -118,17 +116,13 @@ export function renderCorporateEdgePage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors); break;
-    case 'service': body = ceServicePage(siteId, getContent, colors); break;
+    case 'service': body = ceServicePage(siteId, getContent); break;
     case 'contact': body = ceContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours); break;
-    case 'inventory': body = ceInventoryPage(siteId, getContent, products, colors); break;
-    case 'rentals': body = ceRentalsPage(siteId, getContent, colors); break;
+    case 'inventory': body = ceInventoryPage(siteId, getContent, products); break;
+    case 'rentals': body = ceRentalsPage(siteId, getContent); break;
     case 'manufacturers': body = ceManufacturersPage(siteId, getContent); break;
     default: body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors); break;
   }
-
-  // Inject product modal + registered products for inventory/home pages
-  const modalHtml = productModalScript(siteId, colors.primary);
-  const productsScript = registerProductsScript(products);
 
   return ceHtmlShell(
     getContent('business.name') || 'Premier Equipment',
@@ -136,8 +130,7 @@ export function renderCorporateEdgePage(
     colors,
     ceHeader(siteId, currentPage, pages, getContent, weekdayHours, colors) +
     body +
-    ceFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours) +
-    modalHtml + productsScript
+    ceFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours)
   );
 }
 
@@ -471,9 +464,8 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
           ${featured.map((p: any) => {
             const imgUrl = p.image_url || p.primary_image || ''; const hasImage = imgUrl && !imgUrl.includes('placeholder');
             const displayPrice = p.sale_price || p.price;
-            const pid = p.id || p.slug || '';
             return `
-          <div class="group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" onclick="openFmModal('${pid}')">
+          <div class="group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white">
             <div class="aspect-square relative overflow-hidden bg-gray-100">
               ${hasImage
                 ? `<img src="${imgUrl}" alt="${p.name || p.title}" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
@@ -492,7 +484,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
                   ${p.sale_price ? `<span class="text-gray-400 line-through text-sm mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
                   <span class="font-heading font-bold text-lg" style="color: ${colors.primary};">$${Number(displayPrice).toLocaleString()}</span>
                 </div>
-                <span class="text-sm font-semibold hover:underline" style="color: ${colors.primary};">View Details →</span>
+                <a href="/api/preview/${siteId}?page=contact" class="text-sm font-semibold hover:underline" style="color: ${colors.primary};">Details →</a>
               </div>
             </div>
           </div>`;
@@ -505,7 +497,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
   // ── Manufacturers ──
   if (vis.manufacturers !== false) {
     const brands = ['John Deere', 'Exmark', 'Stihl', 'Husqvarna', 'Kubota', 'Scag', 'Toro', 'Echo'];
-    const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Exmark': '/images/logos/exmark.png', 'Stihl': '/images/logos/stihl.png', 'Husqvarna': '/images/logos/husqvarna.png', 'Kubota': '/images/logos/kubota.jpg', 'Scag': '/images/logos/scag.png', 'Echo': '/images/logos/echo.png' };
+    const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Exmark': '/images/logos/exmark.png', 'Stihl': '/images/logos/Stihl.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Kubota': '/images/logos/kubota.jpg', 'Scag': '/images/logos/Scag.png', 'Echo': '/images/logos/Echo.png' };
     html += `
     <section data-section="manufacturers" class="py-20 bg-gray-100">
       <div class="container-corporate">
@@ -596,7 +588,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
 }
 
 // ── Service Page ──
-function ceServicePage(siteId: string, getContent: Function, colors: any) {
+function ceServicePage(siteId: string, getContent: Function) {
   let services: any[] = [];
   try { services = JSON.parse(getContent('services.items') || '[]'); } catch {}
 
@@ -623,7 +615,7 @@ function ceServicePage(siteId: string, getContent: Function, colors: any) {
     </div>
   </section>
 
-  ${serviceBookingSection(siteId, colors.primary, getContent)}`;
+  ${ceFormSection(siteId, 'Schedule a Service Consultation', 'Fill out the form below and our service team will contact you within one business day.')}`;
 }
 
 // ── Contact Page ──
@@ -684,7 +676,7 @@ function ceContactPage(siteId: string, getContent: Function, weekdayHours: strin
 }
 
 // ── Inventory Page ──
-function ceInventoryPage(siteId: string, getContent: Function, products: any[], colors: any) {
+function ceInventoryPage(siteId: string, getContent: Function, products: any[]) {
   const categories = ['All', ...new Set(products.map((p: any) => p.category).filter(Boolean))];
 
   return `
@@ -712,9 +704,8 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[], 
         ${products.map((p: any) => {
           const imgUrl = p.image_url || p.primary_image || ''; const hasImage = imgUrl && !imgUrl.includes('placeholder');
           const displayPrice = p.sale_price || p.price;
-          const pid = p.id || p.slug || '';
           return `
-        <div class="ce-product group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" data-category="${p.category || ''}" onclick="openFmModal('${pid}')">
+        <div class="ce-product group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white" data-category="${p.category || ''}">
           <div class="aspect-square relative overflow-hidden bg-gray-100">
             ${hasImage
               ? `<img src="${imgUrl}" alt="${p.name || p.title}" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
@@ -733,7 +724,7 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[], 
                 ${p.sale_price ? `<span class="text-gray-400 line-through text-sm mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
                 <span class="font-heading font-bold text-lg text-blue-900">$${Number(displayPrice).toLocaleString()}</span>
               </div>
-              <span class="text-sm font-semibold text-blue-900 group-hover:underline">View Details →</span>
+              <a href="/api/preview/${siteId}?page=contact" class="text-sm font-semibold text-blue-900 hover:underline">Details →</a>
             </div>
           </div>
         </div>`;
@@ -761,7 +752,7 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[], 
 }
 
 // ── Rentals Page ──
-function ceRentalsPage(siteId: string, getContent: Function, colors: any) {
+function ceRentalsPage(siteId: string, getContent: Function) {
   const rentalCategories = [
     {
       name: 'Mowers',
@@ -859,14 +850,12 @@ function ceRentalsPage(siteId: string, getContent: Function, colors: any) {
         </div>
       </div>
     </div>
-  </section>
-
-  ${rentalBookingSection(siteId, colors.primary, getContent)}`;
+  </section>`;
 }
 
 // ── Manufacturers Page ──
 function ceManufacturersPage(siteId: string, getContent: Function) {
-  const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Exmark': '/images/logos/exmark.png', 'Stihl': '/images/logos/stihl.png', 'Husqvarna': '/images/logos/husqvarna.png', 'Kubota': '/images/logos/kubota.jpg', 'Scag': '/images/logos/scag.png', 'Echo': '/images/logos/echo.png' };
+  const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Exmark': '/images/logos/exmark.png', 'Stihl': '/images/logos/Stihl.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Kubota': '/images/logos/kubota.jpg', 'Scag': '/images/logos/Scag.png', 'Echo': '/images/logos/Echo.png' };
   const manufacturers = [
     { name: 'John Deere', description: 'World-leading manufacturer of agricultural and turf equipment.' },
     { name: 'Exmark', description: 'Premium commercial mowing equipment for landscape professionals.' },

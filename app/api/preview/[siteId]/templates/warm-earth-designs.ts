@@ -6,7 +6,6 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { sharedPreviewScript } from './shared';
-import { productModalScript, registerProductsScript, serviceBookingSection, rentalBookingSection } from './product-modal';
 
 /* ── DEMO overrides ── */
 export const WARM_EARTH_DEMO_OVERRIDES: Record<string, string> = {
@@ -119,7 +118,6 @@ export function renderWarmEarthPage(
 
   return weShell(gc('business.name') || 'Heartland Outdoor Equipment', C, siteId, currentPage,
     weHeader(siteId, currentPage, pages, gc, C) + body + weFooter(siteId, pages, gc, C, wkday, sat, sun)
-    + productModalScript(siteId, C.primary) + registerProductsScript(products)
   );
 }
 
@@ -151,6 +149,34 @@ function weShell(title: string, C: any, siteId: string, page: string, body: stri
     select.form-we { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2392673a' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; padding-right: 2.5rem; cursor: pointer; }
     .label-we { display: block; font-size: 0.875rem; font-weight: 600; color: ${C.fg}; margin-bottom: 0.375rem; }
     .texture-wood { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.03'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9z'/%3E%3Cpath d='M6 5V0H5v5H0v1h5v94h1V6h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
+
+    /* ── Mobile Responsive ── */
+    @media (max-width: 768px) {
+      [style*="grid-template-columns:1fr 1fr"],
+      [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+      [style*="grid-template-columns:repeat(3"],
+      [style*="grid-template-columns:repeat(4"],
+      [style*="grid-template-columns:repeat(5"] { grid-template-columns: 1fr 1fr !important; }
+      [style*="grid-template-columns: 2fr 1fr"],
+      [style*="grid-template-columns:2fr 1fr"] { grid-template-columns: 1fr !important; }
+      [data-section="hero"] { min-height: auto !important; }
+      [data-section="hero"] [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+      .topbar { display: none !important; }
+      header nav { gap: 0.125rem !important; }
+      header nav a { font-size: 0.75rem !important; padding: 0.375rem 0.625rem !important; }
+      header .btn-accent { display: none !important; }
+      section h1 { font-size: 2rem !important; }
+      section h2 { font-size: 1.5rem !important; }
+      .page-hero-we h1 { font-size: 1.75rem !important; }
+      footer [style*="grid-template-columns:repeat(4"] { grid-template-columns: 1fr 1fr !important; gap: 1.5rem !important; }
+      [style*="min-height:85vh"] { min-height: auto !important; padding: 3rem 0 !important; }
+    }
+    @media (max-width: 480px) {
+      [style*="grid-template-columns:repeat("],
+      [style*="grid-template-columns: repeat("] { grid-template-columns: 1fr !important; }
+      footer [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+      header nav { flex-wrap: wrap !important; justify-content: center !important; }
+    }
   </style>
 </head><body>${body}${sharedPreviewScript(siteId, page)}</body></html>`;
 }
@@ -168,7 +194,7 @@ function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string) => 
 
   return `
   <!-- Top Bar -->
-  <div style="background:${C.primary};color:${C.bg};padding:0.5rem 0;font-size:0.8125rem;">
+  <div class="topbar" style="background:${C.primary};color:${C.bg};padding:0.5rem 0;font-size:0.8125rem;">
     <div class="cw" style="display:flex;justify-content:space-between;align-items:center;">
       <div style="display:flex;gap:1.5rem;">
         ${phone ? `<a href="tel:${phone}" style="color:${C.bg};text-decoration:none;display:flex;align-items:center;gap:0.375rem;">📞 ${phone}</a>` : ''}
@@ -190,15 +216,28 @@ function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string) => 
         </div>
         <span class="font-serif" style="font-size:1.25rem;font-weight:700;color:${C.primary};">${name}</span>
       </a>
-      <nav style="display:flex;align-items:center;gap:0.25rem;">
+      <nav class="we-desktop-nav" style="display:flex;align-items:center;gap:0.25rem;">
         ${navItems.map(n => {
           const active = cur === n.slug || (cur === 'index' && n.slug === 'home');
           return `<a href="/api/preview/${siteId}?page=${n.slug}" style="padding:0.5rem 1rem;border-radius:9999px;font-weight:500;text-decoration:none;font-size:0.9375rem;transition:all 0.2s;${active ? `background:${C.accent};color:${C.bg};` : `color:${C.fg};`}">${n.label}</a>`;
         }).join('')}
       </nav>
-      <a href="/api/preview/${siteId}?page=contact" class="btn-accent" style="padding:0.625rem 1.5rem;font-size:0.875rem;">Visit Showroom</a>
+      <a class="we-desktop-nav" href="/api/preview/${siteId}?page=contact" class="btn-accent" style="padding:0.625rem 1.5rem;font-size:0.875rem;background:${C.accent};color:${C.bg};border-radius:9999px;text-decoration:none;font-weight:600;">Visit Showroom</a>
+      <button class="we-mobile-btn" onclick="document.getElementById('weMobileMenu').classList.toggle('we-mobile-open')" style="display:none;background:none;border:none;cursor:pointer;padding:0.5rem;">
+        <svg width="24" height="24" fill="none" stroke="${C.primary}" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
     </div>
-  </header>`;
+    <div id="weMobileMenu" style="display:none;padding:0.75rem 1rem;border-top:2px solid #d4b896;">
+      ${navItems.map(n => {
+        const active = cur === n.slug || (cur === 'index' && n.slug === 'home');
+        return `<a href="/api/preview/${siteId}?page=${n.slug}" style="display:block;padding:0.5rem 0;font-size:0.9375rem;font-weight:500;text-decoration:none;color:${active ? C.accent : C.fg};">${n.label}</a>`;
+      }).join('')}
+    </div>
+  </header>
+  <style>
+    @media(max-width:768px){ .we-desktop-nav { display:none !important; } .we-mobile-btn { display:block !important; } .topbar { display:none !important; } }
+    .we-mobile-open { display:block !important; }
+  </style>`;
 }
 
 // ── Footer ──
@@ -320,7 +359,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2rem;">
           ${list.map((p: any) => `
-          <div class="card-we" style="cursor:pointer;" onclick="openFmModal('${p.id || p.slug || ''}')">
+          <div class="card-we">
             <div style="position:relative;overflow:hidden;">
               ${p.primary_image ? `<img src="${p.primary_image}" alt="${p.title}" style="width:100%;height:220px;object-fit:cover;">` : `<div style="width:100%;height:220px;background:linear-gradient(135deg,${C.primary},${C.secondary});"></div>`}
               <span style="position:absolute;top:1rem;left:1rem;background:${C.secondary};color:${C.bg};padding:0.25rem 0.75rem;border-radius:9999px;font-size:0.75rem;font-weight:600;">${p.category || ''}</span>
@@ -330,7 +369,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
               <p style="font-size:0.875rem;color:${C.mutedFg};margin:0 0 1rem;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.description || ''}</p>
               <div style="display:flex;align-items:center;justify-content:space-between;">
                 ${p.price ? `<span class="font-serif" style="font-size:1.375rem;font-weight:700;color:${C.accent};">${fp(p.price)}</span>` : '<span></span>'}
-                <span style="color:${C.primary};font-weight:600;font-size:0.875rem;">View Details →</span>
+                <a href="/api/preview/${siteId}?page=inventory" style="color:${C.primary};font-weight:600;text-decoration:none;font-size:0.875rem;">View Details →</a>
               </div>
             </div>
           </div>`).join('')}
@@ -344,7 +383,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
 
   // Manufacturers
   if (vis.manufacturers !== false) {
-    const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Stihl': '/images/logos/stihl.png', 'Husqvarna': '/images/logos/husqvarna.png', 'Cub Cadet': '/images/logos/cub-cadet.png', 'Honda': '/images/logos/honda.png' };
+    const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Stihl': '/images/logos/Stihl.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Cub Cadet': '/images/logos/cub-cadet.png', 'Honda': '/images/logos/Honda.png' };
     h += `
     <section data-section="manufacturers" style="padding:6rem 0;background:${C.muted};">
       <div class="cw">
@@ -374,17 +413,10 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
       { name: 'Sarah T.', location: 'Pine Ridge', content: 'The rental program saved us thousands.', rating: 5 },
       { name: 'James G.', location: 'Valley View', content: 'They treat us like neighbors, not customers.', rating: 5 },
     ];
-    // Normalize field names (handle author/text vs name/content)
-    testimonials = testimonials.map(t => ({
-      name: t.name || t.author || 'Customer',
-      location: t.location || t.role || '',
-      content: t.content || t.text || t.quote || '',
-      rating: t.rating || 5,
-    }));
     h += `
     <section data-section="testimonials" style="padding:6rem 0;">
       <div class="cw">
-        <h2 class="font-serif" style="font-size:2.5rem;font-weight:700;text-align:center;margin:0 0 4rem;color:${C.fg};">${gc('testimonials.heading') || 'From Our Community'}</h2>
+        <h2 class="font-serif" style="font-size:2.5rem;font-weight:700;text-align:center;margin:0 0 4rem;color:${C.fg};">${gc('testimonials.heading')}</h2>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;">
           ${testimonials.map(t => `
           <div class="card-we" style="padding:2rem;display:flex;flex-direction:column;">
@@ -433,7 +465,7 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
       <p style="font-size:0.875rem;color:${C.mutedFg};margin-bottom:1.5rem;">Showing ${products.length} products</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2rem;">
         ${products.map((p: any) => `
-        <div class="card-we" style="cursor:pointer;" data-cat="${p.category||''}" data-name="${(p.title||'').toLowerCase()}" onclick="openFmModal('${p.id || p.slug || ''}')">
+        <div class="card-we" data-cat="${p.category||''}" data-name="${(p.title||'').toLowerCase()}">
           <div style="overflow:hidden;position:relative;">
             ${p.primary_image ? `<img src="${p.primary_image}" alt="${p.title}" style="width:100%;height:220px;object-fit:cover;" loading="lazy">` : `<div style="width:100%;height:220px;background:${C.muted};display:flex;align-items:center;justify-content:center;color:${C.mutedFg};">No Image</div>`}
             <span style="position:absolute;top:1rem;left:1rem;background:${C.secondary};color:${C.bg};padding:0.25rem 0.75rem;border-radius:9999px;font-size:0.75rem;font-weight:600;">${p.category||''}</span>
@@ -441,10 +473,7 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
           <div style="padding:1.5rem;">
             <h3 class="font-serif" style="font-size:1.0625rem;font-weight:600;margin:0 0 0.375rem;color:${C.fg};">${p.title}</h3>
             <p style="font-size:0.875rem;color:${C.mutedFg};margin:0 0 1rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.description||''}</p>
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-              ${p.price ? `<span class="font-serif" style="font-size:1.25rem;font-weight:700;color:${C.accent};">${fp(p.price)}</span>` : '<span></span>'}
-              <span style="color:${C.primary};font-weight:600;font-size:0.875rem;">View Details →</span>
-            </div>
+            ${p.price ? `<span class="font-serif" style="font-size:1.25rem;font-weight:700;color:${C.accent};">${fp(p.price)}</span>` : ''}
           </div>
         </div>`).join('')}
       </div>
@@ -494,8 +523,7 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any): strin
         </form>
       </div>
     </div>
-  </section>
-  ${serviceBookingSection(siteId, C.primary, gc)}`;
+  </section>`;
 }
 
 // ═══════ CONTACT ═══════
@@ -594,13 +622,12 @@ function weRentalsPage(siteId: string, gc: (k: string) => string, C: any): strin
         </div>`).join('')}
       </div>
     </div>
-  </section>
-  ${rentalBookingSection(siteId, C.primary, gc)}`;
+  </section>`;
 }
 
 // ═══════ MANUFACTURERS ═══════
 function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any): string {
-  const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Stihl': '/images/logos/stihl.png', 'Husqvarna': '/images/logos/husqvarna.png', 'Cub Cadet': '/images/logos/cub-cadet.png', 'Honda': '/images/logos/honda.png' };
+  const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Stihl': '/images/logos/Stihl.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Cub Cadet': '/images/logos/cub-cadet.png', 'Honda': '/images/logos/Honda.png' };
   const brands = [
     { name: 'Toro', desc: 'Count on it. Professional equipment trusted by landscapers worldwide.', heritage: 'American quality since 1914' },
     { name: 'John Deere', desc: 'Nothing runs like a Deere. Leader in agricultural and outdoor equipment.', heritage: 'American-made since 1837' },

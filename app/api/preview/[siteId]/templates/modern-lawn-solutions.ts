@@ -5,7 +5,6 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { sharedPreviewScript } from './shared';
-import { productModalScript, registerProductsScript, serviceBookingSection, rentalBookingSection } from './product-modal';
 
 /* ── DEMO overrides ── */
 export const MODERN_LAWN_DEMO_OVERRIDES = {
@@ -131,10 +130,10 @@ export function renderModernLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = mlsHome(siteId, getContent, products, vis, colors, fmtPrice); break;
-    case 'service': body = mlsServicePage(siteId, getContent, colors); break;
+    case 'service': body = mlsServicePage(siteId, getContent); break;
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice); break;
-    case 'rentals': body = mlsRentalsPage(siteId, getContent, colors); break;
+    case 'rentals': body = mlsRentalsPage(siteId, getContent); break;
     case 'manufacturers': body = mlsManufacturersPage(siteId, getContent); break;
     default: body = mlsHome(siteId, getContent, products, vis, colors, fmtPrice); break;
   }
@@ -147,8 +146,7 @@ export function renderModernLawnPage(
     currentPage,
     mlsHeader(siteId, currentPage, pages, getContent, colors) +
     body +
-    mlsFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours) +
-    productModalScript(siteId, colors.primary) + registerProductsScript(products)
+    mlsFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours)
   );
 }
 
@@ -206,6 +204,35 @@ function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, pa
     select.form-input:hover { border-color: #9ca3af; }
     select.form-input option { padding: 0.5rem; }
     .form-label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.375rem; }
+
+    /* ── Mobile Responsive ── */
+    @media (max-width: 768px) {
+      [style*="grid-template-columns: 1fr 1fr"],
+      [style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+      [style*="grid-template-columns: repeat(3"],
+      [style*="grid-template-columns: repeat(4"],
+      [style*="grid-template-columns: repeat(5"],
+      [style*="grid-template-columns: repeat(6"] { grid-template-columns: 1fr 1fr !important; }
+      [style*="grid-template-columns: 2fr 1fr"] { grid-template-columns: 1fr !important; }
+      [style*="min-height: 600px"] { min-height: auto !important; padding: 3rem 0 !important; }
+      [data-section="hero"] [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+      [data-section="hero"] { min-height: auto !important; }
+      header nav { display: none !important; }
+      header a[href^="tel"] { display: none !important; }
+      .page-header-mls h1 { font-size: 1.75rem !important; }
+      .page-header-mls p { font-size: 1rem !important; }
+      section h2 { font-size: 1.5rem !important; }
+      section h1 { font-size: 2rem !important; }
+      footer [style*="grid-template-columns: repeat(4"] { grid-template-columns: 1fr 1fr !important; gap: 1.5rem !important; }
+    }
+    @media (max-width: 480px) {
+      [style*="grid-template-columns: repeat(3"],
+      [style*="grid-template-columns: repeat(4"],
+      [style*="grid-template-columns: repeat(5"],
+      [style*="grid-template-columns: repeat(6"] { grid-template-columns: 1fr !important; }
+      footer [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+      [style*="padding: 3rem"] { padding: 1.5rem !important; }
+    }
   </style>
 </head>
 <body>
@@ -238,19 +265,33 @@ function mlsHeader(siteId: string, currentPage: string, pages: any[], getContent
       <a href="/api/preview/${siteId}?page=home" style="text-decoration: none; font-size: 1.25rem; font-weight: 700; color: ${colors.primary};" class="font-heading">
         ${businessName}
       </a>
-      <nav style="display: flex; align-items: center; gap: 1.5rem;">
+      <nav class="mls-desktop-nav" style="display: flex; align-items: center; gap: 1.5rem;">
         ${navItems.map(n => {
           const isActive = currentPage === n.slug || (currentPage === 'index' && n.slug === 'home');
           return `<a href="/api/preview/${siteId}?page=${n.slug}" style="font-size: 0.875rem; font-weight: 500; text-decoration: none; color: ${isActive ? colors.primary : '#6b7280'}; transition: color 0.2s;" onmouseover="this.style.color='${colors.primary}'" onmouseout="this.style.color='${isActive ? colors.primary : '#6b7280'}'">${n.label}</a>`;
         }).join('')}
       </nav>
+      <button class="mls-mobile-btn" onclick="document.getElementById('mlsMobileMenu').classList.toggle('mls-mobile-open')" style="display:none;background:none;border:none;cursor:pointer;padding:0.5rem;">
+        <svg width="24" height="24" fill="none" stroke="${colors.primary}" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
       ${phone ? `
-      <a href="tel:${phone}" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 600; color: ${colors.primary}; text-decoration: none;">
+      <a class="mls-desktop-nav" href="tel:${phone}" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 600; color: ${colors.primary}; text-decoration: none;">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
         ${phone}
       </a>` : ''}
     </div>
-  </header>`;
+    <div id="mlsMobileMenu" style="display:none;padding:0.75rem 1rem;border-top:1px solid #e5e7eb;">
+      ${navItems.map(n => {
+        const isActive = currentPage === n.slug || (currentPage === 'index' && n.slug === 'home');
+        return `<a href="/api/preview/${siteId}?page=${n.slug}" style="display:block;padding:0.5rem 0;font-size:0.9375rem;font-weight:500;text-decoration:none;color:${isActive ? colors.primary : '#374151'};">${n.label}</a>`;
+      }).join('')}
+      ${phone ? `<a href="tel:${phone}" style="display:block;padding:0.75rem 0;font-weight:600;color:${colors.primary};text-decoration:none;">📞 ${phone}</a>` : ''}
+    </div>
+  </header>
+  <style>
+    @media(max-width:768px){ .mls-desktop-nav { display:none !important; } .mls-mobile-btn { display:block !important; } }
+    .mls-mobile-open { display:block !important; }
+  </style>`;
 }
 
 // ── Footer ──
@@ -355,7 +396,7 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem;">
           ${displayList.map((p: any) => `
-          <div class="card-mls" style="cursor:pointer;" onclick="openFmModal('${p.id || p.slug || ''}')">
+          <div class="card-mls">
             <div style="height: 200px; overflow: hidden;">
               ${p.primary_image ? `<img src="${p.primary_image}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">` : `<div style="width:100%;height:100%;background:linear-gradient(135deg,${colors.primary},${colors.accent});"></div>`}
             </div>
@@ -365,7 +406,7 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
               <p style="font-size: 0.875rem; color: #6b7280; margin: 0 0 1rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${p.description || ''}</p>
               <div style="display: flex; align-items: center; justify-content: space-between;">
                 ${p.price ? `<span style="font-size: 1.125rem; font-weight: 700; color: ${colors.primary};">${fmtPrice(p.price)}</span>` : '<span></span>'}
-                <span style="font-size: 0.8125rem; font-weight: 600; color: ${colors.primary};">View Details →</span>
+                <a href="/api/preview/${siteId}?page=inventory" style="font-size: 0.8125rem; font-weight: 600; color: ${colors.primary}; text-decoration: none;">View Details</a>
               </div>
             </div>
           </div>`).join('')}
@@ -379,7 +420,7 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
 
   // ── Manufacturers ──
   if (vis.manufacturers !== false) {
-    const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'Exmark': '/images/logos/exmark.png', 'ECHO': '/images/logos/echo.png', 'Honda': '/images/logos/honda.png', 'Husqvarna': '/images/logos/husqvarna.png', 'Kubota': '/images/logos/kubota.jpg' };
+    const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'Exmark': '/images/logos/exmark.png', 'ECHO': '/images/logos/Echo.png', 'Honda': '/images/logos/Honda.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Kubota': '/images/logos/kubota.jpg' };
     html += `
     <section data-section="manufacturers" style="padding: 5rem 0; background: #f9fafb;">
       <div class="container-mls">
@@ -411,17 +452,10 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
         { name: 'David C.', role: 'Property Manager', content: 'We\'ve been buying equipment here for over 5 years. Service department is top-notch.', rating: 5 },
       ];
     }
-    // Normalize field names (handle author/text vs name/content)
-    testimonials = testimonials.map(t => ({
-      name: t.name || t.author || 'Customer',
-      role: t.role || t.location || '',
-      content: t.content || t.text || t.quote || '',
-      rating: t.rating || 5,
-    }));
     html += `
     <section data-section="testimonials" style="padding: 5rem 0;">
       <div class="container-mls">
-        <h2 class="font-heading" style="font-size: 2rem; font-weight: 700; text-align: center; margin: 0 0 3rem; color: #111827;">${gc('testimonials.heading') || 'What Our Customers Say'}</h2>
+        <h2 class="font-heading" style="font-size: 2rem; font-weight: 700; text-align: center; margin: 0 0 3rem; color: #111827;">${gc('testimonials.heading')}</h2>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
           ${testimonials.map(t => `
           <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1.5rem; display: flex; flex-direction: column; height: 100%;">
@@ -488,7 +522,7 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
       <!-- Products Grid -->
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem;">
         ${products.map((p: any) => `
-        <div class="card-mls" style="cursor:pointer;" data-category="${p.category || ''}" data-title="${(p.title || '').toLowerCase()}" onclick="openFmModal('${p.id || p.slug || ''}')">
+        <div class="card-mls" data-category="${p.category || ''}" data-title="${(p.title || '').toLowerCase()}">
           <div style="height: 200px; overflow: hidden;">
             ${p.primary_image ? `<img src="${p.primary_image}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">` : `<div style="width:100%;height:100%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#9ca3af;">No Image</div>`}
           </div>
@@ -496,10 +530,7 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
             <p style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.25rem;">${p.category || ''}</p>
             <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.375rem; color: #111827;">${p.title}</h3>
             <p style="font-size: 0.875rem; color: #6b7280; margin: 0 0 1rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${p.description || ''}</p>
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-              ${p.price ? `<span style="font-size: 1.125rem; font-weight: 700; color: #111827;">${fmtPrice(p.price)}</span>` : '<span></span>'}
-              <span style="font-size: 0.8125rem; font-weight: 600; color: #10b981;">View Details →</span>
-            </div>
+            ${p.price ? `<span style="font-size: 1.125rem; font-weight: 700; color: #111827;">${fmtPrice(p.price)}</span>` : ''}
           </div>
         </div>`).join('')}
       </div>
@@ -529,7 +560,7 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
 // ══════════════════════════════════════════════════
 //  SERVICE PAGE
 // ══════════════════════════════════════════════════
-function mlsServicePage(siteId: string, gc: (k: string) => string, colors?: any): string {
+function mlsServicePage(siteId: string, gc: (k: string) => string): string {
   let serviceItems: any[] = [];
   try { serviceItems = JSON.parse(gc('services.items') || '[]'); } catch {}
   if (serviceItems.length === 0) {
@@ -589,8 +620,7 @@ function mlsServicePage(siteId: string, gc: (k: string) => string, colors?: any)
         </div>
       </div>
     </div>
-  </section>
-  ${serviceBookingSection(siteId, colors?.primary || '#10b981', gc)}`;
+  </section>`;
 }
 
 // ══════════════════════════════════════════════════
@@ -631,7 +661,7 @@ function mlsContactPage(siteId: string, gc: (k: string) => string, weekday: stri
 // ══════════════════════════════════════════════════
 //  RENTALS PAGE
 // ══════════════════════════════════════════════════
-function mlsRentalsPage(siteId: string, gc: (k: string) => string, colors?: any): string {
+function mlsRentalsPage(siteId: string, gc: (k: string) => string): string {
   let rentals: any[] = [];
   try { rentals = JSON.parse(gc('rentals.items') || '[]'); } catch {}
   if (rentals.length === 0) {
@@ -691,15 +721,14 @@ function mlsRentalsPage(siteId: string, gc: (k: string) => string, colors?: any)
         </div>`).join('')}
       </div>
     </div>
-  </section>
-  ${rentalBookingSection(siteId, colors?.primary || '#10b981', gc)}`;
+  </section>`;
 }
 
 // ══════════════════════════════════════════════════
 //  MANUFACTURERS PAGE
 // ══════════════════════════════════════════════════
 function mlsManufacturersPage(siteId: string, gc: (k: string) => string): string {
-  const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'Exmark': '/images/logos/exmark.png', 'ECHO': '/images/logos/echo.png', 'Honda': '/images/logos/honda.png', 'Husqvarna': '/images/logos/husqvarna.png', 'Kubota': '/images/logos/kubota.jpg' };
+  const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'Exmark': '/images/logos/exmark.png', 'ECHO': '/images/logos/Echo.png', 'Honda': '/images/logos/Honda.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Kubota': '/images/logos/kubota.jpg' };
   const brands = [
     { name: 'Toro', tagline: 'Count on it' },
     { name: 'Exmark', tagline: 'The next cut above' },
