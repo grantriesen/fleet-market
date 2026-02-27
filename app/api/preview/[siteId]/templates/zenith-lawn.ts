@@ -4,6 +4,8 @@
 //         text-only brand display, clean product cards, fade-in animations.
 // ─────────────────────────────────────────────────────────────────────────
 
+import { productModalScript, registerProductsScript, serviceBookingSection, rentalBookingSection } from './product-modal';
+
 /* ── DEMO overrides ── */
 export const ZENITH_LAWN_DEMO_OVERRIDES = {
   'business.name': 'Zenith Equipment Co.',
@@ -75,10 +77,10 @@ export function renderZenithLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = zlHome(siteId, getContent, products, vis, colors); break;
-    case 'service': body = zlService(siteId, getContent); break;
+    case 'service': body = zlService(siteId, getContent, colors); break;
     case 'contact': body = zlContact(siteId, getContent, hoursLine); break;
     case 'inventory': body = zlInventory(siteId, getContent, products); break;
-    case 'rentals': body = zlRentals(siteId, getContent); break;
+    case 'rentals': body = zlRentals(siteId, getContent, colors); break;
     case 'manufacturers': body = zlManufacturers(siteId, getContent); break;
     default: body = zlHome(siteId, getContent, products, vis, colors); break;
   }
@@ -87,6 +89,7 @@ export function renderZenithLawnPage(
     getContent('business.name') || 'Zenith Equipment',
     fonts, colors,
     zlHeader(siteId, currentPage, pages, getContent) + body + zlFooter(siteId, pages, getContent, hoursLine)
+    + productModalScript(siteId, colors.accent) + registerProductsScript(products)
   );
 }
 
@@ -286,8 +289,9 @@ function zlProductCard(siteId: string, p: any) {
   const hasImage = imgUrl && !imgUrl.includes('placeholder');
   const productName = p.name || p.title || '';
   const price = p.sale_price || p.price;
+  const pid = p.id || p.slug || '';
   return `
-  <a href="/api/preview/${siteId}?page=contact" class="group block">
+  <div class="group block cursor-pointer" onclick="openFmModal('${pid}')">
     <div class="aspect-[4/3] overflow-hidden bg-neutral-100 mb-4">
       ${hasImage
         ? `<img src="${imgUrl}" alt="${productName}" class="w-full h-full object-cover transition-slow group-hover:scale-105 group-hover:opacity-90"/>`
@@ -303,11 +307,11 @@ function zlProductCard(siteId: string, p: any) {
         ${p.condition === 'used' ? ` <span class="text-xs text-neutral-400">· Used${p.hours ? ` ${p.hours}hrs` : ''}</span>` : ''}
       </p>
     </div>
-  </a>`;
+  </div>`;
 }
 
 // ── Service ──
-function zlService(siteId: string, getContent: Function) {
+function zlService(siteId: string, getContent: Function, colors?: any) {
   return `
   <section class="section-spacing">
     <div class="container-narrow">
@@ -346,7 +350,8 @@ function zlService(siteId: string, getContent: Function) {
         </div>
       </div>
     </div>
-  </section>`;
+  </section>
+  ${serviceBookingSection(siteId, colors?.accent || '#22c55e', getContent)}`;
 }
 
 // ── Contact ──
@@ -446,7 +451,7 @@ function zlInventory(siteId: string, getContent: Function, products: any[]) {
 }
 
 // ── Rentals ──
-function zlRentals(siteId: string, getContent: Function) {
+function zlRentals(siteId: string, getContent: Function, colors?: any) {
   const rentals = [
     { name: 'Walk-Behind Mowers', daily: 45, weekly: 180, monthly: 550 },
     { name: 'Riding Mowers', daily: 95, weekly: 400, monthly: 1200 },
@@ -483,11 +488,9 @@ function zlRentals(siteId: string, getContent: Function) {
         <p>• Delivery and pickup available for additional fee</p>
         <p>• Long-term rates available for rentals exceeding 30 days</p>
       </div>
-      <div class="mt-16">
-        <a href="/api/preview/${siteId}?page=contact" class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90 bg-green-500">Reserve Equipment</a>
-      </div>
     </div>
-  </section>`;
+  </section>
+  ${rentalBookingSection(siteId, colors?.accent || '#22c55e', getContent)}`;
 }
 
 // ── Manufacturers ──

@@ -8,6 +8,7 @@
 // ============================================
 
 import { sharedPreviewScript, pageHero } from './shared';
+import { productModalScript, registerProductsScript, rentalBookingSection } from './product-modal';
 
 // ── Types ──
 interface Colors {
@@ -92,6 +93,8 @@ export async function renderGreenValleyPage(
     + header
     + body
     + footer
+    + productModalScript(siteId, colors.primary)
+    + registerProductsScript(displayProducts)
     + sharedPreviewScript(siteId, page)
     + '\n</body>\n</html>';
 }
@@ -492,7 +495,7 @@ function gvHomeSections(
         ${getContent('featured.subheading') ? `<p class="text-center text-muted-foreground text-lg mb-8">${getContent('featured.subheading')}</p>` : '<div class="mb-8"></div>'}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           ${displayProducts.map((item: any) => `
-            <div class="industrial-card group overflow-hidden rounded-lg">
+            <div class="industrial-card group overflow-hidden rounded-lg cursor-pointer" onclick="openFmModal('${item.id || item.slug || ''}')">
               <div class="aspect-[4/3] bg-muted overflow-hidden relative">
                 ${item.primary_image
                   ? `<img src="${item.primary_image}" alt="${item.title}" loading="lazy" class="w-full h-full object-cover group-hover-scale">`
@@ -507,7 +510,7 @@ function gvHomeSections(
                 <h3 class="font-bold text-lg text-foreground mb-2">${item.title}</h3>
                 <div class="flex items-center justify-between pt-3 border-t border-border">
                   <span class="text-xl font-bold text-primary">${fmtPrice(item.price)}</span>
-                  <a href="#" class="text-secondary font-semibold text-sm uppercase tracking-wide hover:underline">Details →</a>
+                  <span class="text-secondary font-semibold text-sm uppercase tracking-wide group-hover:underline">Details →</span>
                 </div>
               </div>
             </div>
@@ -1246,7 +1249,7 @@ function gvInventoryPageStatic(
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="invGrid">
           ${displayProducts.map((item: any) => `
-            <div class="inv-card industrial-card group overflow-hidden rounded-lg" data-category="${item.category || ''}" data-condition="${item.condition || ''}">
+            <div class="inv-card industrial-card group overflow-hidden rounded-lg cursor-pointer" data-category="${item.category || ''}" data-condition="${item.condition || ''}" onclick="openFmModal('${item.id || item.slug || ''}')">
               <div class="aspect-[4/3] bg-muted overflow-hidden relative">
                 ${item.primary_image
                   ? `<img src="${item.primary_image}" alt="${item.title}" loading="lazy" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">`
@@ -1264,7 +1267,7 @@ function gvInventoryPageStatic(
                     <span class="text-xl font-bold text-primary">${fmtPrice(item.price)}</span>
                     ${item.sale_price ? `<span class="text-sm text-red-500 line-through ml-2">${fmtPrice(item.sale_price)}</span>` : ''}
                   </div>
-                  <a href="#" class="text-secondary font-semibold text-sm uppercase tracking-wide hover:underline flex-shrink-0">Details →</a>
+                  <span class="text-secondary font-semibold text-sm uppercase tracking-wide group-hover:underline flex-shrink-0">Details →</span>
                 </div>
               </div>
             </div>

@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { sharedPreviewScript } from './shared';
+import { productModalScript, registerProductsScript, serviceBookingSection, rentalBookingSection } from './product-modal';
 
 /* ── DEMO overrides ── */
 export const MODERN_LAWN_DEMO_OVERRIDES = {
@@ -130,10 +131,10 @@ export function renderModernLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = mlsHome(siteId, getContent, products, vis, colors, fmtPrice); break;
-    case 'service': body = mlsServicePage(siteId, getContent); break;
+    case 'service': body = mlsServicePage(siteId, getContent, colors); break;
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice); break;
-    case 'rentals': body = mlsRentalsPage(siteId, getContent); break;
+    case 'rentals': body = mlsRentalsPage(siteId, getContent, colors); break;
     case 'manufacturers': body = mlsManufacturersPage(siteId, getContent); break;
     default: body = mlsHome(siteId, getContent, products, vis, colors, fmtPrice); break;
   }
@@ -146,7 +147,8 @@ export function renderModernLawnPage(
     currentPage,
     mlsHeader(siteId, currentPage, pages, getContent, colors) +
     body +
-    mlsFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours)
+    mlsFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours) +
+    productModalScript(siteId, colors.primary) + registerProductsScript(products)
   );
 }
 
@@ -353,7 +355,7 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem;">
           ${displayList.map((p: any) => `
-          <div class="card-mls">
+          <div class="card-mls" style="cursor:pointer;" onclick="openFmModal('${p.id || p.slug || ''}')">
             <div style="height: 200px; overflow: hidden;">
               ${p.primary_image ? `<img src="${p.primary_image}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">` : `<div style="width:100%;height:100%;background:linear-gradient(135deg,${colors.primary},${colors.accent});"></div>`}
             </div>
@@ -363,7 +365,7 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
               <p style="font-size: 0.875rem; color: #6b7280; margin: 0 0 1rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${p.description || ''}</p>
               <div style="display: flex; align-items: center; justify-content: space-between;">
                 ${p.price ? `<span style="font-size: 1.125rem; font-weight: 700; color: ${colors.primary};">${fmtPrice(p.price)}</span>` : '<span></span>'}
-                <a href="/api/preview/${siteId}?page=inventory" style="font-size: 0.8125rem; font-weight: 600; color: ${colors.primary}; text-decoration: none;">View Details</a>
+                <span style="font-size: 0.8125rem; font-weight: 600; color: ${colors.primary};">View Details →</span>
               </div>
             </div>
           </div>`).join('')}
@@ -486,7 +488,7 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
       <!-- Products Grid -->
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem;">
         ${products.map((p: any) => `
-        <div class="card-mls" data-category="${p.category || ''}" data-title="${(p.title || '').toLowerCase()}">
+        <div class="card-mls" style="cursor:pointer;" data-category="${p.category || ''}" data-title="${(p.title || '').toLowerCase()}" onclick="openFmModal('${p.id || p.slug || ''}')">
           <div style="height: 200px; overflow: hidden;">
             ${p.primary_image ? `<img src="${p.primary_image}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">` : `<div style="width:100%;height:100%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#9ca3af;">No Image</div>`}
           </div>
@@ -494,7 +496,10 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
             <p style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.25rem;">${p.category || ''}</p>
             <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.375rem; color: #111827;">${p.title}</h3>
             <p style="font-size: 0.875rem; color: #6b7280; margin: 0 0 1rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${p.description || ''}</p>
-            ${p.price ? `<span style="font-size: 1.125rem; font-weight: 700; color: #111827;">${fmtPrice(p.price)}</span>` : ''}
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              ${p.price ? `<span style="font-size: 1.125rem; font-weight: 700; color: #111827;">${fmtPrice(p.price)}</span>` : '<span></span>'}
+              <span style="font-size: 0.8125rem; font-weight: 600; color: #10b981;">View Details →</span>
+            </div>
           </div>
         </div>`).join('')}
       </div>
@@ -524,7 +529,7 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
 // ══════════════════════════════════════════════════
 //  SERVICE PAGE
 // ══════════════════════════════════════════════════
-function mlsServicePage(siteId: string, gc: (k: string) => string): string {
+function mlsServicePage(siteId: string, gc: (k: string) => string, colors?: any): string {
   let serviceItems: any[] = [];
   try { serviceItems = JSON.parse(gc('services.items') || '[]'); } catch {}
   if (serviceItems.length === 0) {
@@ -584,7 +589,8 @@ function mlsServicePage(siteId: string, gc: (k: string) => string): string {
         </div>
       </div>
     </div>
-  </section>`;
+  </section>
+  ${serviceBookingSection(siteId, colors?.primary || '#10b981', gc)}`;
 }
 
 // ══════════════════════════════════════════════════
@@ -625,7 +631,7 @@ function mlsContactPage(siteId: string, gc: (k: string) => string, weekday: stri
 // ══════════════════════════════════════════════════
 //  RENTALS PAGE
 // ══════════════════════════════════════════════════
-function mlsRentalsPage(siteId: string, gc: (k: string) => string): string {
+function mlsRentalsPage(siteId: string, gc: (k: string) => string, colors?: any): string {
   let rentals: any[] = [];
   try { rentals = JSON.parse(gc('rentals.items') || '[]'); } catch {}
   if (rentals.length === 0) {
@@ -685,7 +691,8 @@ function mlsRentalsPage(siteId: string, gc: (k: string) => string): string {
         </div>`).join('')}
       </div>
     </div>
-  </section>`;
+  </section>
+  ${rentalBookingSection(siteId, colors?.primary || '#10b981', gc)}`;
 }
 
 // ══════════════════════════════════════════════════

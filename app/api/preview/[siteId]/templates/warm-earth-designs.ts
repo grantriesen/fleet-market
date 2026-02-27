@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { sharedPreviewScript } from './shared';
+import { productModalScript, registerProductsScript, serviceBookingSection, rentalBookingSection } from './product-modal';
 
 /* ── DEMO overrides ── */
 export const WARM_EARTH_DEMO_OVERRIDES: Record<string, string> = {
@@ -118,6 +119,7 @@ export function renderWarmEarthPage(
 
   return weShell(gc('business.name') || 'Heartland Outdoor Equipment', C, siteId, currentPage,
     weHeader(siteId, currentPage, pages, gc, C) + body + weFooter(siteId, pages, gc, C, wkday, sat, sun)
+    + productModalScript(siteId, C.primary) + registerProductsScript(products)
   );
 }
 
@@ -318,7 +320,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2rem;">
           ${list.map((p: any) => `
-          <div class="card-we">
+          <div class="card-we" style="cursor:pointer;" onclick="openFmModal('${p.id || p.slug || ''}')">
             <div style="position:relative;overflow:hidden;">
               ${p.primary_image ? `<img src="${p.primary_image}" alt="${p.title}" style="width:100%;height:220px;object-fit:cover;">` : `<div style="width:100%;height:220px;background:linear-gradient(135deg,${C.primary},${C.secondary});"></div>`}
               <span style="position:absolute;top:1rem;left:1rem;background:${C.secondary};color:${C.bg};padding:0.25rem 0.75rem;border-radius:9999px;font-size:0.75rem;font-weight:600;">${p.category || ''}</span>
@@ -328,7 +330,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
               <p style="font-size:0.875rem;color:${C.mutedFg};margin:0 0 1rem;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.description || ''}</p>
               <div style="display:flex;align-items:center;justify-content:space-between;">
                 ${p.price ? `<span class="font-serif" style="font-size:1.375rem;font-weight:700;color:${C.accent};">${fp(p.price)}</span>` : '<span></span>'}
-                <a href="/api/preview/${siteId}?page=inventory" style="color:${C.primary};font-weight:600;text-decoration:none;font-size:0.875rem;">View Details →</a>
+                <span style="color:${C.primary};font-weight:600;font-size:0.875rem;">View Details →</span>
               </div>
             </div>
           </div>`).join('')}
@@ -431,7 +433,7 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
       <p style="font-size:0.875rem;color:${C.mutedFg};margin-bottom:1.5rem;">Showing ${products.length} products</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2rem;">
         ${products.map((p: any) => `
-        <div class="card-we" data-cat="${p.category||''}" data-name="${(p.title||'').toLowerCase()}">
+        <div class="card-we" style="cursor:pointer;" data-cat="${p.category||''}" data-name="${(p.title||'').toLowerCase()}" onclick="openFmModal('${p.id || p.slug || ''}')">
           <div style="overflow:hidden;position:relative;">
             ${p.primary_image ? `<img src="${p.primary_image}" alt="${p.title}" style="width:100%;height:220px;object-fit:cover;" loading="lazy">` : `<div style="width:100%;height:220px;background:${C.muted};display:flex;align-items:center;justify-content:center;color:${C.mutedFg};">No Image</div>`}
             <span style="position:absolute;top:1rem;left:1rem;background:${C.secondary};color:${C.bg};padding:0.25rem 0.75rem;border-radius:9999px;font-size:0.75rem;font-weight:600;">${p.category||''}</span>
@@ -439,7 +441,10 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
           <div style="padding:1.5rem;">
             <h3 class="font-serif" style="font-size:1.0625rem;font-weight:600;margin:0 0 0.375rem;color:${C.fg};">${p.title}</h3>
             <p style="font-size:0.875rem;color:${C.mutedFg};margin:0 0 1rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.description||''}</p>
-            ${p.price ? `<span class="font-serif" style="font-size:1.25rem;font-weight:700;color:${C.accent};">${fp(p.price)}</span>` : ''}
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              ${p.price ? `<span class="font-serif" style="font-size:1.25rem;font-weight:700;color:${C.accent};">${fp(p.price)}</span>` : '<span></span>'}
+              <span style="color:${C.primary};font-weight:600;font-size:0.875rem;">View Details →</span>
+            </div>
           </div>
         </div>`).join('')}
       </div>
@@ -489,7 +494,8 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any): strin
         </form>
       </div>
     </div>
-  </section>`;
+  </section>
+  ${serviceBookingSection(siteId, C.primary, gc)}`;
 }
 
 // ═══════ CONTACT ═══════
@@ -588,7 +594,8 @@ function weRentalsPage(siteId: string, gc: (k: string) => string, C: any): strin
         </div>`).join('')}
       </div>
     </div>
-  </section>`;
+  </section>
+  ${rentalBookingSection(siteId, C.primary, gc)}`;
 }
 
 // ═══════ MANUFACTURERS ═══════
