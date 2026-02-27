@@ -372,10 +372,17 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
       { name: 'Sarah T.', location: 'Pine Ridge', content: 'The rental program saved us thousands.', rating: 5 },
       { name: 'James G.', location: 'Valley View', content: 'They treat us like neighbors, not customers.', rating: 5 },
     ];
+    // Normalize field names (handle author/text vs name/content)
+    testimonials = testimonials.map(t => ({
+      name: t.name || t.author || 'Customer',
+      location: t.location || t.role || '',
+      content: t.content || t.text || t.quote || '',
+      rating: t.rating || 5,
+    }));
     h += `
     <section data-section="testimonials" style="padding:6rem 0;">
       <div class="cw">
-        <h2 class="font-serif" style="font-size:2.5rem;font-weight:700;text-align:center;margin:0 0 4rem;color:${C.fg};">${gc('testimonials.heading')}</h2>
+        <h2 class="font-serif" style="font-size:2.5rem;font-weight:700;text-align:center;margin:0 0 4rem;color:${C.fg};">${gc('testimonials.heading') || 'From Our Community'}</h2>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;">
           ${testimonials.map(t => `
           <div class="card-we" style="padding:2rem;display:flex;flex-direction:column;">

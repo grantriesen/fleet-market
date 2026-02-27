@@ -409,10 +409,17 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
         { name: 'David C.', role: 'Property Manager', content: 'We\'ve been buying equipment here for over 5 years. Service department is top-notch.', rating: 5 },
       ];
     }
+    // Normalize field names (handle author/text vs name/content)
+    testimonials = testimonials.map(t => ({
+      name: t.name || t.author || 'Customer',
+      role: t.role || t.location || '',
+      content: t.content || t.text || t.quote || '',
+      rating: t.rating || 5,
+    }));
     html += `
     <section data-section="testimonials" style="padding: 5rem 0;">
       <div class="container-mls">
-        <h2 class="font-heading" style="font-size: 2rem; font-weight: 700; text-align: center; margin: 0 0 3rem; color: #111827;">${gc('testimonials.heading')}</h2>
+        <h2 class="font-heading" style="font-size: 2rem; font-weight: 700; text-align: center; margin: 0 0 3rem; color: #111827;">${gc('testimonials.heading') || 'What Our Customers Say'}</h2>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
           ${testimonials.map(t => `
           <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1.5rem; display: flex; flex-direction: column; height: 100%;">

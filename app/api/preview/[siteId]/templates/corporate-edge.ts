@@ -4,6 +4,8 @@
 //         utility bar in header, bottom wave on hero.
 // ──────────────────────────────────────────────────────────────────────────
 
+import { productModalScript, registerProductsScript, serviceBookingSection, rentalBookingSection } from './product-modal';
+
 /* ── DEMO overrides ── */
 export const CORPORATE_EDGE_DEMO_OVERRIDES = {
   'business.name': 'Premier Equipment Co.',
@@ -116,13 +118,17 @@ export function renderCorporateEdgePage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors); break;
-    case 'service': body = ceServicePage(siteId, getContent); break;
+    case 'service': body = ceServicePage(siteId, getContent, colors); break;
     case 'contact': body = ceContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours); break;
-    case 'inventory': body = ceInventoryPage(siteId, getContent, products); break;
-    case 'rentals': body = ceRentalsPage(siteId, getContent); break;
+    case 'inventory': body = ceInventoryPage(siteId, getContent, products, colors); break;
+    case 'rentals': body = ceRentalsPage(siteId, getContent, colors); break;
     case 'manufacturers': body = ceManufacturersPage(siteId, getContent); break;
     default: body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors); break;
   }
+
+  // Inject product modal + registered products for inventory/home pages
+  const modalHtml = productModalScript(siteId, colors.primary);
+  const productsScript = registerProductsScript(products);
 
   return ceHtmlShell(
     getContent('business.name') || 'Premier Equipment',
@@ -130,7 +136,8 @@ export function renderCorporateEdgePage(
     colors,
     ceHeader(siteId, currentPage, pages, getContent, weekdayHours, colors) +
     body +
-    ceFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours)
+    ceFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours) +
+    modalHtml + productsScript
   );
 }
 
@@ -464,8 +471,9 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
           ${featured.map((p: any) => {
             const imgUrl = p.image_url || p.primary_image || ''; const hasImage = imgUrl && !imgUrl.includes('placeholder');
             const displayPrice = p.sale_price || p.price;
+            const pid = p.id || p.slug || '';
             return `
-          <div class="group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white">
+          <div class="group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" onclick="openFmModal('${pid}')">
             <div class="aspect-square relative overflow-hidden bg-gray-100">
               ${hasImage
                 ? `<img src="${imgUrl}" alt="${p.name || p.title}" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
@@ -484,7 +492,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
                   ${p.sale_price ? `<span class="text-gray-400 line-through text-sm mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
                   <span class="font-heading font-bold text-lg" style="color: ${colors.primary};">$${Number(displayPrice).toLocaleString()}</span>
                 </div>
-                <a href="/api/preview/${siteId}?page=contact" class="text-sm font-semibold hover:underline" style="color: ${colors.primary};">Details →</a>
+                <span class="text-sm font-semibold hover:underline" style="color: ${colors.primary};">View Details →</span>
               </div>
             </div>
           </div>`;
@@ -588,7 +596,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
 }
 
 // ── Service Page ──
-function ceServicePage(siteId: string, getContent: Function) {
+function ceServicePage(siteId: string, getContent: Function, colors: any) {
   let services: any[] = [];
   try { services = JSON.parse(getContent('services.items') || '[]'); } catch {}
 
@@ -615,7 +623,7 @@ function ceServicePage(siteId: string, getContent: Function) {
     </div>
   </section>
 
-  ${ceFormSection(siteId, 'Schedule a Service Consultation', 'Fill out the form below and our service team will contact you within one business day.')}`;
+  ${serviceBookingSection(siteId, colors.primary, getContent)}`;
 }
 
 // ── Contact Page ──
@@ -676,7 +684,7 @@ function ceContactPage(siteId: string, getContent: Function, weekdayHours: strin
 }
 
 // ── Inventory Page ──
-function ceInventoryPage(siteId: string, getContent: Function, products: any[]) {
+function ceInventoryPage(siteId: string, getContent: Function, products: any[], colors: any) {
   const categories = ['All', ...new Set(products.map((p: any) => p.category).filter(Boolean))];
 
   return `
@@ -704,8 +712,9 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[]) 
         ${products.map((p: any) => {
           const imgUrl = p.image_url || p.primary_image || ''; const hasImage = imgUrl && !imgUrl.includes('placeholder');
           const displayPrice = p.sale_price || p.price;
+          const pid = p.id || p.slug || '';
           return `
-        <div class="ce-product group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white" data-category="${p.category || ''}">
+        <div class="ce-product group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" data-category="${p.category || ''}" onclick="openFmModal('${pid}')">
           <div class="aspect-square relative overflow-hidden bg-gray-100">
             ${hasImage
               ? `<img src="${imgUrl}" alt="${p.name || p.title}" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
@@ -724,7 +733,7 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[]) 
                 ${p.sale_price ? `<span class="text-gray-400 line-through text-sm mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
                 <span class="font-heading font-bold text-lg text-blue-900">$${Number(displayPrice).toLocaleString()}</span>
               </div>
-              <a href="/api/preview/${siteId}?page=contact" class="text-sm font-semibold text-blue-900 hover:underline">Details →</a>
+              <span class="text-sm font-semibold text-blue-900 group-hover:underline">View Details →</span>
             </div>
           </div>
         </div>`;
@@ -752,7 +761,7 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[]) 
 }
 
 // ── Rentals Page ──
-function ceRentalsPage(siteId: string, getContent: Function) {
+function ceRentalsPage(siteId: string, getContent: Function, colors: any) {
   const rentalCategories = [
     {
       name: 'Mowers',
@@ -850,7 +859,9 @@ function ceRentalsPage(siteId: string, getContent: Function) {
         </div>
       </div>
     </div>
-  </section>`;
+  </section>
+
+  ${rentalBookingSection(siteId, colors.primary, getContent)}`;
 }
 
 // ── Manufacturers Page ──

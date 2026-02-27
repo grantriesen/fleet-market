@@ -110,7 +110,7 @@ export async function GET(
 
       const sectionVisibility: Record<string, boolean> = {
         hero: true, trustBadges: true, stats: true, services: true,
-        featured: true, manufacturers: true, cta: true,
+        featured: true, manufacturers: true, cta: true, testimonials: true,
       };
 
       const pageVisibility: Record<string, boolean> = {
