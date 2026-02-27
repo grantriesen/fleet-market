@@ -909,7 +909,7 @@
             <svg width="28" height="28" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
           </div>
           <h3>You're In!</h3>
-          <p>We've reserved your beta spot. You'll receive an onboarding email within 24 hours with next steps to set up your dealership website.</p>
+          <p>We've reserved your beta spot. Check your inbox — you'll receive a confirmation email with your next steps.<br><br><strong style="color:white;">March 9:</strong> You'll get an email with dashboard access to select your add-ons and start customizing your website.</p>
         </div>
       </div>
     </div>
@@ -965,11 +965,6 @@
     });
   });
 
-  // TODO: Replace these with your actual Supabase + Google Sheet endpoints
-  const SUPABASE_URL = 'https://qukbxyuzwvkjkcfocpsa.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1a2J4eXV6d3ZramtjZm9jcHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5MTU1ODksImV4cCI6MjA4NTQ5MTU4OX0.JMpRRPns1siV48ytY9lrSD8NDXVjMi2iAXh8wCOF-9E';
-  const GOOGLE_SHEET_WEBHOOK = 'https://script.google.com/macros/s/AKfycbyvQH3zHvjFAadqkiCIb2Xb9CCCVn54Ln5QY3ovaBq2JT_Tj3N-_AakL4odVJzCzdCZ4A/exec';
-
   async function handleSubmit(e) {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
@@ -990,39 +985,19 @@
       company: document.getElementById('company').value.trim(),
       job_title: document.getElementById('jobTitle').value.trim(),
       billing_preference: document.getElementById('billingPref').value,
-      registered_at: new Date().toISOString(),
     };
 
     try {
-      // 1. Insert into Supabase beta_signups table
-      const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/beta_signups`, {
+      const res = await fetch('/api/beta-signup', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Prefer': 'return=minimal',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!sbRes.ok) {
-        const err = await sbRes.json().catch(() => ({}));
-        // Duplicate email check
-        if (err.code === '23505') throw new Error('This email has already been registered for the beta.');
-        throw new Error(err.message || 'Registration failed. Please try again.');
-      }
 
-      // 2. Send to Google Sheet (fire-and-forget)
-      if (GOOGLE_SHEET_WEBHOOK && GOOGLE_SHEET_WEBHOOK !== 'YOUR_GOOGLE_APPS_SCRIPT_URL') {
-        fetch(GOOGLE_SHEET_WEBHOOK, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        }).catch(() => {});
-      }
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Registration failed. Please try again.');
 
-      // 3. Show success
+      // Show success
       document.getElementById('form-content').querySelector('form').style.display = 'none';
       document.querySelector('.form-heading').style.display = 'none';
       document.querySelector('.form-fine').style.display = 'none';
