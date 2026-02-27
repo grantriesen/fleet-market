@@ -124,7 +124,17 @@ export async function GET(
         supabase, // pass supabase for sub-pages (will return empty results for demo siteId)
         demoOverrides.sampleProducts || []
       );
-      return new NextResponse(demoHtml, { headers: { 'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*', 'X-Frame-Options': 'ALLOWALL' } });
+      // Inject beta banner + floating CTA for demo previews
+      const betaBanner = `
+<div style="position:sticky;top:0;z-index:9999;background:linear-gradient(135deg,#E8472F,#c0392b);color:#fff;text-align:center;padding:8px 16px;font-size:13px;font-weight:600;font-family:system-ui,sans-serif;">
+  ✦ TEMPLATE PREVIEW — <a href="/beta" style="color:#fff;text-decoration:underline;margin-left:4px;">← Back to Beta Signup</a>
+</div>
+<a href="/beta" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 1.25rem;background:linear-gradient(135deg,#E8472F,#c0392b);color:#fff;font-weight:700;font-size:0.875rem;border-radius:9999px;text-decoration:none;box-shadow:0 8px 24px rgba(232,71,47,0.4);font-family:system-ui,sans-serif;transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+  Register for Beta →
+</a>`;
+      const injectedHtml = demoHtml.replace(/<body[^>]*>/, (match: string) => match + betaBanner);
+
+      return new NextResponse(injectedHtml, { headers: { 'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*', 'X-Frame-Options': 'ALLOWALL' } });
     }
 
     const supabase = createServerClient(
