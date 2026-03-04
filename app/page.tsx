@@ -31,13 +31,12 @@ export default function LandingPage() {
                 Sign In
                 <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-wider text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Coming Soon</span>
               </button>
-              <button
-                disabled
-                className="px-6 py-3 bg-[#E8472F]/30 text-white/50 font-bold rounded cursor-not-allowed relative group"
+              <a
+                href="/beta"
+                className="px-6 py-3 bg-[#E8472F] text-white font-bold rounded hover:bg-[#d13d25] transition-all"
               >
-                Get Started
-                <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-wider text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Coming Soon</span>
-              </button>
+                Beta Registration
+              </a>
             </div>
           </div>
         </div>
@@ -61,21 +60,20 @@ export default function LandingPage() {
               </div>
               
               <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-                Built for Equipment Dealers Who Mean Business
+                Manage inventory, rentals, service requests, and customer leads with precision.
               </h1>
               
-              <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-                Professional-grade website platform designed for heavy equipment dealers. Manage inventory, rentals, service requests, and customer leads with precision.
-              </p>
+              <h2 className="text-xl md:text-2xl text-gray-300 mb-8 leading-relaxed font-semibold">
+                Built for equipment dealers who mean business
+              </h2>
               
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-12">
-                <button
-                  disabled
-                  className="px-8 py-4 bg-[#E8472F]/30 text-white/50 font-bold rounded cursor-not-allowed relative group"
+                <a
+                  href="/beta"
+                  className="px-8 py-4 bg-[#E8472F] text-white font-bold rounded hover:bg-[#d13d25] transition-all"
                 >
-                  Get Started
-                  <span className="ml-2 text-[10px] uppercase tracking-wider opacity-70">Coming Soon</span>
-                </button>
+                  Sign Up for the Beta
+                </a>
                 <button
                   onClick={() => router.push('/templates')}
                   className="px-8 py-4 bg-slate-700 text-white font-semibold rounded hover:bg-slate-600 transition-all"
@@ -87,7 +85,7 @@ export default function LandingPage() {
               {/* Trust Indicators */}
               <div className="grid grid-cols-3 gap-8 pt-8 border-t border-slate-700">
                 {[
-                  { value: '15 min', label: 'Setup Time' },
+                  { value: '30 min', label: 'Setup Time' },
                   { value: '6', label: 'Pro Templates' },
                   { value: '24/7', label: 'Your Site Works' }
                 ].map((stat) => (
@@ -240,9 +238,9 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { name: 'Base Package', price: '$200', period: '/month', features: ['Professional dealer website', 'Professionally designed templates', 'Contact forms & lead capture', 'Mobile optimized & SSL secured', 'Customizer dashboard'], tier: 'base' },
-              { name: 'Base + 1 Add-on', price: '$300', period: '/month', features: ['Everything in Base Package', 'Choose one: Inventory, Service, or Rentals', 'Full management dashboard', 'Customer-facing booking/browsing'], tier: 'plus1', popular: true },
-              { name: 'Full Suite', price: '$430', period: '/month', features: ['Everything in Base Package', 'Inventory management', 'Service scheduling', 'Rental booking system', 'Save $70/mo vs. individual'], tier: 'full' }
+              { name: 'Base Package', price: '$230', period: '/month', features: ['Professional dealer website', 'Professionally designed templates', 'Contact forms & lead capture', 'Mobile optimized & SSL secured', 'Customizer dashboard'], tier: 'base' },
+              { name: 'Base + 1 Add-on', price: '$330', period: '/month', features: ['Everything in Base Package', 'Choose one: Inventory, Service, or Rentals', 'Full management dashboard', 'Customer-facing booking/browsing'], tier: 'plus1', popular: true },
+              { name: 'Full Suite', price: '$460', period: '/month', features: ['Everything in Base Package', 'Inventory management', 'Service scheduling', 'Rental booking system', 'Save $70/mo vs. individual'], tier: 'full' }
             ].map((plan) => (
               <div key={plan.name} className={`bg-slate-800 rounded-lg border-2 ${plan.popular ? 'border-[#E8472F] shadow-xl shadow-[#E8472F]/20' : 'border-slate-700'} p-8 relative`}>
                 {plan.popular && (
@@ -265,16 +263,16 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <button
-                  disabled
-                  className={`w-full py-3 rounded font-bold cursor-not-allowed ${
+                <a
+                  href="/beta"
+                  className={`w-full py-3 rounded font-bold text-center block ${
                     plan.popular
-                      ? 'bg-[#E8472F]/30 text-white/50'
-                      : 'bg-slate-700/50 text-white/50'
-                  }`}
+                      ? 'bg-[#E8472F] text-white hover:bg-[#d13d25]'
+                      : 'bg-slate-700 text-white hover:bg-slate-600'
+                  } transition-all`}
                 >
-                  Coming Soon
-                </button>
+                  Sign Up for the Beta
+                </a>
               </div>
             ))}
           </div>
@@ -290,12 +288,12 @@ export default function LandingPage() {
           <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
             Get your dealership online with a professional website and powerful management tools
           </p>
-          <button
-            disabled
-            className="px-10 py-5 bg-[#E8472F]/30 text-white/50 font-bold text-lg rounded cursor-not-allowed inline-flex items-center gap-3"
+          <a
+            href="/beta"
+            className="px-10 py-5 bg-[#E8472F] text-white font-bold text-lg rounded hover:bg-[#d13d25] transition-all inline-flex items-center gap-3"
           >
-            Coming Soon
-          </button>
+            Sign Up for the Beta
+          </a>
         </div>
       </section>
 
