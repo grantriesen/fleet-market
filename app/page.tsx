@@ -239,8 +239,8 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { name: 'Base Package', price: '$230', period: '/month', features: ['Professional dealer website', 'Professionally designed templates', 'Contact forms & lead capture', 'Mobile optimized & SSL secured', 'Customizer dashboard'], tier: 'base' },
-              { name: 'Base + 1 Add-on', price: '$330', period: '/month', features: ['Everything in Base Package', 'Choose one: Inventory, Service, or Rentals', 'Full management dashboard', 'Customer-facing booking/browsing'], tier: 'plus1', popular: true },
-              { name: 'Full Suite', price: '$460', period: '/month', features: ['Everything in Base Package', 'Inventory management', 'Service scheduling', 'Rental booking system', 'Save $70/mo vs. individual'], tier: 'full' }
+              { name: 'Base + 1 Add-on', price: '$360', period: '/month', features: ['Everything in Base Package', 'Choose one: Inventory, Service, or Rentals', 'Full management dashboard', 'Customer-facing booking/browsing'], tier: 'plus1', popular: true },
+              { name: 'Full Suite', price: '$510', period: '/month', features: ['Everything in Base Package', 'Inventory management', 'Service scheduling', 'Rental booking system', 'Save $110/mo vs. individual'], tier: 'full' }
             ].map((plan) => (
               <div key={plan.name} className={`bg-slate-800 rounded-lg border-2 ${plan.popular ? 'border-[#E8472F] shadow-xl shadow-[#E8472F]/20' : 'border-slate-700'} p-8 relative`}>
                 {plan.popular && (
