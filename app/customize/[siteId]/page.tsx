@@ -234,8 +234,15 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
     const section = templateConfig.sections[sectionKey];
     const excludedKeys = ['label', 'icon', 'pageSpecific', 'pages', 'premium', 'requiredFeature', 'displayOrder', 'subsections'];
     
+    // Template-specific field exclusions to prevent duplicate UI fields
+    // zenith-lawn uses hero.image; hero.backgroundImage is redundant
+    const templateFieldExclusions: Record<string, Record<string, string[]>> = {
+      'zenith-lawn': { hero: ['backgroundImage'] },
+    };
+    const templateExcludes = templateFieldExclusions[templateSlug]?.[sectionKey] || [];
+
     return Object.entries(section)
-      .filter(([key]) => !excludedKeys.includes(key))
+      .filter(([key]) => !excludedKeys.includes(key) && !templateExcludes.includes(key))
       .filter(([, value]: [string, any]) => value && typeof value === 'object' && value.type)
       .map(([key, field]: [string, any]) => ({
         key,
@@ -399,8 +406,10 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
       
       if (pageError) console.error('Error saving page visibility:', pageError);
 
-      // Force preview to reload
-      setPreviewKey(Date.now());
+      // Force preview to reload AFTER a brief delay to allow Supabase write to propagate
+      setTimeout(() => {
+        setPreviewKey(Date.now());
+      }, 300);
       
       // After iframe reloads, scroll back to the section being edited
       const scrollAfterLoad = () => {
@@ -1561,8 +1570,9 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                 <div className="flex-1 overflow-hidden">
                   <iframe
                     key={previewKey}
-                    src={`/api/preview/${params.siteId}?page=${currentPage}&t=${previewKey}`}
+                    src={`/api/preview/${params.siteId}?page=${currentPage}&t=${previewKey}&_nc=${previewKey}`}
                     className="w-full h-full border-0"
+                    referrerPolicy="no-referrer"
                   />
                 </div>
               </div>
