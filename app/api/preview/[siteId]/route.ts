@@ -240,6 +240,9 @@ export async function GET(
     return new NextResponse(html, {
       headers: {
         'Content-Type': 'text/html',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
   } catch (error: any) {

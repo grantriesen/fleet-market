@@ -213,7 +213,7 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
             ${getContent('hero.subheading') || getContent('hero.subtitle') || ''}
           </p>
           <div class="animate-fade-in" style="animation-delay:0.2s;">
-            <a href="/api/preview/${siteId}?page=inventory"
+            <a href="/api/preview/${siteId}?page=${getContent('hero.ctaLink') || 'inventory'}"
               class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90"
               style="background-color: ${colors.accent};">
               ${getContent('hero.ctaPrimary') || 'View Inventory'}
