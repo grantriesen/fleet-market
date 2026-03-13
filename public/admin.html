@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Fleet Market — Admin</title>
+<link rel="icon" href="/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a;
+  --surface: #111827;
+  --surface2: #1a2236;
+  --border: #1e2d4a;
+  --border-hover: #2d4a6e;
+  --text: #e2e8f0;
+  --text-muted: #64748b;
+  --text-dim: #475569;
+  --orange: #E8472F;
+  --orange-glow: rgba(232,71,47,0.15);
+  --orange-dim: rgba(232,71,47,0.08);
+  --green: #22c55e;
+  --green-glow: rgba(34,197,94,0.12);
+  --blue: #3b82f6;
+  --blue-glow: rgba(59,130,246,0.12);
+  --amber: #f59e0b;
+  --amber-glow: rgba(245,158,11,0.12);
+  --purple: #a855f7;
+  --purple-glow: rgba(168,85,247,0.12);
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', system-ui, sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; }
+
+/* ── Lock Screen ── */
+.lock-screen {
+  display:flex; align-items:center; justify-content:center; min-height:100vh;
+  background: radial-gradient(ellipse at 30% 20%, rgba(232,71,47,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 80%, rgba(59,130,246,0.04) 0%, transparent 50%),
+              var(--bg);
+}
+.lock-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:48px 40px; width:380px; text-align:center;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+}
+.lock-logo { margin-bottom:24px; }
+.lock-logo span:first-child { color:var(--orange); font-weight:800; font-size:24px; }
+.lock-logo span:last-child { color:var(--text); font-weight:800; font-size:24px; }
+.lock-label { font-family:var(--mono); font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:20px; }
+.lock-input {
+  width:100%; padding:12px 16px; background:var(--bg); border:1px solid var(--border);
+  border-radius:8px; color:var(--text); font-family:var(--mono); font-size:14px;
+  outline:none; transition:border-color 0.2s;
+  -webkit-text-security: disc;
+}
+.lock-input:focus { border-color:var(--orange); }
+.lock-input::placeholder { color:var(--text-dim); }
+.lock-btn {
+  width:100%; padding:12px; margin-top:16px; background:var(--orange); color:#fff;
+  border:none; border-radius:8px; font-weight:700; font-size:14px; cursor:pointer;
+  transition:all 0.2s;
+}
+.lock-btn:hover { filter:brightness(1.1); transform:translateY(-1px); }
+.lock-error { color:#f87171; font-size:12px; margin-top:12px; display:none; }
+
+/* ── Admin Shell ── */
+.admin { display:none; }
+.admin.active { display:block; }
+
+/* Top Bar */
+.topbar {
+  background:var(--surface); border-bottom:1px solid var(--border);
+  padding:12px 24px; display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:50;
+}
+.topbar-left { display:flex; align-items:center; gap:12px; }
+.topbar-logo span:first-child { color:var(--orange); font-weight:800; font-size:18px; }
+.topbar-logo span:last-child { color:var(--text); font-weight:800; font-size:18px; }
+.topbar-badge {
+  font-family:var(--mono); font-size:10px; color:var(--orange); background:var(--orange-dim);
+  padding:4px 10px; border-radius:4px; text-transform:uppercase; letter-spacing:0.08em; font-weight:600;
+}
+.topbar-right { display:flex; align-items:center; gap:12px; }
+.topbar-status {
+  display:flex; align-items:center; gap:6px; font-size:12px; color:var(--green);
+  font-family:var(--mono);
+}
+.topbar-status .dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+.btn-logout {
+  padding:6px 14px; background:transparent; border:1px solid var(--border); color:var(--text-muted);
+  border-radius:6px; font-size:12px; cursor:pointer; font-family:var(--mono);
+}
+.btn-logout:hover { border-color:var(--orange); color:var(--orange); }
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* Main Layout */
+.main { max-width:1400px; margin:0 auto; padding:24px; }
+
+/* Section Headers */
+.section-header {
+  display:flex; align-items:center; gap:10px; margin-bottom:16px; margin-top:32px;
+}
+.section-header:first-child { margin-top:0; }
+.section-header h2 { font-size:16px; font-weight:700; color:var(--text); }
+.section-header .count {
+  font-family:var(--mono); font-size:11px; color:var(--text-muted); background:var(--surface2);
+  padding:2px 8px; border-radius:4px;
+}
+
+/* Stats Row */
+.stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+.stat-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  padding:16px 20px; transition:border-color 0.2s;
+}
+.stat-card:hover { border-color:var(--border-hover); }
+.stat-label { font-family:var(--mono); font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px; }
+.stat-value { font-size:28px; font-weight:800; }
+.stat-value.orange { color:var(--orange); }
+.stat-value.green { color:var(--green); }
+.stat-value.blue { color:var(--blue); }
+.stat-value.amber { color:var(--amber); }
+.stat-sub { font-size:11px; color:var(--text-dim); margin-top:4px; }
+
+/* Quick Links Grid */
+.quick-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.quick-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  padding:20px; cursor:pointer; text-decoration:none; color:inherit;
+  transition:all 0.2s; display:block; position:relative; overflow:hidden;
+}
+.quick-card:hover { border-color:var(--border-hover); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.2); }
+.quick-card .icon {
+  width:40px; height:40px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+  font-size:18px; margin-bottom:12px;
+}
+.quick-card .title { font-weight:700; font-size:14px; margin-bottom:4px; }
+.quick-card .desc { font-size:12px; color:var(--text-muted); line-height:1.4; }
+.quick-card .arrow { position:absolute; top:20px; right:20px; color:var(--text-dim); font-size:14px; transition:transform 0.2s; }
+.quick-card:hover .arrow { transform:translateX(3px); color:var(--text); }
+
+/* Template Cards */
+.template-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.template-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  padding:20px; transition:all 0.2s;
+}
+.template-card:hover { border-color:var(--border-hover); }
+.template-name { font-weight:700; font-size:14px; margin-bottom:4px; }
+.template-slug { font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:12px; }
+.template-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.tpl-btn {
+  padding:6px 12px; border-radius:6px; font-size:11px; font-weight:600;
+  text-decoration:none; cursor:pointer; border:1px solid var(--border);
+  font-family:var(--mono); transition:all 0.15s; display:inline-flex; align-items:center; gap:4px;
+}
+.tpl-btn.preview { background:var(--blue-glow); color:var(--blue); border-color:rgba(59,130,246,0.2); }
+.tpl-btn.preview:hover { background:rgba(59,130,246,0.2); }
+.tpl-btn.customize { background:var(--orange-dim); color:var(--orange); border-color:rgba(232,71,47,0.2); }
+.tpl-btn.customize:hover { background:var(--orange-glow); }
+.tpl-btn.switch { background:var(--purple-glow); color:var(--purple); border-color:rgba(168,85,247,0.2); }
+.tpl-btn.switch:hover { background:rgba(168,85,247,0.2); }
+
+/* Beta Signups Table */
+.table-wrap {
+  background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  overflow:hidden;
+}
+.table-wrap table { width:100%; border-collapse:collapse; }
+.table-wrap th {
+  text-align:left; padding:10px 16px; font-family:var(--mono); font-size:10px;
+  color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em;
+  background:var(--surface2); border-bottom:1px solid var(--border);
+}
+.table-wrap td {
+  padding:10px 16px; font-size:13px; border-bottom:1px solid rgba(30,45,74,0.5);
+}
+.table-wrap tr:last-child td { border-bottom:none; }
+.table-wrap tr:hover td { background:var(--surface2); }
+.badge {
+  display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600;
+  font-family:var(--mono);
+}
+.badge-green { background:var(--green-glow); color:var(--green); }
+.badge-amber { background:var(--amber-glow); color:var(--amber); }
+.badge-blue { background:var(--blue-glow); color:var(--blue); }
+.loading-msg { padding:40px; text-align:center; color:var(--text-dim); font-size:13px; }
+
+/* Checklist */
+.checklist-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.checklist-group {
+  background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px;
+}
+.checklist-group h3 { font-size:13px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.checklist-group h3 .progress { font-family:var(--mono); font-size:11px; color:var(--text-muted); font-weight:500; }
+.check-item {
+  display:flex; align-items:flex-start; gap:8px; padding:6px 0; cursor:pointer; user-select:none;
+}
+.check-item input[type="checkbox"] {
+  width:16px; height:16px; margin-top:1px; accent-color:var(--green); cursor:pointer; flex-shrink:0;
+}
+.check-item label { font-size:12px; color:var(--text-muted); cursor:pointer; line-height:1.4; }
+.check-item input:checked + label { color:var(--green); text-decoration:line-through; }
+
+/* Responsive */
+@media(max-width:1024px) { .quick-grid,.template-grid{grid-template-columns:repeat(2,1fr)} .stats-row{grid-template-columns:repeat(2,1fr)} .checklist-grid{grid-template-columns:1fr} }
+@media(max-width:640px) { .quick-grid,.template-grid,.stats-row{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<!-- ═══ LOCK SCREEN ═══ -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-logo"><span>Fleet</span><span>Market</span></div>
+    <div class="lock-label">Admin Access</div>
+    <form onsubmit="handleUnlock(event)">
+      <input type="password" class="lock-input" id="lockPassword" placeholder="Enter admin password" autofocus>
+      <button type="submit" class="lock-btn">Unlock</button>
+    </form>
+    <div class="lock-error" id="lockError">Invalid password. Try again.</div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN PANEL ═══ -->
+<div class="admin" id="adminPanel">
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo"><span>Fleet</span><span>Market</span></div>
+      <span class="topbar-badge">Admin</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-status"><span class="dot"></span> System Online</div>
+      <button class="btn-logout" onclick="handleLock()">Lock</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- ── Stats ── -->
+    <div class="section-header"><h2>Overview</h2></div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Beta Signups</div>
+        <div class="stat-value orange" id="statSignups">—</div>
+        <div class="stat-sub">Total registered</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Templates</div>
+        <div class="stat-value blue">6</div>
+        <div class="stat-sub">Ready to test</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Dashboard Pages</div>
+        <div class="stat-value green">6</div>
+        <div class="stat-sub">Analytics, Website, Inventory, Leads, Service, Rentals</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Launch</div>
+        <div class="stat-value amber" id="statCountdown">—</div>
+        <div class="stat-sub">Monday, March 15</div>
+      </div>
+    </div>
+
+    <!-- ── Quick Links ── -->
+    <div class="section-header"><h2>Quick Access</h2></div>
+    <div class="quick-grid">
+      <a href="/dashboard" class="quick-card" target="_blank">
+        <div class="icon" style="background:var(--orange-dim)">📊</div>
+        <div class="title">Dealer Dashboard</div>
+        <div class="desc">Test the full dashboard experience as a dealer</div>
+        <span class="arrow">→</span>
+      </a>
+      <a href="/onboarding" class="quick-card" target="_blank">
+        <div class="icon" style="background:var(--blue-glow)">🚀</div>
+        <div class="title">Onboarding Flow</div>
+        <div class="desc">Test the signup → template selection → setup wizard</div>
+        <span class="arrow">→</span>
+      </a>
+      <a href="/auth/login" class="quick-card" target="_blank">
+        <div class="icon" style="background:var(--green-glow)">🔑</div>
+        <div class="title">Dealer Login</div>
+        <div class="desc">Test the auth login page</div>
+        <span class="arrow">→</span>
+      </a>
+      <a href="/auth/signup" class="quick-card" target="_blank">
+        <div class="icon" style="background:var(--purple-glow)">📝</div>
+        <div class="title">Dealer Signup</div>
+        <div class="desc">Test account creation flow</div>
+        <span class="arrow">→</span>
+      </a>
+      <a href="/beta" class="quick-card" target="_blank">
+        <div class="icon" style="background:var(--amber-glow)">⚡</div>
+        <div class="title">Beta Landing Page</div>
+        <div class="desc">Public beta registration page</div>
+        <span class="arrow">→</span>
+      </a>
+      <a href="/" class="quick-card" target="_blank">
+        <div class="icon" style="background:var(--blue-glow)">🏠</div>
+        <div class="title">Public Homepage</div>
+        <div class="desc">fleetmarket.us main page</div>
+        <span class="arrow">→</span>
+      </a>
+    </div>
+
+    <!-- ── Dashboard Pages ── -->
+    <div class="section-header"><h2>Dashboard Pages</h2><span class="count">6 pages</span></div>
+    <div class="quick-grid">
+      <a href="/dashboard" class="quick-card" target="_blank">
+        <div class="icon" style="background:var(--orange-dim)">📈</div>
+        <div class="title">Analytics</div>
+        <div class="desc">Traffic, views, conversion metrics</div>
+        <span class="arrow">→</span>
+      </a>
+      <a href="/dashboard/website" class="quick-card" target="_blank">
+        <div class="icon" style="background:var(--green-glow)">🌐</div>
+        <div class="title">My Website</div>
+        <div class="desc">Content, design, settings tabs</div>
+        <span class="arrow">→</span>
+      </a>
+      <a href="/dashboard/inventory" class="quick-card" target="_blank">
+        <div class="icon" style="background:var(--blue-glow)">📦</div>
+        <div class="title">Inventory</div>
+        <div class="desc">Product catalog, CSV import, search</div>
+        <span class="arrow">→</span>
+      </a>
+      <a href="/dashboard/leads" class="quick-card" target="_blank">
+        <div class="icon" style="background:var(--purple-glow)">📋</div>
+        <div class="title">Leads</div>
+        <div class="desc">Contact submissions, lead management</div>
+        <span class="arrow">→</span>
+      </a>
+      <a href="/dashboard/service" class="quick-card" target="_blank">
+        <div class="icon" style="background:var(--amber-glow)">🔧</div>
+        <div class="title">Service</div>
+        <div class="desc">Appointments, scheduling, capacity</div>
+        <span class="arrow">→</span>
+      </a>
+      <a href="/dashboard/rentals" class="quick-card" target="_blank">
+        <div class="icon" style="background:var(--orange-dim)">🚛</div>
+        <div class="title">Rentals</div>
+        <div class="desc">Fleet, bookings, calendar</div>
+        <span class="arrow">→</span>
+      </a>
+    </div>
+
+    <!-- ── Templates ── -->
+    <div class="section-header"><h2>Template Testing</h2><span class="count">6 templates</span></div>
+    <div class="template-grid" id="templateGrid">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- ── Beta Signups ── -->
+    <div class="section-header"><h2>Beta Signups</h2><span class="count" id="signupCount">loading...</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Company</th>
+            <th>Phone</th>
+            <th>Billing</th>
+            <th>Status</th>
+            <th>Registered</th>
+          </tr>
+        </thead>
+        <tbody id="signupTableBody">
+          <tr><td colspan="7" class="loading-msg">Loading signups...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Pre-Launch Checklist ── -->
+    <div class="section-header" style="margin-top:40px"><h2>Pre-Launch Checklist</h2><span class="count" id="checklistProgress">0/0</span></div>
+    <div class="checklist-grid" id="checklistGrid">
+      <!-- Populated by JS -->
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── Config ───
+const ADMIN_PASSWORD_HASH = 'SET_YOUR_PASSWORD'; // Will be checked client-side
+const SUPABASE_URL = '%%SUPABASE_URL%%';
+const SUPABASE_KEY = '%%SUPABASE_SERVICE_KEY%%';
+
+// Since this is a simple password-protected page, we use an env-injected approach.
+// For the static HTML version, we'll do client-side password check.
+// The password is hashed with SHA-256 for basic protection.
+
+const TEMPLATES = [
+  { name: 'Corporate Edge', slug: 'corporate-edge', color: '#1e3a5f' },
+  { name: 'Green Valley Industrial', slug: 'green-valley-industrial', color: '#2d5a27' },
+  { name: 'Modern Lawn Solutions', slug: 'modern-lawn-solutions', color: '#1a1a2e' },
+  { name: 'Vibe Dynamics', slug: 'vibe-dynamics', color: '#7c3aed' },
+  { name: 'Zenith Lawn', slug: 'zenith-lawn', color: '#0f766e' },
+  { name: 'Warm Earth Designs', slug: 'warm-earth-designs', color: '#78350f' },
+];
+
+const CHECKLIST = {
+  'Auth & Onboarding': [
+    'Signup page loads with Fleet Market branding',
+    'Can create a new account',
+    'Login page works with correct credentials',
+    'Login redirects to dashboard',
+    'Onboarding wizard starts after first signup',
+    'All onboarding steps complete without errors',
+    'Template selection shows all 6 templates',
+    'AI content generation works in onboarding',
+    'Logo upload works during onboarding',
+    'Onboarding completion redirects to customizer',
+  ],
+  'Dashboard Core': [
+    'Dashboard home loads with stats and quick actions',
+    'Analytics page shows charts and metrics',
+    'My Website page loads with Content/Design/Settings tabs',
+    'Navigation between all dashboard pages works',
+    'Sign out button works',
+    'Mobile responsive on all dashboard pages',
+  ],
+  'Inventory Management': [
+    'Inventory page loads with search and filters',
+    'Can add a new product manually',
+    'Can edit an existing product',
+    'Can delete a product',
+    'CSV import works',
+    'Product catalog search works',
+    'Product images upload and display',
+    'Inventory shows on public dealer site',
+  ],
+  'Service Scheduling': [
+    'Service dashboard loads with appointment queue',
+    'Can create service types',
+    'Can set availability hours',
+    'Can block dates',
+    'Customer booking page loads at /service-booking/[siteId]',
+    'Customer can select service and book appointment',
+    'Booking appears in dashboard as Pending',
+    'Can confirm/complete/cancel appointments',
+    'Weekly capacity bars display correctly',
+  ],
+  'Rental System': [
+    'Rentals page loads with Fleet/Bookings/Calendar tabs',
+    'Can add rental equipment with rates',
+    'Can edit/delete rental items',
+    'Customer can submit rental request from public site',
+    'Booking appears in dashboard Bookings tab',
+    'Status workflow: Pending → Confirm → Picked Up → Returned → Complete',
+    'Calendar view shows bookings on correct dates',
+  ],
+  'Leads': [
+    'Leads page loads with stats and table',
+    'Contact form submissions appear as leads',
+    'Can view lead details',
+    'Lead status can be updated',
+    'Lead count updates in dashboard stats',
+  ],
+  'Website Customizer': [
+    'Customizer loads with split-pane (settings + preview)',
+    'Content editing updates preview in real-time',
+    'Color changes apply to preview',
+    'Logo upload works in customizer',
+    'Section visibility toggles work',
+    'Hero section editable (heading, subheading, CTA, image)',
+    'All pages accessible in preview (Home, Contact, Service, etc.)',
+    'Save/Publish buttons work',
+    'Mobile preview mode works',
+  ],
+  'Template Previews (All 6)': [
+    'Corporate Edge — preview loads, all sections render',
+    'Green Valley Industrial — preview loads, all sections render',
+    'Modern Lawn Solutions — preview loads, all sections render',
+    'Vibe Dynamics — preview loads, all sections render',
+    'Zenith Lawn — preview loads, all sections render',
+    'Warm Earth Designs — preview loads, all sections render',
+    'All manufacturer logos display correctly (no broken images)',
+    'Product modals work on all templates',
+    'Service booking links work on all templates',
+    'Mobile responsive on all templates',
+  ],
+  'Beta Infrastructure': [
+    'Beta landing page loads at /beta',
+    'reCAPTCHA widget displays and validates',
+    'Consent checkbox required before submit',
+    'Form submission succeeds → Supabase insert',
+    'Confirmation email sent via Resend',
+    'Google Sheet webhook fires',
+    'Duplicate email shows appropriate error',
+    'Success message shows March 15 date',
+    'Dashboard preview page loads at /dashboard-preview',
+    'All 6 dashboard sub-pages accessible from preview',
+  ],
+  'Public Site & SEO': [
+    'Homepage loads at fleetmarket.us',
+    'Hero text is correct (inventory, rentals, service...)',
+    'All CTA buttons link to /beta',
+    'Pricing shows $230/$360/$510',
+    'Template gallery page loads',
+    'Fleet Market logo displays in header',
+    'Mobile responsive on homepage',
+    'SSL certificate active (https)',
+  ],
+};
+
+// ─── Password Check ───
+async function hashPassword(pw) {
+  const enc = new TextEncoder().encode(pw);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function handleUnlock(e) {
+  e.preventDefault();
+  const pw = document.getElementById('lockPassword').value;
+  // Store password hash on first use, or check against stored
+  const stored = localStorage.getItem('fm_admin_hash');
+  if (!stored) {
+    // First time: set the password
+    const hash = await hashPassword(pw);
+    localStorage.setItem('fm_admin_hash', hash);
+    unlock();
+  } else {
+    const hash = await hashPassword(pw);
+    if (hash === stored) {
+      unlock();
+    } else {
+      document.getElementById('lockError').style.display = 'block';
+      document.getElementById('lockPassword').value = '';
+    }
+  }
+}
+
+function unlock() {
+  sessionStorage.setItem('fm_admin_unlocked', 'true');
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('adminPanel').classList.add('active');
+  loadSignups();
+  updateCountdown();
+}
+
+function handleLock() {
+  sessionStorage.removeItem('fm_admin_unlocked');
+  document.getElementById('lockScreen').style.display = 'flex';
+  document.getElementById('adminPanel').classList.remove('active');
+  document.getElementById('lockPassword').value = '';
+}
+
+// Auto-unlock if session is active
+if (sessionStorage.getItem('fm_admin_unlocked') === 'true') {
+  unlock();
+}
+
+// ─── Countdown ───
+function updateCountdown() {
+  const launch = new Date('2026-03-15T00:00:00');
+  const now = new Date();
+  const diff = launch - now;
+  if (diff <= 0) {
+    document.getElementById('statCountdown').textContent = 'TODAY';
+  } else {
+    const days = Math.ceil(diff / 86400000);
+    document.getElementById('statCountdown').textContent = days + 'd';
+  }
+}
+
+// ─── Templates ───
+function renderTemplates() {
+  const grid = document.getElementById('templateGrid');
+  grid.innerHTML = TEMPLATES.map(t => `
+    <div class="template-card">
+      <div class="template-name">${t.name}</div>
+      <div class="template-slug">${t.slug}</div>
+      <div class="template-actions">
+        <a href="/api/preview/demo-${t.slug}?page=home" target="_blank" class="tpl-btn preview">◉ Preview</a>
+        <a href="/templates/${t.slug}/preview" target="_blank" class="tpl-btn preview">◉ Full Preview</a>
+        <a href="/customize/demo-${t.slug}" target="_blank" class="tpl-btn customize">✎ Customizer</a>
+      </div>
+    </div>
+  `).join('');
+}
+renderTemplates();
+
+// ─── Load Beta Signups ───
+async function loadSignups() {
+  // Try to load from the beta-signup API using service role
+  // Since this is a static HTML page, we'll call a lightweight API endpoint
+  try {
+    const res = await fetch('/api/admin/signups');
+    if (res.ok) {
+      const data = await res.json();
+      renderSignups(data);
+    } else {
+      document.getElementById('signupTableBody').innerHTML =
+        '<tr><td colspan="7" class="loading-msg">Could not load signups. Set up /api/admin/signups endpoint.</td></tr>';
+    }
+  } catch(err) {
+    document.getElementById('signupTableBody').innerHTML =
+      '<tr><td colspan="7" class="loading-msg">API not available. Set up /api/admin/signups endpoint.</td></tr>';
+  }
+}
+
+function renderSignups(signups) {
+  document.getElementById('statSignups').textContent = signups.length;
+  document.getElementById('signupCount').textContent = signups.length + ' total';
+
+  if (signups.length === 0) {
+    document.getElementById('signupTableBody').innerHTML =
+      '<tr><td colspan="7" class="loading-msg">No signups yet</td></tr>';
+    return;
+  }
+
+  document.getElementById('signupTableBody').innerHTML = signups.map(s => {
+    const date = new Date(s.registered_at || s.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+    const statusClass = s.status === 'registered' ? 'badge-green' : s.status === 'onboarding' ? 'badge-blue' : 'badge-amber';
+    return `<tr>
+      <td>${s.first_name} ${s.last_name}</td>
+      <td style="font-family:var(--mono);font-size:12px">${s.email}</td>
+      <td>${s.company}</td>
+      <td style="font-family:var(--mono);font-size:12px">${s.phone}</td>
+      <td><span class="badge ${s.billing_preference === 'annual' ? 'badge-green' : s.billing_preference === 'monthly' ? 'badge-blue' : 'badge-amber'}">${s.billing_preference || 'undecided'}</span></td>
+      <td><span class="badge ${statusClass}">${s.status || 'registered'}</span></td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">${date}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── Checklist ───
+function renderChecklist() {
+  const grid = document.getElementById('checklistGrid');
+  const saved = JSON.parse(localStorage.getItem('fm_checklist') || '{}');
+  let totalChecked = 0, totalItems = 0;
+
+  grid.innerHTML = Object.entries(CHECKLIST).map(([group, items]) => {
+    const groupItems = items.map((item, i) => {
+      const key = group + '::' + i;
+      const checked = saved[key] || false;
+      if (checked) totalChecked++;
+      totalItems++;
+      return `<div class="check-item">
+        <input type="checkbox" id="ck_${key.replace(/[^a-z0-9]/gi,'_')}" data-key="${key}" ${checked ? 'checked' : ''} onchange="toggleCheck(this)">
+        <label for="ck_${key.replace(/[^a-z0-9]/gi,'_')}">${item}</label>
+      </div>`;
+    }).join('');
+
+    const groupChecked = items.filter((_, i) => saved[group + '::' + i]).length;
+    return `<div class="checklist-group">
+      <h3>${group} <span class="progress">${groupChecked}/${items.length}</span></h3>
+      ${groupItems}
+    </div>`;
+  }).join('');
+
+  document.getElementById('checklistProgress').textContent = totalChecked + '/' + totalItems;
+}
+
+function toggleCheck(el) {
+  const saved = JSON.parse(localStorage.getItem('fm_checklist') || '{}');
+  saved[el.dataset.key] = el.checked;
+  localStorage.setItem('fm_checklist', JSON.stringify(saved));
+  renderChecklist();
+}
+
+renderChecklist();
+</script>
+
+</body>
+</html>
