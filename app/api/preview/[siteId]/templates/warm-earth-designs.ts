@@ -349,14 +349,20 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
   }
 
   // Value Props
+  const vp1Title = gc('valueProps.valueProp1Title') || 'Quality Equipment';
+  const vp1Desc = gc('valueProps.valueProp1Description') || 'Top brands and reliable machines for every job on your property';
+  const vp2Title = gc('valueProps.valueProp2Title') || 'Expert Service';
+  const vp2Desc = gc('valueProps.valueProp2Description') || 'Factory-trained technicians keeping your equipment running strong';
+  const vp3Title = gc('valueProps.valueProp3Title') || 'Local Trust';
+  const vp3Desc = gc('valueProps.valueProp3Description') || 'Family-owned and operated, serving our community since 1985';
   h += `
-  <section style="padding:4rem 0;background:${C.primary};color:${C.bg};">
+  <section data-section="valueProps" style="padding:4rem 0;background:${C.primary};color:${C.bg};">
     <div class="cw">
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;text-align:center;">
         ${[
-          { icon: '🚜', title: 'Quality Equipment', desc: 'Top brands and reliable machines for every job on your property' },
-          { icon: '🔧', title: 'Expert Service', desc: 'Factory-trained technicians keeping your equipment running strong' },
-          { icon: '🛡', title: 'Local Trust', desc: 'Family-owned and operated, serving our community since 1985' },
+          { icon: '🚜', title: vp1Title, desc: vp1Desc },
+          { icon: '🔧', title: vp2Title, desc: vp2Desc },
+          { icon: '🛡', title: vp3Title, desc: vp3Desc },
         ].map(v => `
           <div>
             <div style="background:${C.accent};border-radius:9999px;width:4rem;height:4rem;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;font-size:1.75rem;">${v.icon}</div>
