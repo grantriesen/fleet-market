@@ -282,7 +282,7 @@ function vdFooter(getContent: GetContent, colors: Colors, pages: any[], siteId: 
         <div>
           <div class="flex items-center gap-3 mb-6">
             ${getContent('businessInfo.logoImage')
-              ? `<img src="${getContent('businessInfo.logoImage')}" alt="${businessName}" style="max-height: 40px; max-width: 140px; object-fit: contain; filter: brightness(0) invert(1);">`
+              ? `<img src="${getContent('businessInfo.logoImage')}" alt="${businessName}" style="max-height: 40px; max-width: 140px; object-fit: contain;">`
               : `<div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent));"><span class="text-lg">🌿</span></div>`
             }
             <span class="text-lg font-heading font-black text-white">${businessName}</span>
@@ -339,8 +339,8 @@ function vdHomeSections(
     html += `
     <section data-section="hero" class="relative overflow-hidden" style="min-height: 500px;">
       <div class="absolute inset-0" style="${getContent('hero.image') || getContent('hero.backgroundImage') ? `background-image: url('${getContent('hero.image') || getContent('hero.backgroundImage')}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));`}"></div>
-      <div class="absolute inset-0 md:hidden" style="background-color: var(--color-primary); opacity: 0.92;"></div>
-      <div class="hidden md:block absolute inset-0" style="background-color: var(--color-primary); right: 30%; transform: skewX(-10deg); transform-origin: top left;"></div>
+      <div class="absolute inset-0 md:hidden" style="background-color: var(--color-primary); opacity: 0.75;"></div>
+      <div class="hidden md:block absolute inset-0" style="background: linear-gradient(to right, color-mix(in srgb, var(--color-primary) 85%, transparent) 40%, color-mix(in srgb, var(--color-primary) 50%, transparent) 65%, transparent 100%); right: 0; transform: none;"></div>
       <div class="max-w-7xl mx-auto px-6 relative z-10 flex items-center" style="min-height: 500px;">
         <div class="max-w-xl text-white py-12 md:py-0">
           <h1 class="text-4xl md:text-6xl lg:text-7xl font-heading font-black text-white mb-4 leading-none">${getContent('hero.title') || getContent('hero.heading') || 'POWER YOUR LAWN'}</h1>
@@ -428,7 +428,7 @@ function vdHomeSections(
           ${manufacturers.map((m, i) => `
             <div class="text-center group">
               <div class="w-28 h-28 rounded-full flex items-center justify-center bg-white mx-auto transition-all group-hover:scale-110" style="border: 3px solid var(--color-primary); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                ${m.logo_url ? `<img src="${m.logo_url}" alt="${m.name}" class="max-h-12 max-w-20 object-contain">` : `<span class="font-heading font-black text-sm" style="color: var(--color-primary);">${m.name}</span>`}
+                ${(m.logo_url || m.logoUrl) ? `<img src="${m.logo_url || m.logoUrl}" alt="${m.name}" class="max-h-12 max-w-20 object-contain">` : `<span class="font-heading font-black text-sm" style="color: var(--color-primary);">${m.name}</span>`}
               </div>
               <p class="mt-3 font-heading font-bold text-gray-800 text-sm group-hover:text-primary transition-colors">${m.name}</p>
             </div>
@@ -576,7 +576,7 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
     </div>
   </section>`;
 
-  return heroHtml + servicesHtml + ctaHtml + serviceBookingSection(siteId, colors.primary, getContent);
+  return heroHtml + servicesHtml + ctaHtml;
 }
 
 
@@ -685,7 +685,7 @@ function vdManufacturersPage(getContent: GetContent, colors: Colors, manufacture
         ${manufacturers.map((m, i) => `
           <div class="text-center group">
             <div class="w-28 h-28 rounded-full flex items-center justify-center bg-white mx-auto transition-all group-hover:scale-110" style="border: 3px solid var(--color-primary); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-              ${m.logo_url ? `<img src="${m.logo_url}" alt="${m.name}" class="max-h-12 max-w-20 object-contain">` : `<span class="font-heading font-black text-sm" style="color: var(--color-primary);">${m.name}</span>`}
+              ${(m.logo_url || m.logoUrl) ? `<img src="${m.logo_url || m.logoUrl}" alt="${m.name}" class="max-h-12 max-w-20 object-contain">` : `<span class="font-heading font-black text-sm" style="color: var(--color-primary);">${m.name}</span>`}
             </div>
             <p class="mt-3 font-heading font-bold text-gray-800 text-sm">${m.name}</p>
             ${m.description ? `<p class="text-xs text-gray-500 mt-1">${m.description}</p>` : ''}
