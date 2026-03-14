@@ -225,9 +225,10 @@ function vdHeader(getContent: GetContent, colors: Colors, pages: any[], siteId: 
     <div class="max-w-7xl mx-auto px-6">
       <div class="flex items-center justify-between h-20">
         <a href="/api/preview/${siteId}?page=index" class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent));">
-            <span class="text-2xl">🌿</span>
-          </div>
+          ${getContent('businessInfo.logoImage')
+            ? `<img src="${getContent('businessInfo.logoImage')}" alt="${businessName}" style="max-height: 48px; max-width: 160px; object-fit: contain;">`
+            : `<div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent));"><span class="text-2xl">🌿</span></div>`
+          }
           <span class="text-xl font-heading font-black text-gray-900">${businessName}</span>
         </a>
         <nav class="hidden lg:flex items-center gap-1">
@@ -336,17 +337,17 @@ function vdHomeSections(
   if (vis.hero !== false) {
     html += `
     <section data-section="hero" class="relative overflow-hidden" style="min-height: 500px;">
-      <div class="absolute inset-0" style="background-image: url('${getContent('hero.image')}'); background-size: cover; background-position: center;"></div>
+      <div class="absolute inset-0" style="background-image: url('${getContent('hero.image') || getContent('hero.backgroundImage') || ''}'); background-size: cover; background-position: center;"></div>
       <div class="absolute inset-0 md:hidden" style="background-color: var(--color-primary); opacity: 0.92;"></div>
       <div class="hidden md:block absolute inset-0" style="background-color: var(--color-primary); right: 30%; transform: skewX(-10deg); transform-origin: top left;"></div>
       <div class="max-w-7xl mx-auto px-6 relative z-10 flex items-center" style="min-height: 500px;">
         <div class="max-w-xl text-white py-12 md:py-0">
-          <h1 class="text-4xl md:text-6xl lg:text-7xl font-heading font-black text-white mb-4 leading-none">${getContent('hero.heading') || getContent('hero.title')}</h1>
-          <h2 class="text-xl md:text-2xl font-heading font-bold text-white mb-4">${getContent('hero.subheading') || getContent('hero.subtitle')}</h2>
-          <p class="text-base md:text-lg text-white/90 mb-8 max-w-lg">${getContent('hero.description')}</p>
+          <h1 class="text-4xl md:text-6xl lg:text-7xl font-heading font-black text-white mb-4 leading-none">${getContent('hero.title') || getContent('hero.heading') || 'POWER YOUR LAWN'}</h1>
+          <h2 class="text-xl md:text-2xl font-heading font-bold text-white mb-4">${getContent('hero.subtitle') || getContent('hero.subheading') || ''}</h2>
+          <p class="text-base md:text-lg text-white/90 mb-8 max-w-lg">${getContent('hero.description') || ''}</p>
           <div class="flex flex-wrap gap-4">
-            <a href="/api/preview/${siteId}?page=inventory" class="btn-gradient text-base md:text-lg px-6 md:px-8 py-3 md:py-4">${getContent('hero.ctaPrimary') || getContent('hero.ctaButton') || 'Shop Equipment'}</a>
-            <a href="/api/preview/${siteId}?page=rentals" class="inline-flex items-center px-6 md:px-8 py-3 md:py-4 rounded-full font-heading font-bold text-base md:text-lg text-white border-3 md:border-4 border-white hover:bg-white hover:text-primary transition-all">${getContent('hero.ctaSecondary') || 'View Rentals'}</a>
+            <a href="/api/preview/${siteId}?page=${getContent('hero.ctaPrimaryLink') || 'inventory'}" class="btn-gradient text-base md:text-lg px-6 md:px-8 py-3 md:py-4">${getContent('hero.ctaPrimary') || getContent('hero.ctaButton') || 'Shop Equipment'}</a>
+            <a href="/api/preview/${siteId}?page=${getContent('hero.ctaSecondaryLink') || 'rentals'}" class="inline-flex items-center px-6 md:px-8 py-3 md:py-4 rounded-full font-heading font-bold text-base md:text-lg text-white border-3 md:border-4 border-white hover:bg-white hover:text-primary transition-all">${getContent('hero.ctaSecondary') || 'View Rentals'}</a>
           </div>
         </div>
       </div>
@@ -462,7 +463,19 @@ function vdHomeSections(
   if (vis.testimonials !== false) {
     const cardBgs = ['var(--color-primary)', 'var(--color-secondary)', 'var(--color-accent)'];
     let testimonials: any[] = [];
-    try { testimonials = JSON.parse(getContent('testimonials.items') || '[]'); } catch {}
+    // Build from individual config fields first
+    const t1q = getContent('testimonials.testimonial1Quote'), t1a = getContent('testimonials.testimonial1Author'), t1r = getContent('testimonials.testimonial1Role');
+    const t2q = getContent('testimonials.testimonial2Quote'), t2a = getContent('testimonials.testimonial2Author'), t2r = getContent('testimonials.testimonial2Role');
+    const t3q = getContent('testimonials.testimonial3Quote'), t3a = getContent('testimonials.testimonial3Author'), t3r = getContent('testimonials.testimonial3Role');
+    if (t1q || t2q || t3q) {
+      testimonials = [
+        t1q ? { quote: t1q, name: t1a || '', title: t1r || '' } : null,
+        t2q ? { quote: t2q, name: t2a || '', title: t2r || '' } : null,
+        t3q ? { quote: t3q, name: t3a || '', title: t3r || '' } : null,
+      ].filter(Boolean) as any[];
+    } else {
+      try { testimonials = JSON.parse(getContent('testimonials.items') || '[]'); } catch {}
+    }
     if (!testimonials.length) testimonials = [
       { quote: "VibePower set us up with an EGO battery fleet that changed our business.", name: 'Carlos Rivera', title: 'Owner', company: 'Rivera Lawn & Garden' },
       { quote: "Fast service, great selection, and the staff actually knows what they're talking about.", name: 'Jessica Nguyen', title: 'Operations Manager', company: 'Sunshine Property Care' },
@@ -472,8 +485,8 @@ function vdHomeSections(
     <section data-section="testimonials" class="py-20 bg-white">
       <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-12">
-          <h2 class="text-5xl font-heading font-black text-gray-900 mb-4">${getContent('testimonials.heading')}</h2>
-          <p class="text-xl text-gray-500">Don't just take our word for it</p>
+          <h2 class="text-5xl font-heading font-black text-gray-900 mb-4">${getContent('testimonials.heading') || 'WHAT CUSTOMERS SAY'}</h2>
+          <p class="text-xl text-gray-500">${getContent('testimonials.subheading') || "Don't just take our word for it"}</p>
         </div>
         <div class="grid md:grid-cols-3 gap-8">
           ${testimonials.map((t, i) => `
@@ -500,16 +513,16 @@ function vdHomeSections(
       <div class="absolute top-0 left-0 w-64 h-64 rounded-full bg-white/10 -translate-x-1/2 -translate-y-1/2"></div>
       <div class="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-white/10 translate-x-1/3 translate-y-1/3"></div>
       <div class="max-w-4xl mx-auto px-6 relative z-10">
-        <h2 class="text-5xl md:text-6xl font-heading font-black text-white mb-6">${getContent('cta.heading')}</h2>
-        <p class="text-xl text-white/90 mb-10 max-w-2xl mx-auto">${getContent('cta.subheading')}</p>
+        <h2 class="text-5xl md:text-6xl font-heading font-black text-white mb-6">${getContent('cta.heading') || 'READY TO GET STARTED?'}</h2>
+        <p class="text-xl text-white/90 mb-10 max-w-2xl mx-auto">${getContent('cta.subheading') || ''}</p>
         <div class="flex flex-wrap justify-center gap-6">
-          <a href="/api/preview/${siteId}?page=inventory" class="inline-block bg-white font-heading font-black text-xl px-10 py-4 rounded-full transition-all hover:-translate-y-1" style="color: var(--color-primary);">${getContent('cta.primaryButton') || getContent('cta.button') || 'Browse Equipment'}</a>
+          <a href="/api/preview/${siteId}?page=inventory" class="inline-block bg-white font-heading font-black text-xl px-10 py-4 rounded-full transition-all hover:-translate-y-1" style="color: var(--color-primary);">${getContent('cta.primaryText') || getContent('cta.primaryButton') || getContent('cta.button') || 'Browse Equipment'}</a>
           <a href="tel:${getContent('businessInfo.phone')}" class="inline-flex items-center px-10 py-4 rounded-full font-heading font-bold text-lg text-white border-4 border-white hover:bg-white hover:text-primary transition-all">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2A19.86 19.86 0 013.09 5.18 2 2 0 015.11 3h3a2 2 0 012 1.72c.12.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 11.91a16 16 0 006 6l2.27-2.27a2 2 0 012.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0122 16.92z"/></svg>
-            Call Now
+            ${getContent('cta.secondaryText') || 'Call Now'}
           </a>
         </div>
-        <p class="mt-8 text-white/70 text-lg">⭐ Rated 4.9/5 by over 5,000 customers</p>
+        <p class="mt-8 text-white/70 text-lg">${getContent('cta.trustLine') || '⭐ Rated 4.9/5 by over 5,000 customers'}</p>
       </div>
     </section>`;
   }
