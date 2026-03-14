@@ -87,8 +87,17 @@ export function renderCorporateEdgePage(
   customizations: any,
   enabledFeatures: Set<string>,
   vis: Record<string, boolean>,
+  content: Record<string, string> = {},
 ) {
-  const getContent = (key: string) => customizations?.content?.[key] || config?.content?.[key] || '';
+  const getContent = (key: string) => {
+    if (content[key]) return content[key];
+    const parts = key.split('.');
+    if (parts.length === 2) {
+      const [section, field] = parts;
+      return config?.sections?.[section]?.[field]?.default || '';
+    }
+    return '';
+  };
 
   const colors = {
     primary: customizations?.colors?.primary || config?.colors?.primary?.default || '#1e3a8a',

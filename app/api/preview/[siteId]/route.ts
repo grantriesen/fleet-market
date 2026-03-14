@@ -240,9 +240,6 @@ export async function GET(
     return new NextResponse(html, {
       headers: {
         'Content-Type': 'text/html',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
       },
     });
   } catch (error: any) {
@@ -394,6 +391,7 @@ async function generateTemplateHTML(
       customizations,
       ceEnabledFeatures,
       ceVis,
+      content,
     );
   }
 
@@ -409,7 +407,7 @@ async function generateTemplateHTML(
     } catch {}
     return renderZenithLawnPage(
       siteId, page, availablePages, displayProducts,
-      config, customizations, zlFeatures, zlVis,
+      config, customizations, zlFeatures, zlVis, content,
     );
   }
 
