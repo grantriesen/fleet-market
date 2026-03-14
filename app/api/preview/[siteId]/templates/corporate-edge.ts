@@ -599,10 +599,24 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
 // ── Service Page ──
 function ceServicePage(siteId: string, getContent: Function) {
   let services: any[] = [];
-  try { services = JSON.parse(getContent('services.items') || '[]'); } catch {}
+  // Build from config fields first, then fall back to JSON items
+  const ces1t = getContent('servicePage.service1Title'); const ces1d = getContent('servicePage.service1Text') || getContent('servicePage.service1Description');
+  const ces2t = getContent('servicePage.service2Title'); const ces2d = getContent('servicePage.service2Text') || getContent('servicePage.service2Description');
+  const ces3t = getContent('servicePage.service3Title'); const ces3d = getContent('servicePage.service3Text') || getContent('servicePage.service3Description');
+  const ces4t = getContent('servicePage.service4Title'); const ces4d = getContent('servicePage.service4Text') || getContent('servicePage.service4Description');
+  if (ces1t || ces2t || ces3t) {
+    services = [
+      ces1t ? { icon: '🔧', title: ces1t, description: ces1d } : null,
+      ces2t ? { icon: '⏱', title: ces2t, description: ces2d } : null,
+      ces3t ? { icon: '🛡', title: ces3t, description: ces3d } : null,
+      ces4t ? { icon: '🚚', title: ces4t, description: ces4d } : null,
+    ].filter(Boolean);
+  } else {
+    try { services = JSON.parse(getContent('services.items') || '[]'); } catch {}
+  }
 
   return `
-  ${cePageHeader(getContent('services.heading') || 'Service Department', getContent('services.description') || '')}
+  ${cePageHeader(getContent('servicePage.heading') || getContent('services.heading') || 'Service Department', getContent('servicePage.subheading') || getContent('services.description') || '')}
 
   <section class="py-16 bg-white">
     <div class="container-corporate">
@@ -634,7 +648,7 @@ function ceContactPage(siteId: string, getContent: Function, weekdayHours: strin
   const address = getContent('business.address') || '';
 
   return `
-  ${cePageHeader(getContent('contact.heading') || 'Contact Us', getContent('contact.description') || '')}
+  ${cePageHeader(getContent('contactPage.heading') || getContent('contact.heading') || 'Contact Us', getContent('contactPage.subheading') || getContent('contact.description') || '')}
 
   <section class="py-16 bg-white">
     <div class="container-corporate">
@@ -689,7 +703,7 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[]) 
   const categories = ['All', ...new Set(products.map((p: any) => p.category).filter(Boolean))];
 
   return `
-  ${cePageHeader(getContent('inventory.heading') || 'Equipment Inventory', getContent('inventory.description') || '')}
+  ${cePageHeader(getContent('inventoryPage.heading') || getContent('inventory.heading') || 'Equipment Inventory', getContent('inventoryPage.subheading') || getContent('inventory.description') || '')}
 
   <!-- Category Filter -->
   <section class="bg-white border-b border-gray-200 sticky top-[104px] z-40">
@@ -790,7 +804,7 @@ function ceRentalsPage(siteId: string, getContent: Function) {
   ];
 
   return `
-  ${cePageHeader(getContent('rentals.heading') || 'Equipment Rentals', getContent('rentals.description') || '')}
+  ${cePageHeader(getContent('rentalsPage.heading') || getContent('rentals.heading') || 'Equipment Rentals', getContent('rentalsPage.subheading') || getContent('rentals.description') || '')}
 
   <section class="py-16 bg-white">
     <div class="container-corporate space-y-8">
@@ -877,7 +891,7 @@ function ceManufacturersPage(siteId: string, getContent: Function) {
   ];
 
   return `
-  ${cePageHeader(getContent('manufacturers.heading') || 'Our Manufacturers', getContent('manufacturers.description') || '')}
+  ${cePageHeader(getContent('manufacturersPage.heading') || getContent('manufacturers.heading') || 'Our Manufacturers', getContent('manufacturersPage.subheading') || getContent('manufacturers.description') || '')}
 
   <section class="py-16 bg-white">
     <div class="container-corporate">

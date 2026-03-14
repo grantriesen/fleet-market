@@ -453,7 +453,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
 function weInventoryPage(siteId: string, gc: (k: string) => string, products: any[], C: any, fp: (p: number|null) => string): string {
   const cats = [...new Set(products.map((p: any) => p.category).filter(Boolean))];
   return `
-  <section data-section="inventoryHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('inventory.heading')}</h1><p>${gc('inventory.description')}</p></div></section>
+  <section data-section="inventoryHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('inventoryPage.heading') || gc('inventory.heading')}</h1><p>${gc('inventoryPage.subheading') || gc('inventory.description')}</p></div></section>
   <section data-section="inventoryGrid" style="padding:2.5rem 0 5rem;">
     <div class="cw">
       <div style="display:flex;gap:1rem;margin-bottom:2rem;flex-wrap:wrap;">
@@ -485,14 +485,26 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
 // ═══════ SERVICE ═══════
 function weServicePage(siteId: string, gc: (k: string) => string, C: any): string {
   let items: any[] = [];
-  try { items = JSON.parse(gc('services.items') || '[]'); } catch {}
-  if (!items.length) items = [
-    { icon: '🔧', title: 'Routine Maintenance', description: 'Oil changes, filter replacements, blade sharpening.' },
-    { icon: '⚙️', title: 'Engine Repair', description: 'Complete engine diagnostics and repair.' },
-    { icon: '🚚', title: 'Pickup & Delivery', description: 'We pick up and deliver when repairs are complete.' },
-  ];
+  // Build from config fields, fall back to JSON items, then defaults
+  const s1t = gc('servicePage.service1Title'); const s1d = gc('servicePage.service1Description');
+  const s2t = gc('servicePage.service2Title'); const s2d = gc('servicePage.service2Description');
+  const s3t = gc('servicePage.service3Title'); const s3d = gc('servicePage.service3Description');
+  if (s1t || s2t || s3t) {
+    items = [
+      s1t ? { icon: '🔧', title: s1t, description: s1d } : null,
+      s2t ? { icon: '⚙️', title: s2t, description: s2d } : null,
+      s3t ? { icon: '🚚', title: s3t, description: s3d } : null,
+    ].filter(Boolean);
+  } else {
+    try { items = JSON.parse(gc('services.items') || '[]'); } catch {}
+    if (!items.length) items = [
+      { icon: '🔧', title: 'Routine Maintenance', description: 'Oil changes, filter replacements, blade sharpening.' },
+      { icon: '⚙️', title: 'Engine Repair', description: 'Complete engine diagnostics and repair.' },
+      { icon: '🚚', title: 'Pickup & Delivery', description: 'We pick up and deliver when repairs are complete.' },
+    ];
+  }
   return `
-  <section data-section="serviceHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('services.heading')}</h1><p>${gc('services.description')}</p></div></section>
+  <section data-section="serviceHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('servicePage.heading') || gc('services.heading')}</h1><p>${gc('servicePage.subheading') || gc('services.description')}</p></div></section>
   <section data-section="serviceTypes" style="padding:6rem 0;">
     <div class="cw">
       <h2 class="font-serif" style="font-size:2rem;font-weight:700;text-align:center;margin:0 0 3rem;color:${C.fg};">What We Service</h2>
@@ -529,7 +541,7 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any): strin
 // ═══════ CONTACT ═══════
 function weContactPage(siteId: string, gc: (k: string) => string, C: any, wk: string, sat: string, sun: string): string {
   return `
-  <section data-section="contactHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('contact.heading')}</h1><p>${gc('contact.description')}</p></div></section>
+  <section data-section="contactHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('contactPage.heading') || gc('contact.heading')}</h1><p>${gc('contactPage.subheading') || gc('contact.description')}</p></div></section>
   <section data-section="contactForm" style="padding:6rem 0;">
     <div class="cw">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;">
@@ -592,7 +604,7 @@ function weRentalsPage(siteId: string, gc: (k: string) => string, C: any): strin
   ];
   return `
   <section data-section="rentalsHero" style="background:${C.secondary};color:${C.bg};padding:4rem 0;text-align:center;" class="texture-wood">
-    <div class="cw"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;">${gc('rentals.heading')}</h1><p style="font-size:1.125rem;opacity:0.85;">${gc('rentals.description')}</p></div>
+    <div class="cw"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;">${gc('rentalsPage.heading') || gc('rentals.heading')}</h1><p style="font-size:1.125rem;opacity:0.85;">${gc('rentalsPage.subheading') || gc('rentals.description')}</p></div>
   </section>
   <section style="padding:4rem 0;background:${C.muted};">
     <div class="cw">
@@ -638,7 +650,7 @@ function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any):
   ];
   return `
   <section data-section="mfgHero" style="background:${C.secondary};color:${C.bg};padding:4rem 0;text-align:center;" class="texture-wood">
-    <div class="cw"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;">${gc('manufacturers.pageHeading')}</h1><p style="font-size:1.125rem;opacity:0.85;">${gc('manufacturers.pageDescription')}</p></div>
+    <div class="cw"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;">${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading')}</h1><p style="font-size:1.125rem;opacity:0.85;">${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription')}</p></div>
   </section>
   <section data-section="manufacturersList" style="padding:6rem 0;">
     <div class="cw">

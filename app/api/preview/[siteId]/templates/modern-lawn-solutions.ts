@@ -497,8 +497,8 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
   return `
   <section data-section="inventoryHero" class="page-header-mls">
     <div class="container-mls">
-      <h1>${gc('inventory.heading') || 'Equipment Inventory'}</h1>
-      <p>${gc('inventory.description') || 'Browse our complete selection of lawn care equipment.'}</p>
+      <h1>${gc('inventoryPage.heading') || gc('inventory.heading') || 'Equipment Inventory'}</h1>
+      <p>${gc('inventoryPage.subheading') || gc('inventory.description') || 'Browse our complete selection of lawn care equipment.'}</p>
     </div>
   </section>
 
@@ -562,20 +562,31 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
 // ══════════════════════════════════════════════════
 function mlsServicePage(siteId: string, gc: (k: string) => string): string {
   let serviceItems: any[] = [];
-  try { serviceItems = JSON.parse(gc('services.items') || '[]'); } catch {}
-  if (serviceItems.length === 0) {
+  const ms1t = gc('servicePage.service1Title'); const ms1d = gc('servicePage.service1Text') || gc('servicePage.service1Description');
+  const ms2t = gc('servicePage.service2Title'); const ms2d = gc('servicePage.service2Text') || gc('servicePage.service2Description');
+  const ms3t = gc('servicePage.service3Title'); const ms3d = gc('servicePage.service3Text') || gc('servicePage.service3Description');
+  if (ms1t || ms2t || ms3t) {
     serviceItems = [
-      { icon: '🔧', title: 'Expert Technicians', description: 'Factory-trained technicians with years of experience servicing all major brands.' },
-      { icon: '⏱', title: 'Quick Turnaround', description: 'Most repairs completed within 48-72 hours to minimize your downtime.' },
-      { icon: '🛡', title: 'Warranty Service', description: 'Authorized warranty repair center for all major equipment brands.' },
-    ];
+      ms1t ? { icon: '🔧', title: ms1t, description: ms1d } : null,
+      ms2t ? { icon: '⏱', title: ms2t, description: ms2d } : null,
+      ms3t ? { icon: '🛡', title: ms3t, description: ms3d } : null,
+    ].filter(Boolean);
+  } else {
+    try { serviceItems = JSON.parse(gc('services.items') || '[]'); } catch {}
+    if (serviceItems.length === 0) {
+      serviceItems = [
+        { icon: '🔧', title: 'Expert Technicians', description: 'Factory-trained technicians with years of experience servicing all major brands.' },
+        { icon: '⏱', title: 'Quick Turnaround', description: 'Most repairs completed within 48-72 hours to minimize your downtime.' },
+        { icon: '🛡', title: 'Warranty Service', description: 'Authorized warranty repair center for all major equipment brands.' },
+      ];
+    }
   }
 
   return `
   <section data-section="serviceHero" class="page-header-mls">
     <div class="container-mls">
-      <h1>${gc('services.heading') || 'Equipment Service'}</h1>
-      <p>${gc('services.description') || 'Professional maintenance and repair services.'}</p>
+      <h1>${gc('servicePage.heading') || gc('services.heading') || 'Equipment Service'}</h1>
+      <p>${gc('servicePage.subheading') || gc('services.description') || 'Professional maintenance and repair services.'}</p>
     </div>
   </section>
 
@@ -630,8 +641,8 @@ function mlsContactPage(siteId: string, gc: (k: string) => string, weekday: stri
   return `
   <section data-section="contactHero" class="page-header-mls">
     <div class="container-mls">
-      <h1>${gc('contact.heading') || 'Contact Us'}</h1>
-      <p>${gc('contact.description') || 'We\'d love to hear from you.'}</p>
+      <h1>${gc('contactPage.heading') || gc('contact.heading') || 'Contact Us'}</h1>
+      <p>${gc('contactPage.subheading') || gc('contact.description') || 'We\'d love to hear from you.'}</p>
     </div>
   </section>
 
@@ -678,8 +689,8 @@ function mlsRentalsPage(siteId: string, gc: (k: string) => string): string {
   return `
   <section data-section="rentalsHero" class="page-header-mls">
     <div class="container-mls">
-      <h1>${gc('rentals.heading') || 'Equipment Rentals'}</h1>
-      <p>${gc('rentals.description') || 'Professional equipment available for rent.'}</p>
+      <h1>${gc('rentalsPage.heading') || gc('rentals.heading') || 'Equipment Rentals'}</h1>
+      <p>${gc('rentalsPage.subheading') || gc('rentals.description') || 'Professional equipment available for rent.'}</p>
     </div>
   </section>
 
@@ -741,8 +752,8 @@ function mlsManufacturersPage(siteId: string, gc: (k: string) => string): string
   return `
   <section data-section="mfgHero" class="page-header-mls">
     <div class="container-mls">
-      <h1>${gc('manufacturers.pageHeading') || 'Our Manufacturers'}</h1>
-      <p>${gc('manufacturers.pageDescription') || 'Trusted brands we proudly represent.'}</p>
+      <h1>${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading') || 'Our Manufacturers'}</h1>
+      <p>${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription') || 'Trusted brands we proudly represent.'}</p>
     </div>
   </section>
 
