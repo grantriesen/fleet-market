@@ -10,9 +10,10 @@ interface ImageUploadProps {
   fieldKey: string;
   label?: string;
   helpText?: string;
+  compact?: boolean; // Minimal button-only mode for iconText fields
 }
 
-export default function ImageUpload({ value, onChange, siteId, fieldKey, label, helpText }: ImageUploadProps) {
+export default function ImageUpload({ value, onChange, siteId, fieldKey, label, helpText, compact = false }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +86,40 @@ export default function ImageUpload({ value, onChange, siteId, fieldKey, label, 
     onChange('');
     setError(null);
   };
+
+  // Compact mode: just a small upload/remove button for iconText fields
+  if (compact) {
+    return (
+      <div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileInput}
+          className="hidden"
+        />
+        {value ? (
+          <button
+            type="button"
+            onClick={removeImage}
+            className="w-full px-2 py-1 border border-red-200 rounded text-xs text-red-500 hover:bg-red-50 transition-colors"
+          >
+            ✕ remove
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => !uploading && fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-xs text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            {uploading ? '...' : '↑ upload'}
+          </button>
+        )}
+        {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      </div>
+    );
+  }
 
   return (
     <div>

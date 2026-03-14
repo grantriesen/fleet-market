@@ -672,6 +672,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                   fieldKey={iconKey}
                   label=""
                   helpText=""
+                  compact={true}
                 />
               </div>
               <div className="flex-1 flex flex-col gap-2">
