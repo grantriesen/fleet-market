@@ -631,13 +631,17 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
         );
 
       case 'iconText': {
-        // Combined icon + text field: emoji/image on left, text input on right
-        // Saves to two keys: fieldKey.icon and fieldKey.text
+        // Combined icon + text field
+        // Saves to: fieldKey.icon (emoji or image URL), fieldKey.text, fieldKey.description
         const iconKey = `${fieldKey}.icon`;
         const textKey = `${fieldKey}.text`;
-        const iconVal = content[iconKey] || field.defaultIcon || '🔧';
-        const textVal = content[textKey] || field.defaultText || field.default || '';
-        const isImageUrl = iconVal && (iconVal.startsWith('http') || iconVal.startsWith('/'));
+        const descKey = `${fieldKey}.description`;
+        const iconVal = content[iconKey] !== undefined ? content[iconKey] : (field.defaultIcon || '🔧');
+        const textVal = content[textKey] !== undefined ? content[textKey] : (field.defaultText || field.default || '');
+        const descVal = content[descKey] !== undefined ? content[descKey] : (field.defaultDescription || '');
+        const iconIsUrl = iconVal.startsWith('http') || iconVal.startsWith('/');
+        const emojiInputVal = iconIsUrl ? (field.defaultIcon || '🔧') : iconVal;
+        const urlInputVal = iconIsUrl ? iconVal : '';
         return (
           <div key={field.key}>
             <label className="block text-sm font-medium mb-2">
@@ -646,52 +650,50 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                 <span className="text-xs text-gray-500 block mt-1">{field.helpText || field.help}</span>
               )}
             </label>
-            <div className="flex gap-2 items-start">
-              {/* Icon side */}
-              <div className="flex flex-col gap-1 flex-shrink-0" style={{width: '80px'}}>
+            <div className="flex gap-3 items-start">
+              <div className="flex flex-col gap-1.5 flex-shrink-0 w-20">
                 <div className="w-14 h-14 rounded-full border-2 border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden mx-auto">
-                  {isImageUrl
-                    ? <img src={iconVal} alt="" className="w-full h-full object-cover" />
-                    : <span className="text-2xl">{iconVal}</span>
+                  {iconIsUrl
+                    ? <img src={iconVal} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    : <span className="text-2xl leading-none">{iconVal}</span>
                   }
                 </div>
                 <input
                   type="text"
-                  value={isImageUrl ? '' : iconVal}
+                  value={emojiInputVal}
                   onChange={(e) => updateContent(iconKey, e.target.value)}
-                  className="w-full px-2 py-1 border rounded text-center text-sm"
-                  placeholder="emoji"
+                  className="w-full px-2 py-1 border rounded text-center text-base"
+                  placeholder="🔧"
                   title="Type an emoji"
+                  maxLength={4}
                 />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    const url = window.prompt('Paste image URL (or leave blank to use emoji):', isImageUrl ? iconVal : '');
-                    if (url !== null) updateContent(iconKey, url || (field.defaultIcon || '🔧'));
+                <span className="text-xs text-center text-gray-400 leading-none">or</span>
+                <input
+                  type="text"
+                  value={urlInputVal}
+                  onChange={(e) => {
+                    const url = e.target.value.trim();
+                    updateContent(iconKey, url || emojiInputVal || (field.defaultIcon || '🔧'));
                   }}
-                  className="w-full px-2 py-1 border rounded text-xs text-gray-500 hover:bg-gray-50"
-                  title="Click to set image URL"
-                >
-                  📎 img URL
-                </button>
+                  className="w-full px-2 py-1 border rounded text-xs"
+                  placeholder="img URL"
+                  title="Paste an image URL"
+                />
               </div>
-              {/* Text side */}
-              <div className="flex-1">
+              <div className="flex-1 flex flex-col gap-2">
                 <input
                   type="text"
                   value={textVal}
                   onChange={(e) => updateContent(textKey, e.target.value)}
                   className="w-full px-3 py-2 border rounded"
-                  placeholder={field.defaultText || field.default || ''}
+                  placeholder={field.defaultText || field.default || 'Label'}
                 />
                 {field.withDescription && (
                   <textarea
-                    value={content[`${fieldKey}.description`] || field.defaultDescription || ''}
-                    onChange={(e) => updateContent(`${fieldKey}.description`, e.target.value)}
+                    value={descVal}
+                    onChange={(e) => updateContent(descKey, e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 border rounded mt-2 text-sm"
+                    className="w-full px-3 py-2 border rounded text-sm"
                     placeholder={field.defaultDescription || 'Description...'}
                   />
                 )}
