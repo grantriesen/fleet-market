@@ -407,7 +407,7 @@ function vdHomeSections(
           }).join('')}
         </div>
         <div class="text-center mt-10">
-          <a href="/api/preview/${siteId}?page=inventory" class="inline-flex items-center px-8 py-4 rounded-full font-heading font-bold text-lg text-white border-4 border-white hover:bg-white hover:text-primary transition-all">View All Equipment →</a>
+          <a href="/api/preview/${siteId}?page=${getContent('featured.ctaLink') || 'inventory'}" class="inline-flex items-center px-8 py-4 rounded-full font-heading font-bold text-lg text-white border-4 border-white hover:bg-white hover:text-primary transition-all">${getContent('featured.ctaText') || 'View All Equipment →'}</a>
         </div>
       </div>
     </section>`;
@@ -516,7 +516,7 @@ function vdHomeSections(
         <h2 class="text-5xl md:text-6xl font-heading font-black text-white mb-6">${getContent('cta.heading') || 'READY TO GET STARTED?'}</h2>
         <p class="text-xl text-white/90 mb-10 max-w-2xl mx-auto">${getContent('cta.subheading') || ''}</p>
         <div class="flex flex-wrap justify-center gap-6">
-          <a href="/api/preview/${siteId}?page=inventory" class="inline-block bg-white font-heading font-black text-xl px-10 py-4 rounded-full transition-all hover:-translate-y-1" style="color: var(--color-primary);">${getContent('cta.primaryText') || getContent('cta.primaryButton') || getContent('cta.button') || 'Browse Equipment'}</a>
+          <a href="/api/preview/${siteId}?page=${getContent('cta.ctaPrimaryLink') || 'inventory'}" class="inline-block bg-white font-heading font-black text-xl px-10 py-4 rounded-full transition-all hover:-translate-y-1" style="color: var(--color-primary);">${getContent('cta.primaryText') || getContent('cta.primaryButton') || getContent('cta.button') || 'Browse Equipment'}</a>
           <a href="tel:${getContent('businessInfo.phone')}" class="inline-flex items-center px-10 py-4 rounded-full font-heading font-bold text-lg text-white border-4 border-white hover:bg-white hover:text-primary transition-all">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2A19.86 19.86 0 013.09 5.18 2 2 0 015.11 3h3a2 2 0 012 1.72c.12.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 11.91a16 16 0 006 6l2.27-2.27a2 2 0 012.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0122 16.92z"/></svg>
             ${getContent('cta.secondaryText') || 'Call Now'}
@@ -554,7 +554,7 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
     <div class="card-bold p-8" style="border-color: ${borderColor};">
       <h3 class="text-2xl font-heading font-black text-gray-900 mb-3">${title}</h3>
       <p class="text-gray-600 mb-6">${desc}</p>
-      <a href="/api/preview/${siteId}?page=contact" class="btn-gradient text-sm">Request Service →</a>
+      <a href="/api/preview/${siteId}?page=${getContent('servicePage.ctaLink') || 'contact'}" class="btn-gradient text-sm">Request Service →</a>
     </div>`;
   }).join('');
 
@@ -570,7 +570,7 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
     <div class="max-w-3xl mx-auto px-6">
       <h2 class="text-4xl font-heading font-black text-white mb-4">Need Service?</h2>
       <p class="text-lg text-white/90 mb-8">Contact us to schedule a repair or maintenance appointment.</p>
-      <a href="/api/preview/${siteId}?page=contact" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-primary);">Get In Touch</a>
+      <a href="/api/preview/${siteId}?page=${getContent('servicePage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-primary);">${getContent('servicePage.ctaButton') || 'Get In Touch'}</a>
     </div>
   </section>`;
 
@@ -814,7 +814,7 @@ async function vdRentalsPage(
     <div class="max-w-3xl mx-auto px-6">
       <h2 class="text-4xl font-heading font-black text-white mb-4">Ready to Rent?</h2>
       <p class="text-lg text-white/90 mb-8">Contact us for availability and pricing on any rental equipment.</p>
-      <a href="/api/preview/${siteId}?page=contact" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-secondary);">Get a Quote</a>
+      <a href="/api/preview/${siteId}?page=${getContent('rentalsPage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-secondary);">${getContent('rentalsPage.ctaText') || 'Get a Quote'}</a>
     </div>
   </section>`;
 
