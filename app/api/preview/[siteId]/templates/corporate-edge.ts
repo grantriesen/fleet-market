@@ -89,13 +89,25 @@ export function renderCorporateEdgePage(
   vis: Record<string, boolean>,
   content: Record<string, string> = {},
 ) {
-  const getContent = (key: string) => {
+  const CE_KEY_ALIASES: Record<string,string> = {
+    'business.name':    'businessInfo.businessName',
+    'business.phone':   'businessInfo.phone',
+    'business.email':   'businessInfo.email',
+    'business.address': 'businessInfo.address',
+    'business.tagline': 'businessInfo.tagline',
+    'business.hours':   'hours.hours',
+  };
+  const getContent = (key: string): string => {
     if (content[key]) return content[key];
+    const alias = CE_KEY_ALIASES[key];
+    if (alias && content[alias]) return content[alias];
     const parts = key.split('.');
     if (parts.length === 2) {
       const [section, field] = parts;
-      return config?.sections?.[section]?.[field]?.default || '';
+      const val = config?.sections?.[section]?.[field]?.default;
+      if (val) return val;
     }
+    if (alias) { const ap = alias.split('.'); if (ap.length === 2) { const v = config?.sections?.[ap[0]]?.[ap[1]]?.default; if (v) return v; } }
     return '';
   };
 
@@ -112,7 +124,10 @@ export function renderCorporateEdgePage(
 
   // Parse hours
   let hours: any = {};
-  try { hours = JSON.parse(getContent('business.hours') || '{}'); } catch { hours = {}; }
+  const hoursRawCE = getContent('business.hours');
+  if (hoursRawCE && hoursRawCE.startsWith('{')) {
+    try { hours = JSON.parse(hoursRawCE); } catch { hours = {}; }
+  }
   const formatHours = (day: any) => {
     if (!day?.open || !day?.close) return 'Closed';
     const fmt = (t: string) => { const [h, m] = t.split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM'; return `${h > 12 ? h - 12 : h || 12}:${String(m).padStart(2, '0')} ${ap}`; };

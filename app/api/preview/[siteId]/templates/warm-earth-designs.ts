@@ -83,12 +83,23 @@ export function renderWarmEarthPage(
   config: any, customizations: any, enabledFeatures: Set<string>,
   vis: Record<string, boolean>, content?: Record<string, string>,
 ) {
+  const WE_KEY_ALIASES: Record<string,string> = {
+    'business.name':    'businessInfo.businessName',
+    'business.phone':   'businessInfo.phone',
+    'business.email':   'businessInfo.email',
+    'business.address': 'businessInfo.address',
+    'business.tagline': 'businessInfo.tagline',
+    'business.hours':   'hours.hours',
+  };
   const gc = (key: string): string => {
     if (content?.[key]) return content[key];
+    const alias = WE_KEY_ALIASES[key];
+    if (alias && content?.[alias]) return content[alias];
     if (customizations?.content?.[key]) return customizations.content[key];
     if (config?.content?.[key]) return config.content[key];
     const parts = key.split('.');
     if (parts.length === 2) { const v = config?.sections?.[parts[0]]?.[parts[1]]?.default; if (v) return v; }
+    if (alias) { const ap = alias.split('.'); if (ap.length === 2) { const v = config?.sections?.[ap[0]]?.[ap[1]]?.default; if (v) return v; } }
     return WARM_EARTH_DEMO_OVERRIDES[key] || '';
   };
 
@@ -100,7 +111,11 @@ export function renderWarmEarthPage(
   };
 
   let hours: any = {};
-  try { hours = JSON.parse(gc('business.hours') || '{}'); } catch {}
+  // Support both JSON blob hours and plain text fields
+  const hoursRaw = gc('business.hours');
+  if (hoursRaw && hoursRaw.startsWith('{')) {
+    try { hours = JSON.parse(hoursRaw); } catch {}
+  }
   const fmtH = (d: any) => { if (!d?.open || !d?.close) return 'Closed'; const f = (t: string) => { const [h, m] = t.split(':').map(Number); return `${h > 12 ? h - 12 : h || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; }; return `${f(d.open)} – ${f(d.close)}`; };
   const wkday = fmtH(hours.monday), sat = fmtH(hours.saturday), sun = fmtH(hours.sunday);
   const fmtPrice = (p: number | null) => p != null ? `$${Number(p).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';

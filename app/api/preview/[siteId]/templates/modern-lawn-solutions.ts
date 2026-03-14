@@ -87,18 +87,27 @@ export function renderModernLawnPage(
   content?: Record<string, string>,
 ) {
   // Content resolution: passed content (from route) > customizations > config > demo overrides
-  const getContent = (key: string) => {
+  const MLS_KEY_ALIASES: Record<string,string> = {
+    'business.name':    'businessInfo.businessName',
+    'business.phone':   'businessInfo.phone',
+    'business.email':   'businessInfo.email',
+    'business.address': 'businessInfo.address',
+    'business.tagline': 'businessInfo.tagline',
+    'business.hours':   'hours.hours',
+  };
+  const getContent = (key: string): string => {
     if (content?.[key]) return content[key];
+    const alias = MLS_KEY_ALIASES[key];
+    if (alias && content?.[alias]) return content[alias];
     if (customizations?.content?.[key]) return customizations.content[key];
     if (config?.content?.[key]) return config.content[key];
-    // Fall back to sections config
     const parts = key.split('.');
     if (parts.length === 2) {
       const [section, field] = parts;
       const val = config?.sections?.[section]?.[field]?.default;
       if (val) return val;
     }
-    // Fall back to baked-in demo overrides
+    if (alias) { const ap = alias.split('.'); if (ap.length === 2) { const v = config?.sections?.[ap[0]]?.[ap[1]]?.default; if (v) return v; } }
     return MODERN_LAWN_DEMO_OVERRIDES[key as keyof typeof MODERN_LAWN_DEMO_OVERRIDES] as string || '';
   };
 
