@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { sharedPreviewScript } from './shared';
+import { serviceBookingSection } from './product-modal';
 
 /* ── DEMO overrides ── */
 export const WARM_EARTH_DEMO_OVERRIDES: Record<string, string> = {
@@ -122,13 +123,13 @@ export function renderWarmEarthPage(
 
   let body = '';
   switch (currentPage) {
-    case 'home': case 'index': body = weHome(siteId, gc, products, vis, C, fmtPrice); break;
-    case 'service': body = weServicePage(siteId, gc, C); break;
+    case 'home': case 'index': body = weHome(siteId, gc, products, manufacturers, vis, C, fmtPrice); break;
+    case 'service': body = weServicePage(siteId, gc, C, enabledFeatures.has('service_scheduling')); break;
     case 'contact': body = weContactPage(siteId, gc, C, wkday, sat, sun); break;
     case 'inventory': body = weInventoryPage(siteId, gc, products, C, fmtPrice); break;
     case 'rentals': body = weRentalsPage(siteId, gc, C); break;
-    case 'manufacturers': body = weManufacturersPage(siteId, gc, C); break;
-    default: body = weHome(siteId, gc, products, vis, C, fmtPrice); break;
+    case 'manufacturers': body = weManufacturersPage(siteId, gc, C, manufacturers); break;
+    default: body = weHome(siteId, gc, products, manufacturers, vis, C, fmtPrice); break;
   }
 
   return weShell(gc('business.name') || 'Heartland Outdoor Equipment', C, siteId, currentPage,
@@ -226,9 +227,10 @@ function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string) => 
   <header style="position:sticky;top:0;z-index:50;background:rgba(254,243,199,0.95);backdrop-filter:blur(8px);border-bottom:2px solid #d4b896;">
     <div class="cw" style="display:flex;align-items:center;justify-content:space-between;height:5rem;">
       <a href="/api/preview/${siteId}?page=home" style="text-decoration:none;display:flex;align-items:center;gap:0.75rem;">
-        <div style="background:${C.secondary};border-radius:1rem;padding:0.5rem;display:flex;align-items:center;justify-content:center;">
-          <span style="font-size:1.5rem;">🌿</span>
-        </div>
+        ${gc('businessInfo.logoImage')
+          ? `<img src="${gc('businessInfo.logoImage')}" alt="${name}" style="max-height:48px;max-width:160px;object-fit:contain;">`
+          : `<div style="background:${C.secondary};border-radius:1rem;padding:0.5rem;display:flex;align-items:center;justify-content:center;"><span style="font-size:1.5rem;">🌿</span></div>`
+        }
         <span class="font-serif" style="font-size:1.25rem;font-weight:700;color:${C.primary};">${name}</span>
       </a>
       <nav class="we-desktop-nav" style="display:flex;align-items:center;gap:0.25rem;">
@@ -266,7 +268,10 @@ function weFooter(siteId: string, pages: any[], gc: (k: string) => string, C: an
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2.5rem;">
         <div>
           <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;">
-            <div style="background:${C.accent};border-radius:1rem;padding:0.5rem;"><span style="font-size:1.25rem;">🌿</span></div>
+            ${gc('businessInfo.logoImage')
+            ? `<img src="${gc('businessInfo.logoImage')}" alt="${name}" style="max-height:40px;max-width:140px;object-fit:contain;">`
+            : `<div style="background:${C.accent};border-radius:1rem;padding:0.5rem;"><span style="font-size:1.25rem;">🌿</span></div>`
+          }
             <span class="font-serif" style="font-size:1.125rem;font-weight:700;">${name}</span>
           </div>
           <p style="font-size:0.875rem;opacity:0.8;line-height:1.7;">${gc('footer.tagline')}</p>
@@ -304,7 +309,7 @@ function weFooter(siteId: string, pages: any[], gc: (k: string) => string, C: an
 // ══════════════════════════════════════════════════
 //  HOME
 // ══════════════════════════════════════════════════
-function weHome(siteId: string, gc: (k: string) => string, products: any[], vis: Record<string, boolean>, C: any, fp: (p: number | null) => string): string {
+function weHome(siteId: string, gc: (k: string) => string, products: any[], manufacturers: any[], vis: Record<string, boolean>, C: any, fp: (p: number | null) => string): string {
   let h = '';
 
   // Hero
@@ -315,12 +320,12 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
       <div class="cw" style="padding:5rem 0;position:relative;z-index:1;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;">
           <div style="max-width:580px;">
-            <div style="display:inline-flex;align-items:center;gap:0.5rem;background:${C.secondary}30;color:${C.secondary};padding:0.5rem 1rem;border-radius:9999px;font-size:0.875rem;font-weight:600;margin-bottom:2rem;">🏔 ${gc('hero.badge') || 'Family-Owned Since 1985'}</div>
+            <div style="display:inline-flex;align-items:center;gap:0.5rem;background:${C.secondary}30;color:${C.secondary};padding:0.5rem 1rem;border-radius:9999px;font-size:0.875rem;font-weight:600;margin-bottom:2rem;">🏔 ${gc('hero.badgeText') || gc('hero.badge') || 'Family-Owned Since 1985'}</div>
             <h1 class="font-serif" style="font-size:3rem;font-weight:700;line-height:1.15;margin:0 0 1.5rem;color:${C.fg};">${gc('hero.heading')}</h1>
             <p style="font-size:1.25rem;color:${C.mutedFg};margin:0 0 2.5rem;line-height:1.7;">${gc('hero.subheading')}</p>
             <div style="display:flex;gap:1rem;flex-wrap:wrap;">
-              <a href="/api/preview/${siteId}?page=inventory" class="btn-accent">${gc('hero.ctaPrimary') || 'Shop Equipment'} →</a>
-              <a href="/api/preview/${siteId}?page=rentals" class="btn-outline-we">${gc('hero.ctaSecondary') || 'View Rentals'}</a>
+              <a href="/api/preview/${siteId}?page=${gc('hero.ctaPrimaryLink') || 'inventory'}" class="btn-accent">${gc('hero.ctaPrimary') || 'Shop Equipment'} →</a>
+              <a href="/api/preview/${siteId}?page=${gc('hero.ctaSecondaryLink') || 'rentals'}" class="btn-outline-we">${gc('hero.ctaSecondary') || 'View Rentals'}</a>
             </div>
             <div style="display:flex;gap:1.5rem;margin-top:2rem;font-size:0.875rem;color:${C.mutedFg};">
               <span>🛡 Factory Authorized Dealer</span>
@@ -334,7 +339,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
             </div>
             <div style="position:absolute;bottom:-1.5rem;left:-1.5rem;background:${C.card};border-radius:1rem;padding:1.25rem 1.5rem;box-shadow:0 10px 25px -5px rgba(217,119,6,0.2);border:2px solid ${C.accent}40;display:flex;align-items:center;gap:1rem;">
               <div style="background:${C.accent}25;padding:0.75rem;border-radius:0.75rem;font-size:1.5rem;">🚜</div>
-              <div><p class="font-serif" style="font-size:1.5rem;font-weight:700;margin:0;color:${C.fg};">200+</p><p style="color:${C.mutedFg};font-size:0.875rem;margin:0;">Equipment In Stock</p></div>
+              <div><p class="font-serif" style="font-size:1.5rem;font-weight:700;margin:0;color:${C.fg};">${gc('hero.statValue') || '200+'}</p><p style="color:${C.mutedFg};font-size:0.875rem;margin:0;">${gc('hero.statLabel') || 'Equipment In Stock'}</p></div>
             </div>
           </div>
         </div>
@@ -390,7 +395,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
           </div>`).join('')}
         </div>
         <div style="text-align:center;margin-top:3rem;">
-          <a href="/api/preview/${siteId}?page=inventory" class="btn-accent">View All Equipment →</a>
+          <a href="/api/preview/${siteId}?page=${gc('featured.ctaLink') || 'inventory'}" class="btn-accent">${gc('featured.ctaText') || 'View All Equipment'} →</a>
         </div>
       </div>
     </section>`;
@@ -398,7 +403,9 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
 
   // Manufacturers
   if (vis.manufacturers !== false) {
-    const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Stihl': '/images/logos/Stihl.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Cub Cadet': '/images/logos/cub-cadet.png', 'Honda': '/images/logos/Honda.png' };
+    const mfgItems = products.length > 0
+      ? manufacturers.map((m: any) => ({ name: m.name, logo: m.logo_url || m.logoUrl || '' }))
+      : [{ name: 'Toro', logo: '/images/logos/toro.png' }, { name: 'John Deere', logo: '/images/logos/john-deere.png' }, { name: 'Stihl', logo: '/images/logos/Stihl.png' }, { name: 'Husqvarna', logo: '/images/logos/Husqvarna.png' }, { name: 'Cub Cadet', logo: '/images/logos/cub-cadet.png' }];
     h += `
     <section data-section="manufacturers" style="padding:6rem 0;background:${C.muted};">
       <div class="cw">
@@ -406,11 +413,11 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
           <h2 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:${C.fg};">${gc('manufacturers.heading')}</h2>
           <p style="font-size:1.125rem;color:${C.mutedFg};margin:0;">${gc('manufacturers.subheading')}</p>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1.25rem;">
-          ${['Toro', 'John Deere', 'Stihl', 'Husqvarna', 'Cub Cadet'].map(b => `
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1.25rem;">
+          ${mfgItems.map((m: any) => `
           <div class="card-we" style="padding:2rem;text-align:center;">
             <div style="height:3.5rem;display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;">
-              <img src="${logos[b] || ''}" alt="${b}" style="height:44px;width:auto;">
+              ${m.logo ? `<img src="${m.logo}" alt="${m.name}" style="height:44px;width:auto;">` : `<span style="font-size:0.875rem;font-weight:700;color:${C.secondary};">${m.name}</span>`}
             </div>
             <span style="font-size:0.75rem;color:${C.secondary};font-weight:600;">✦ Trusted Partner</span>
           </div>`).join('')}
@@ -422,7 +429,18 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
   // Testimonials
   if (vis.testimonials !== false) {
     let testimonials: any[] = [];
-    try { testimonials = JSON.parse(gc('testimonials.items') || '[]'); } catch {}
+    const t1q = gc('testimonials.testimonial1Quote'), t1a = gc('testimonials.testimonial1Author'), t1l = gc('testimonials.testimonial1Location');
+    const t2q = gc('testimonials.testimonial2Quote'), t2a = gc('testimonials.testimonial2Author'), t2l = gc('testimonials.testimonial2Location');
+    const t3q = gc('testimonials.testimonial3Quote'), t3a = gc('testimonials.testimonial3Author'), t3l = gc('testimonials.testimonial3Location');
+    if (t1q || t2q || t3q) {
+      testimonials = [
+        t1q ? { content: t1q, name: t1a || '', location: t1l || '', rating: 5 } : null,
+        t2q ? { content: t2q, name: t2a || '', location: t2l || '', rating: 5 } : null,
+        t3q ? { content: t3q, name: t3a || '', location: t3l || '', rating: 5 } : null,
+      ].filter(Boolean) as any[];
+    } else {
+      try { testimonials = JSON.parse(gc('testimonials.items') || '[]'); } catch {}
+    }
     if (!testimonials.length) testimonials = [
       { name: 'Robert M.', location: 'Timber Creek', content: 'They helped me find the perfect tractor for my 40 acres.', rating: 5 },
       { name: 'Sarah T.', location: 'Pine Ridge', content: 'The rental program saved us thousands.', rating: 5 },
@@ -456,7 +474,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
       <div class="cw" style="text-align:center;position:relative;z-index:1;">
         <h2 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 1rem;">${gc('cta.heading')}</h2>
         <p style="font-size:1.125rem;opacity:0.85;max-width:600px;margin:0 auto 2.5rem;">${gc('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=contact" class="btn-accent" style="font-size:1.125rem;padding:1rem 2.5rem;">${gc('cta.button')} →</a>
+        <a href="/api/preview/${siteId}?page=${gc('cta.ctaLink') || 'contact'}" class="btn-accent" style="font-size:1.125rem;padding:1rem 2.5rem;">${gc('cta.ctaText') || gc('cta.button') || 'Visit Us Today'} →</a>
       </div>
     </section>`;
   }
@@ -468,7 +486,12 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], vis:
 function weInventoryPage(siteId: string, gc: (k: string) => string, products: any[], C: any, fp: (p: number|null) => string): string {
   const cats = [...new Set(products.map((p: any) => p.category).filter(Boolean))];
   return `
-  <section data-section="inventoryHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('inventoryPage.heading') || gc('inventory.heading')}</h1><p>${gc('inventoryPage.subheading') || gc('inventory.description')}</p></div></section>
+  ${(() => {
+    const iImg = gc('inventoryPage.heroImage');
+    return iImg
+      ? `<section data-section="inventoryHero" style="background-image:url('${iImg}');background-size:cover;background-position:center;padding:4rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(92,45,14,0.7);"></div><div class="cw" style="position:relative;z-index:1;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:#fef3c7;">${gc('inventoryPage.heading') || gc('inventory.heading')}</h1><p style="font-size:1.125rem;opacity:0.9;max-width:600px;margin:0 auto;color:#fef3c7;">${gc('inventoryPage.subheading') || gc('inventory.description')}</p></div></section>`
+      : `<section data-section="inventoryHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('inventoryPage.heading') || gc('inventory.heading')}</h1><p>${gc('inventoryPage.subheading') || gc('inventory.description')}</p></div></section>`;
+  })()}
   <section data-section="inventoryGrid" style="padding:2.5rem 0 5rem;">
     <div class="cw">
       <div style="display:flex;gap:1rem;margin-bottom:2rem;flex-wrap:wrap;">
@@ -498,7 +521,7 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
 }
 
 // ═══════ SERVICE ═══════
-function weServicePage(siteId: string, gc: (k: string) => string, C: any): string {
+function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasScheduler: boolean = false): string {
   let items: any[] = [];
   // Build from config fields, fall back to JSON items, then defaults
   const s1t = gc('servicePage.service1Title'); const s1d = gc('servicePage.service1Description');
@@ -519,10 +542,15 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any): strin
     ];
   }
   return `
-  <section data-section="serviceHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('servicePage.heading') || gc('services.heading')}</h1><p>${gc('servicePage.subheading') || gc('services.description')}</p></div></section>
+  ${(() => {
+    const svcImg = gc('servicePage.heroImage');
+    return svcImg
+      ? `<section data-section="serviceHero" style="background-image:url('${svcImg}');background-size:cover;background-position:center;padding:4rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(92,45,14,0.7);"></div><div class="cw" style="position:relative;z-index:1;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:#fef3c7;">${gc('servicePage.heading') || gc('services.heading')}</h1><p style="font-size:1.125rem;opacity:0.9;max-width:600px;margin:0 auto;color:#fef3c7;">${gc('servicePage.subheading') || gc('services.description')}</p></div></section>`
+      : `<section data-section="serviceHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('servicePage.heading') || gc('services.heading')}</h1><p>${gc('servicePage.subheading') || gc('services.description')}</p></div></section>`;
+  })()}
   <section data-section="serviceTypes" style="padding:6rem 0;">
     <div class="cw">
-      <h2 class="font-serif" style="font-size:2rem;font-weight:700;text-align:center;margin:0 0 3rem;color:${C.fg};">What We Service</h2>
+      <h2 class="font-serif" style="font-size:2rem;font-weight:700;text-align:center;margin:0 0 3rem;color:${C.fg};">${gc('servicePage.gridHeading') || 'What We Service'}</h2>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2rem;">
         ${items.map(s => `
         <div class="card-we" style="padding:2rem;">
@@ -533,12 +561,13 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any): strin
       </div>
     </div>
   </section>
+  ${hasScheduler ? serviceBookingSection(siteId, C.accent, gc) : `
   <section data-section="serviceForm" style="padding:6rem 0;background:${C.muted};">
     <div class="cw" style="max-width:680px;">
       <div class="card-we" style="padding:2.5rem;">
-        <h3 class="font-serif" style="font-size:1.5rem;font-weight:600;text-align:center;margin:0 0 0.5rem;color:${C.fg};">Request Service</h3>
-        <p style="text-align:center;color:${C.mutedFg};margin:0 0 2rem;">Fill out the form below and we'll get back to you within one business day.</p>
-        <form onsubmit="event.preventDefault();this.reset();alert('Service request submitted!');" style="display:flex;flex-direction:column;gap:1rem;">
+        <h3 class="font-serif" style="font-size:1.5rem;font-weight:600;text-align:center;margin:0 0 0.5rem;color:${C.fg};">${gc('servicePage.formHeading') || 'Request Service'}</h3>
+        <p style="text-align:center;color:${C.mutedFg};margin:0 0 2rem;">${gc('servicePage.formSubheading') || "Fill out the form below and we'll get back to you within one business day."}</p>
+        <form onsubmit="event.preventDefault();this.querySelector('button').textContent='Request Submitted ✓';this.querySelector('button').disabled=true;" style="display:flex;flex-direction:column;gap:1rem;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div><label class="label-we">Your Name</label><input class="form-we" required placeholder="John Smith"></div>
             <div><label class="label-we">Phone</label><input class="form-we" type="tel" required placeholder="(555) 123-4567"></div>
@@ -546,23 +575,36 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any): strin
           <div><label class="label-we">Email</label><input class="form-we" type="email" required placeholder="john@example.com"></div>
           <div><label class="label-we">Equipment Type</label><input class="form-we" required placeholder="e.g., John Deere 1025R Tractor"></div>
           <div><label class="label-we">Describe the Issue</label><textarea class="form-we" rows="5" required placeholder="Tell us what's going on..."></textarea></div>
-          <button type="submit" class="btn-accent" style="width:100%;justify-content:center;">Submit Request</button>
+          <button type="submit" class="btn-accent" style="width:100%;justify-content:center;">${gc('servicePage.ctaButton') || 'Submit Request'}</button>
         </form>
       </div>
     </div>
-  </section>`;
+  </section>`}
+  ${(gc('servicePage.ctaHeading') || gc('servicePage.contentText')) ? `
+  <section style="padding:4rem 0;background:${C.secondary};color:${C.bg};text-align:center;">
+    <div class="cw">
+      ${gc('servicePage.ctaHeading') ? `<h2 class="font-serif" style="font-size:2rem;font-weight:700;margin:0 0 1rem;">${gc('servicePage.ctaHeading')}</h2>` : ''}
+      ${gc('servicePage.contentText') ? `<p style="font-size:1.125rem;opacity:0.85;margin:0 0 2rem;">${gc('servicePage.contentText')}</p>` : ''}
+      <a href="/api/preview/${siteId}?page=${gc('servicePage.ctaLink') || 'contact'}" class="btn-accent" style="background:${C.bg};color:${C.secondary};">${gc('servicePage.ctaButton') || 'Contact Us'}</a>
+    </div>
+  </section>` : ''}`;
 }
 
 // ═══════ CONTACT ═══════
 function weContactPage(siteId: string, gc: (k: string) => string, C: any, wk: string, sat: string, sun: string): string {
   return `
-  <section data-section="contactHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('contactPage.heading') || gc('contact.heading')}</h1><p>${gc('contactPage.subheading') || gc('contact.description')}</p></div></section>
+  ${(() => {
+    const cImg = gc('contactPage.heroImage');
+    return cImg
+      ? `<section data-section="contactHero" style="background-image:url('${cImg}');background-size:cover;background-position:center;padding:4rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(92,45,14,0.7);"></div><div class="cw" style="position:relative;z-index:1;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:#fef3c7;">${gc('contactPage.heading') || gc('contact.heading')}</h1><p style="font-size:1.125rem;opacity:0.9;max-width:600px;margin:0 auto;color:#fef3c7;">${gc('contactPage.subheading') || gc('contact.description')}</p></div></section>`
+      : `<section data-section="contactHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('contactPage.heading') || gc('contact.heading')}</h1><p>${gc('contactPage.subheading') || gc('contact.description')}</p></div></section>`;
+  })()}
   <section data-section="contactForm" style="padding:6rem 0;">
     <div class="cw">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;">
         <div>
-          <h2 class="font-serif" style="font-size:1.75rem;font-weight:700;margin:0 0 1.5rem;color:${C.fg};">We'd Love to Hear From You</h2>
-          <p style="color:${C.mutedFg};line-height:1.8;margin:0 0 2rem;">Whether you have questions about equipment, need service, or just want to talk with folks who understand the land, we're here to help.</p>
+          <h2 class="font-serif" style="font-size:1.75rem;font-weight:700;margin:0 0 1.5rem;color:${C.fg};">${gc('contactPage.introHeading') || "We'd Love to Hear From You"}</h2>
+          <p style="color:${C.mutedFg};line-height:1.8;margin:0 0 2rem;">${gc('contactPage.introText') || "Whether you have questions about equipment, need service, or just want to talk with folks who understand the land, we're here to help."}</p>
           <div style="display:flex;flex-direction:column;gap:1.25rem;">
             ${[
               { icon: '📞', label: 'Give Us a Call', value: gc('business.phone'), href: `tel:${gc('business.phone')}` },
@@ -589,7 +631,7 @@ function weContactPage(siteId: string, gc: (k: string) => string, C: any, wk: st
         </div>
         <div>
           <div class="card-we" style="padding:2rem;">
-            <h3 class="font-serif" style="font-size:1.25rem;font-weight:600;margin:0 0 1.5rem;color:${C.fg};">Send a Message</h3>
+            <h3 class="font-serif" style="font-size:1.25rem;font-weight:600;margin:0 0 1.5rem;color:${C.fg};">${gc('contactPage.formHeading') || 'Send a Message'}</h3>
             <form onsubmit="event.preventDefault();this.reset();alert('Message sent!');" style="display:flex;flex-direction:column;gap:1rem;">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
                 <div><label class="label-we">Your Name</label><input class="form-we" required placeholder="John Smith"></div>
@@ -618,7 +660,12 @@ function weRentalsPage(siteId: string, gc: (k: string) => string, C: any): strin
     { name: 'Post Hole Digger', category: 'Attachments', daily: 75, weekly: 375, description: 'Tractor-mounted auger' },
   ];
   return `
-  <section data-section="rentalsHero" style="background:${C.secondary};color:${C.bg};padding:4rem 0;text-align:center;" class="texture-wood">
+  ${(() => {
+    const rImg = gc('rentalsPage.heroImage');
+    return rImg
+      ? `<section data-section="rentalsHero" style="background-image:url('${rImg}');background-size:cover;background-position:center;padding:4rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(6,95,70,0.75);"></div>`
+      : `<section data-section="rentalsHero" style="background:${C.secondary};color:${C.bg};padding:4rem 0;text-align:center;" class="texture-wood">`;
+  })()}
     <div class="cw"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;">${gc('rentalsPage.heading') || gc('rentals.heading')}</h1><p style="font-size:1.125rem;opacity:0.85;">${gc('rentalsPage.subheading') || gc('rentals.description')}</p></div>
   </section>
   <section style="padding:4rem 0;background:${C.muted};">
@@ -634,6 +681,7 @@ function weRentalsPage(siteId: string, gc: (k: string) => string, C: any): strin
   </section>
   <section data-section="rentalGrid" style="padding:6rem 0;">
     <div class="cw">
+      ${gc('rentalsPage.pricingNote') ? `<p style="text-align:center;font-size:1rem;color:${C.mutedFg};margin:0 0 2rem;font-style:italic;">${gc('rentalsPage.pricingNote')}</p>` : ''}
       <h2 class="font-serif" style="font-size:2rem;font-weight:700;text-align:center;margin:0 0 3rem;color:${C.fg};">Available Rentals</h2>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:2rem;">
         ${rentals.map(r => `
@@ -645,7 +693,7 @@ function weRentalsPage(siteId: string, gc: (k: string) => string, C: any): strin
             <div><span style="font-weight:700;color:${C.accent};">$${r.daily}</span><span style="color:${C.mutedFg};">/day</span></div>
             <div><span style="font-weight:700;color:${C.secondary};">$${r.weekly}</span><span style="color:${C.mutedFg};">/week</span></div>
           </div>
-          <button class="btn-accent" style="width:100%;justify-content:center;padding:0.625rem 1rem;">Reserve Now</button>
+          <a href="/api/preview/${siteId}?page=${gc('rentalsPage.ctaLink') || 'contact'}" class="btn-accent" style="width:100%;justify-content:center;padding:0.625rem 1rem;display:flex;">${gc('rentalsPage.ctaButtonText') || 'Reserve Now'}</a>
         </div>`).join('')}
       </div>
     </div>
@@ -653,33 +701,56 @@ function weRentalsPage(siteId: string, gc: (k: string) => string, C: any): strin
 }
 
 // ═══════ MANUFACTURERS ═══════
-function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any): string {
-  const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Stihl': '/images/logos/Stihl.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Cub Cadet': '/images/logos/cub-cadet.png', 'Honda': '/images/logos/Honda.png' };
-  const brands = [
-    { name: 'Toro', desc: 'Count on it. Professional equipment trusted by landscapers worldwide.', heritage: 'American quality since 1914' },
-    { name: 'John Deere', desc: 'Nothing runs like a Deere. Leader in agricultural and outdoor equipment.', heritage: 'American-made since 1837' },
-    { name: 'Stihl', desc: 'The world\'s best-selling brand of chainsaws. German engineering excellence.', heritage: 'German engineering since 1926' },
-    { name: 'Husqvarna', desc: 'Rethink the outdoors. Innovation in outdoor power equipment.', heritage: 'Swedish heritage since 1689' },
-    { name: 'Cub Cadet', desc: 'Strong. Reliable. Built to serve. Quality equipment for every property.', heritage: 'American innovation since 1961' },
-    { name: 'Honda', desc: 'The Power of Dreams. Engines known for reliability and performance.', heritage: 'Japanese reliability since 1948' },
+function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any, manufacturers: any[] = []): string {
+  const brands = manufacturers.length > 0 ? manufacturers : [
+    { name: 'Toro', description: 'Count on it. Professional equipment trusted by landscapers worldwide.' },
+    { name: 'John Deere', description: 'Nothing runs like a Deere. Leader in agricultural and outdoor equipment.' },
+    { name: 'Stihl', description: 'The world\'s best-selling brand of chainsaws. German engineering excellence.' },
+    { name: 'Husqvarna', description: 'Rethink the outdoors. Innovation in outdoor power equipment.' },
+    { name: 'Cub Cadet', description: 'Strong. Reliable. Built to serve. Quality equipment for every property.' },
+    { name: 'Honda', description: 'The Power of Dreams. Engines known for reliability and performance.' },
   ];
   return `
-  <section data-section="mfgHero" style="background:${C.secondary};color:${C.bg};padding:4rem 0;text-align:center;" class="texture-wood">
+  ${(() => {
+    const mImg = gc('manufacturersPage.heroImage');
+    return mImg
+      ? `<section data-section="mfgHero" style="background-image:url('${mImg}');background-size:cover;background-position:center;padding:4rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(6,95,70,0.75);"></div>`
+      : `<section data-section="mfgHero" style="background:${C.secondary};color:${C.bg};padding:4rem 0;text-align:center;" class="texture-wood">`;
+  })()}
     <div class="cw"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;">${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading')}</h1><p style="font-size:1.125rem;opacity:0.85;">${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription')}</p></div>
   </section>
   <section data-section="manufacturersList" style="padding:6rem 0;">
     <div class="cw">
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2rem;">
+      ${gc('manufacturersPage.introText') ? `<p style="text-align:center;font-size:1.125rem;color:${C.mutedFg};max-width:700px;margin:0 auto 3rem;">${gc('manufacturersPage.introText')}</p>` : ''}
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:2rem;">
         ${brands.map(b => `
         <div class="card-we" style="padding:2rem;text-align:center;">
           <div style="height:5rem;background:${C.muted};border-radius:0.75rem;display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;padding:0.5rem;">
-            <img src="${logos[b.name] || ''}" alt="${b.name}" style="height:52px;width:auto;">
+            ${(b.logo_url || b.logoUrl) ? `<img src="${b.logo_url || b.logoUrl}" alt="${b.name}" style="height:52px;width:auto;">` : `<span style="font-weight:700;color:${C.secondary};">${b.name}</span>`}
           </div>
           <span style="display:inline-block;font-size:0.75rem;color:${C.secondary};font-weight:600;border:1px solid ${C.secondary};padding:0.2rem 0.6rem;border-radius:9999px;margin-bottom:1rem;">✦ Trusted Partner</span>
-          <p style="color:${C.mutedFg};font-size:0.9375rem;line-height:1.7;margin:0 0 0.75rem;">${b.desc}</p>
-          <p style="font-size:0.8125rem;font-weight:600;color:${C.secondary};margin:0;">${b.heritage}</p>
+          ${b.description ? `<p style="color:${C.mutedFg};font-size:0.9375rem;line-height:1.7;margin:0;">${b.description}</p>` : ''}
         </div>`).join('')}
       </div>
     </div>
-  </section>`;
+  </section>
+  ${(gc('manufacturersPage.whyHeading') || gc('manufacturersPage.whyText1')) ? `
+  <section style="padding:6rem 0;background:${C.muted};">
+    <div class="cw" style="max-width:800px;margin:0 auto;">
+      ${gc('manufacturersPage.whyHeading') ? `<h2 class="font-serif" style="font-size:2rem;font-weight:700;margin:0 0 2rem;color:${C.fg};">${gc('manufacturersPage.whyHeading')}</h2>` : ''}
+      ${gc('manufacturersPage.whyText1') ? `<p style="color:${C.mutedFg};line-height:1.8;margin:0 0 1.5rem;">${gc('manufacturersPage.whyText1')}</p>` : ''}
+      ${gc('manufacturersPage.whyText2') ? `<p style="color:${C.mutedFg};line-height:1.8;">${gc('manufacturersPage.whyText2')}</p>` : ''}
+    </div>
+  </section>` : ''}
+  ${(gc('manufacturersPage.ctaHeading') || gc('manufacturersPage.ctaText')) ? `
+  <section style="padding:4rem 0;background:${C.secondary};color:${C.bg};text-align:center;">
+    <div class="cw">
+      ${gc('manufacturersPage.ctaHeading') ? `<h2 class="font-serif" style="font-size:2rem;font-weight:700;margin:0 0 1rem;">${gc('manufacturersPage.ctaHeading')}</h2>` : ''}
+      ${gc('manufacturersPage.ctaText') ? `<p style="font-size:1.125rem;opacity:0.85;margin:0 0 2rem;">${gc('manufacturersPage.ctaText')}</p>` : ''}
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+        ${gc('manufacturersPage.ctaPrimaryText') ? `<a href="/api/preview/${siteId}?page=${gc('manufacturersPage.ctaPrimaryLink') || 'inventory'}" class="btn-accent">${gc('manufacturersPage.ctaPrimaryText')}</a>` : ''}
+        ${gc('manufacturersPage.ctaSecondaryText') ? `<a href="/api/preview/${siteId}?page=${gc('manufacturersPage.ctaSecondaryLink') || 'contact'}" class="btn-outline-we" style="color:${C.bg};border-color:${C.bg};">${gc('manufacturersPage.ctaSecondaryText')}</a>` : ''}
+      </div>
+    </div>
+  </section>` : ''}`;
 }
