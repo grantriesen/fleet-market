@@ -631,17 +631,14 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
         );
 
       case 'iconText': {
-        // Combined icon + text field
-        // Saves to: fieldKey.icon (emoji or image URL), fieldKey.text, fieldKey.description
         const iconKey = `${fieldKey}.icon`;
         const textKey = `${fieldKey}.text`;
         const descKey = `${fieldKey}.description`;
         const iconVal = content[iconKey] !== undefined ? content[iconKey] : (field.defaultIcon || '🔧');
         const textVal = content[textKey] !== undefined ? content[textKey] : (field.defaultText || field.default || '');
         const descVal = content[descKey] !== undefined ? content[descKey] : (field.defaultDescription || '');
-        const iconIsUrl = iconVal.startsWith('http') || iconVal.startsWith('/');
-        const emojiInputVal = iconIsUrl ? (field.defaultIcon || '🔧') : iconVal;
-        const urlInputVal = iconIsUrl ? iconVal : '';
+        const iconIsImage = iconVal.startsWith('http') || iconVal.startsWith('/');
+        const emojiVal = iconIsImage ? (field.defaultIcon || '🔧') : iconVal;
         return (
           <div key={field.key}>
             <label className="block text-sm font-medium mb-2">
@@ -651,33 +648,30 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
               )}
             </label>
             <div className="flex gap-3 items-start">
-              <div className="flex flex-col gap-1.5 flex-shrink-0 w-20">
+              <div className="flex flex-col gap-1.5 flex-shrink-0" style={{width: '88px'}}>
                 <div className="w-14 h-14 rounded-full border-2 border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden mx-auto">
-                  {iconIsUrl
-                    ? <img src={iconVal} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  {iconIsImage
+                    ? <img src={iconVal} alt="" className="w-full h-full object-cover" />
                     : <span className="text-2xl leading-none">{iconVal}</span>
                   }
                 </div>
                 <input
                   type="text"
-                  value={emojiInputVal}
+                  value={emojiVal}
                   onChange={(e) => updateContent(iconKey, e.target.value)}
                   className="w-full px-2 py-1 border rounded text-center text-base"
                   placeholder="🔧"
                   title="Type an emoji"
                   maxLength={4}
                 />
-                <span className="text-xs text-center text-gray-400 leading-none">or</span>
-                <input
-                  type="text"
-                  value={urlInputVal}
-                  onChange={(e) => {
-                    const url = e.target.value.trim();
-                    updateContent(iconKey, url || emojiInputVal || (field.defaultIcon || '🔧'));
-                  }}
-                  className="w-full px-2 py-1 border rounded text-xs"
-                  placeholder="img URL"
-                  title="Paste an image URL"
+                <span className="text-xs text-center text-gray-400 leading-none">or upload</span>
+                <ImageUpload
+                  value={iconIsImage ? iconVal : ''}
+                  onChange={(url) => updateContent(iconKey, url || emojiVal || (field.defaultIcon || '🔧'))}
+                  siteId={params.siteId}
+                  fieldKey={iconKey}
+                  label=""
+                  helpText=""
                 />
               </div>
               <div className="flex-1 flex flex-col gap-2">
