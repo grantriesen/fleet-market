@@ -56,14 +56,34 @@ export function renderZenithLawnPage(
   vis: Record<string, boolean>,
   content: Record<string, string> = {},
 ) {
-  const getContent = (key: string) => {
-    // 1. Live content from site_content table (dealer's saved values)
+  const ZL_KEY_ALIASES: Record<string, string> = {
+    'business.name':    'businessInfo.businessName',
+    'business.phone':   'businessInfo.phone',
+    'business.email':   'businessInfo.email',
+    'business.address': 'businessInfo.address',
+    'business.tagline': 'businessInfo.tagline',
+    'business.hours':   'hours.hours',
+  };
+  const getContent = (key: string): string => {
+    // 1. Direct lookup in live content
     if (content[key]) return content[key];
-    // 2. Fall back to config_json section defaults
+    // 2. Try alias (e.g. business.name -> businessInfo.businessName)
+    const aliasKey = ZL_KEY_ALIASES[key];
+    if (aliasKey && content[aliasKey]) return content[aliasKey];
+    // 3. Fall back to config_json section defaults
     const parts = key.split('.');
     if (parts.length === 2) {
       const [section, field] = parts;
-      return config?.sections?.[section]?.[field]?.default || '';
+      const def = config?.sections?.[section]?.[field]?.default;
+      if (def) return def;
+    }
+    // 4. Try alias default from config
+    if (aliasKey) {
+      const ap = aliasKey.split('.');
+      if (ap.length === 2) {
+        const def = config?.sections?.[ap[0]]?.[ap[1]]?.default;
+        if (def) return def;
+      }
     }
     return '';
   };
@@ -78,7 +98,10 @@ export function renderZenithLawnPage(
   };
 
   let hours: any = {};
-  try { hours = JSON.parse(getContent('business.hours') || '{}'); } catch {}
+  const hoursRaw = getContent('business.hours') || getContent('businessInfo.hours') || '';
+  if (hoursRaw.startsWith('{')) {
+    try { hours = JSON.parse(hoursRaw); } catch {}
+  }
   const fmt = (t: string) => { if (!t) return ''; const [h, m] = t.split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM'; return `${h > 12 ? h - 12 : h || 12}:${String(m).padStart(2, '0')} ${ap}`; };
   const fmtRange = (d: any) => (!d?.open || !d?.close) ? 'Closed' : `${fmt(d.open)} – ${fmt(d.close)}`;
   const hoursLine = `Mon–Fri: ${fmtRange(hours.monday)} | Sat: ${fmtRange(hours.saturday)} | Sun: ${fmtRange(hours.sunday)}`;
@@ -95,7 +118,7 @@ export function renderZenithLawnPage(
   }
 
   return zlShell(
-    getContent('business.name') || 'Zenith Equipment',
+    getContent('businessInfo.businessName') || getContent('business.name') || 'Zenith Equipment',
     fonts, colors,
     zlHeader(siteId, currentPage, pages, getContent) + body + zlFooter(siteId, pages, getContent, hoursLine)
   );
@@ -138,7 +161,7 @@ function zlShell(title: string, fonts: any, colors: any, body: string) {
 
 // ── Header ──
 function zlHeader(siteId: string, currentPage: string, pages: any[], getContent: Function) {
-  const name = getContent('business.name') || 'Zenith Equipment';
+  const name = getContent('businessInfo.businessName') || getContent('business.name') || 'Zenith Equipment';
   const links = pages.map(p => {
     const active = p.slug === currentPage || (p.slug === 'index' && (currentPage === 'home' || currentPage === 'index'));
     return `<a href="/api/preview/${siteId}?page=${p.slug}" class="text-sm transition-slow ${active ? 'text-neutral-900' : 'text-neutral-400 hover:text-neutral-900'}">${p.name}</a>`;
@@ -170,8 +193,8 @@ function zlHeader(siteId: string, currentPage: string, pages: any[], getContent:
 
 // ── Footer ──
 function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine: string) {
-  const name = getContent('business.name') || 'Zenith Equipment';
-  const tagline = getContent('footer.tagline') || '';
+  const name = getContent('businessInfo.businessName') || getContent('business.name') || 'Zenith Equipment';
+  const tagline = getContent('footer.tagline') || getContent('businessInfo.tagline') || '';
   return `
   <footer class="border-t border-neutral-200">
     <div class="container-narrow py-16 md:py-24">
@@ -191,8 +214,8 @@ function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine:
         <div>
           <h4 class="text-sm font-medium mb-4">Contact</h4>
           <div class="flex flex-col gap-3 text-sm text-neutral-500">
-            <p>${getContent('business.address') || ''}</p>
-            <p>${getContent('business.phone') || ''}</p>
+            <p>${getContent('businessInfo.address') || getContent('business.address') || ''}</p>
+            <p>${getContent('businessInfo.phone') || getContent('business.phone') || ''}</p>
             <p>${hoursLine}</p>
           </div>
         </div>
@@ -319,33 +342,47 @@ function zlProductCard(siteId: string, p: any) {
 
 // ── Service ──
 function zlService(siteId: string, getContent: Function) {
-  return `
+  const formHeading = getContent('servicePage.formHeading') || 'Request Service';
+
+  // Build service cards from config fields
+  const serviceCards = [1, 2, 3].map(i => {
+    const title = getContent(`servicePage.service${i}Title`);
+    const desc = getContent(`servicePage.service${i}Description`);
+    const img = getContent(`servicePage.service${i}Image`);
+    if (!title) return '';
+    return `
+    <div class="border border-neutral-200 rounded overflow-hidden">
+      ${img ? `<div class="aspect-[4/3] overflow-hidden"><img src="${img}" alt="${title}" class="w-full h-full object-cover"/></div>` : ''}
+      <div class="p-6">
+        <h3 class="text-base font-medium mb-2">${title}</h3>
+        ${desc ? `<p class="text-sm text-neutral-500">${desc}</p>` : ''}
+      </div>
+    </div>`;
+  }).filter(Boolean);
+
+  const defaultServices = ['Routine maintenance & tune-ups','Engine diagnostics & repair','Blade sharpening & replacement','Electrical system repair','Seasonal winterization','Warranty service for authorized brands'];
+
+  return zlPageHero(getContent, 'servicePage', 'Service & Repair', getContent('servicePage.subheading') || '') + `
   <section class="section-spacing">
     <div class="container-narrow">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
         <div>
-          <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-6">${getContent('services.heading') || 'Service & Repair'}</h1>
-          <p class="text-lg text-neutral-500 mb-8">${getContent('services.description') || ''}</p>
-          <div class="space-y-8">
-            <div>
-              <h3 class="text-sm font-medium mb-3">Services Offered</h3>
-              <ul class="space-y-2 text-sm text-neutral-500">
-                <li>• Routine maintenance & tune-ups</li>
-                <li>• Engine diagnostics & repair</li>
-                <li>• Blade sharpening & replacement</li>
-                <li>• Electrical system repair</li>
-                <li>• Seasonal winterization</li>
-                <li>• Warranty service for authorized brands</li>
-              </ul>
-            </div>
-            <div>
-              <h3 class="text-sm font-medium mb-3">Turnaround Time</h3>
-              <p class="text-sm text-neutral-500">Most routine services completed within 3–5 business days. Priority service available for an additional fee.</p>
-            </div>
-          </div>
+          ${serviceCards.length > 0
+            ? `<div class="grid grid-cols-1 sm:grid-cols-${Math.min(serviceCards.length, 3)} gap-6 mb-8">${serviceCards.join('')}</div>`
+            : `<div class="space-y-8">
+                <div>
+                  <h3 class="text-sm font-medium mb-3">Services Offered</h3>
+                  <ul class="space-y-2 text-sm text-neutral-500">${defaultServices.map(s => `<li>• ${s}</li>`).join('')}</ul>
+                </div>
+                <div>
+                  <h3 class="text-sm font-medium mb-3">Turnaround Time</h3>
+                  <p class="text-sm text-neutral-500">Most routine services completed within 3–5 business days. Priority service available for an additional fee.</p>
+                </div>
+              </div>`
+          }
         </div>
         <div>
-          <h2 class="text-xl font-light mb-8">Request Service</h2>
+          <h2 class="text-xl font-light mb-8">${formHeading}</h2>
           ${zlForm(siteId, [
             { label: 'First Name', type: 'text', half: true },
             { label: 'Last Name', type: 'text', half: true },
@@ -362,20 +399,26 @@ function zlService(siteId: string, getContent: Function) {
 
 // ── Contact ──
 function zlContact(siteId: string, getContent: Function, hoursLine: string) {
+  const formHeading = getContent('contactPage.formHeading') || 'Send a Message';
+  const locationHeading = getContent('contactPage.locationHeading') || 'Information';
+  const contentHeading = getContent('contactPage.contentHeading') || '';
+  const contentText = getContent('contactPage.contentText') || '';
+
   const infoItems = [
-    { label: 'Address', value: getContent('business.address') },
-    { label: 'Phone', value: getContent('business.phone') },
-    { label: 'Email', value: getContent('business.email') },
+    { label: 'Address', value: getContent('businessInfo.address') || getContent('business.address') },
+    { label: 'Phone', value: getContent('businessInfo.phone') || getContent('business.phone') },
+    { label: 'Email', value: getContent('businessInfo.email') || getContent('business.email') },
     { label: 'Hours', value: hoursLine },
   ].filter(i => i.value);
 
-  return `
+  return zlPageHero(getContent, 'contactPage', 'Contact Us', getContent('contactPage.subheading') || '') + `
   <section class="section-spacing">
     <div class="container-narrow">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
         <div>
-          <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-6">${getContent('contact.heading') || 'Contact Us'}</h1>
-          <p class="text-lg text-neutral-500 mb-12">${getContent('contact.description') || ''}</p>
+          ${contentHeading ? `<h2 class="text-2xl font-light mb-4">${contentHeading}</h2>` : ''}
+          ${contentText ? `<p class="text-neutral-500 mb-12">${contentText}</p>` : ''}
+          <h3 class="text-sm font-medium mb-6">${locationHeading}</h3>
           <div class="space-y-8">
             ${infoItems.map(i => `
             <div>
@@ -385,7 +428,7 @@ function zlContact(siteId: string, getContent: Function, hoursLine: string) {
           </div>
         </div>
         <div>
-          <h2 class="text-xl font-light mb-8">Send a Message</h2>
+          <h2 class="text-xl font-light mb-8">${formHeading}</h2>
           ${zlForm(siteId, [
             { label: 'Name', type: 'text', half: true },
             { label: 'Email', type: 'email', half: true },
@@ -403,11 +446,11 @@ function zlInventory(siteId: string, getContent: Function, products: any[]) {
   const categories = [...new Set(products.map((p: any) => p.category).filter(Boolean))];
   const brands = [...new Set(products.map((p: any) => p.brand).filter(Boolean))];
 
-  return `
+  return zlPageHero(getContent, 'inventoryPage', 'Inventory', getContent('inventoryPage.subheading') || '') + `
   <section class="section-spacing">
     <div class="container-narrow">
       <div class="mb-16">
-        <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-4">${getContent('inventory.heading') || 'Inventory'}</h1>
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-4">${getContent('inventoryPage.heading') || getContent('inventory.heading') || 'Inventory'}</h1>
         <p class="text-lg text-neutral-500"><span id="zl-count">${products.length}</span> products available</p>
       </div>
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-12 lg:gap-16">
@@ -458,6 +501,7 @@ function zlInventory(siteId: string, getContent: Function, products: any[]) {
 
 // ── Rentals ──
 function zlRentals(siteId: string, getContent: Function) {
+  const pricingNote = getContent('rentalsPage.pricingNote') || '';
   const rentals = [
     { name: 'Walk-Behind Mowers', daily: 45, weekly: 180, monthly: 550 },
     { name: 'Riding Mowers', daily: 95, weekly: 400, monthly: 1200 },
@@ -467,12 +511,12 @@ function zlRentals(siteId: string, getContent: Function) {
     { name: 'Leaf Blowers', daily: 30, weekly: 120, monthly: 350 },
   ];
 
-  return `
+  return zlPageHero(getContent, 'rentalsPage', 'Equipment Rentals', getContent('rentalsPage.subheading') || '') + `
   <section class="section-spacing">
     <div class="container-narrow">
       <div class="max-w-2xl mb-16">
-        <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-4">${getContent('rentals.heading') || 'Equipment Rentals'}</h1>
-        <p class="text-lg text-neutral-500">${getContent('rentals.description') || 'Professional-grade equipment available for short or long-term rental. All rentals include safety orientation and fuel for first use.'}</p>
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-4">${getContent('rentalsPage.heading') || getContent('rentals.heading') || 'Equipment Rentals'}</h1>
+        <p class="text-lg text-neutral-500">${getContent('rentalsPage.subheading') || getContent('rentals.description') || 'Professional-grade equipment available for short or long-term rental. All rentals include safety orientation and fuel for first use.'}</p>
       </div>
       <div class="border border-neutral-200">
         <div class="grid grid-cols-4 gap-4 p-6 border-b border-neutral-200 bg-neutral-50">
@@ -489,6 +533,7 @@ function zlRentals(siteId: string, getContent: Function) {
           <div class="text-sm text-right text-neutral-500">$${r.monthly.toLocaleString()}</div>
         </div>`).join('')}
       </div>
+      ${pricingNote ? `<p class="mt-8 text-sm text-neutral-500">${pricingNote}</p>` : ''}
       <div class="mt-12 space-y-3 text-sm text-neutral-500">
         <p>• Security deposit required for all rentals</p>
         <p>• Delivery and pickup available for additional fee</p>
@@ -512,12 +557,12 @@ function zlManufacturers(siteId: string, getContent: Function) {
     { name: 'Toro', desc: 'Leading provider of turf maintenance equipment since 1914.' },
   ];
 
-  return `
+  return zlPageHero(getContent, 'manufacturersPage', 'Our Manufacturers', getContent('manufacturersPage.subheading') || '') + `
   <section class="section-spacing">
     <div class="container-narrow">
       <div class="max-w-2xl mb-20">
-        <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-4">${getContent('manufacturers.heading') || 'Our Manufacturers'}</h1>
-        <p class="text-lg text-neutral-500">${getContent('manufacturers.description') || ''}</p>
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-4">${getContent('manufacturersPage.heading') || getContent('manufacturers.heading') || 'Our Manufacturers'}</h1>
+        <p class="text-lg text-neutral-500">${getContent('manufacturersPage.subheading') || getContent('manufacturers.description') || ''}</p>
       </div>
       <div class="flex flex-wrap items-center justify-center gap-8 md:gap-12 mb-24">
         ${brands.map(b => `<img src="${logos[b.name] || ''}" alt="${b.name}" style="height: 50px; width: auto; opacity: 0.45; transition: opacity 0.4s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.45'">`).join('')}
@@ -560,7 +605,6 @@ function zlForm(siteId: string, fields: any[], buttonText: string) {
   }
   html += `
     <button type="submit" class="w-full py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90" style="background-color:${accent};">${buttonText}</button>
-    <p class="text-xs text-neutral-400 text-center">This form is for demonstration purposes only.</p>
   </form>`;
   return html;
 }
@@ -572,3 +616,30 @@ function zlField(f: any) {
   }
   return `<div class="space-y-2">${label}<input type="${f.type || 'text'}" class="w-full px-4 py-2.5 border border-neutral-200 rounded bg-transparent text-sm focus:ring-1 focus:ring-green-300 focus:border-green-400 outline-none" placeholder="${f.placeholder || ''}"></div>`;
 }
+// ── Subpage Hero Banner ──
+function zlPageHero(getContent: Function, pageKey: string, defaultHeading: string, defaultSubheading: string = '') {
+  const img = getContent(`${pageKey}.heroImage`);
+  const heading = getContent(`${pageKey}.heading`) || defaultHeading;
+  const subheading = getContent(`${pageKey}.subheading`) || defaultSubheading;
+  if (!img) {
+    // Text-only header — Zenith minimal style
+    return `
+  <div class="border-b border-neutral-200 section-spacing" style="padding-bottom: 3rem; padding-top: 6rem;">
+    <div class="container-narrow">
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-4">${heading}</h1>
+      ${subheading ? `<p class="text-lg text-neutral-500 max-w-2xl">${subheading}</p>` : ''}
+    </div>
+  </div>`;
+  }
+  // Image hero
+  return `
+  <section class="relative flex items-end" style="min-height: 40vh;">
+    <div class="absolute inset-0 bg-cover bg-center bg-no-repeat" style="background-image: url('${img}');"></div>
+    <div class="absolute inset-0" style="background: linear-gradient(to right, rgba(250,250,250,0.95), rgba(250,250,250,0.75), rgba(250,250,250,0.3));"></div>
+    <div class="container-narrow relative z-10 py-16 md:py-24">
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight text-neutral-900 mb-4">${heading}</h1>
+      ${subheading ? `<p class="text-lg text-neutral-500 max-w-2xl">${subheading}</p>` : ''}
+    </div>
+  </section>`;
+}
+
