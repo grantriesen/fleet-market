@@ -512,11 +512,13 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
   })()}
   <section data-section="inventoryGrid" style="padding:2.5rem 0 5rem;">
     <div class="cw">
+      ${gc('inventoryPage.contentHeading') ? `<h2 class="font-serif" style="font-size:1.75rem;font-weight:700;margin:0 0 1rem;color:${C.fg};">${gc('inventoryPage.contentHeading')}</h2>` : ''}
+      ${gc('inventoryPage.contentText') ? `<p style="color:${C.mutedFg};line-height:1.8;margin:0 0 2rem;">${gc('inventoryPage.contentText')}</p>` : ''}
       <div style="display:flex;gap:1rem;margin-bottom:2rem;flex-wrap:wrap;">
         <div style="position:relative;flex:1;max-width:400px;">
           <input type="text" placeholder="Search equipment..." class="form-we" style="padding-left:2.25rem;" id="we-search">
         </div>
-        ${cats.length ? `<select class="form-we" style="width:auto;min-width:180px;" id="we-cat"><option value="">All Categories</option>${cats.map(c => `<option value="${c}">${c}</option>`).join('')}</select>` : ''}
+        ${cats.length ? `<select class="form-we" style="width:auto;min-width:180px;" id="we-cat"><option value="">${gc('inventoryPage.filterLabel') || 'All Categories'}</option>${cats.map(c => `<option value="${c}">${c}</option>`).join('')}</select>` : ''}
       </div>
       <p style="font-size:0.875rem;color:${C.mutedFg};margin-bottom:1.5rem;">Showing ${products.length} products</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2rem;">
@@ -568,6 +570,8 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasSch
   })()}
   <section data-section="serviceTypes" style="padding:6rem 0;">
     <div class="cw">
+      ${gc('servicePage.contentHeading') ? `<h2 class="font-serif" style="font-size:1.5rem;font-weight:700;margin:0 0 1rem;color:${C.fg};">${gc('servicePage.contentHeading')}</h2>` : ''}
+      ${gc('servicePage.contentText') ? `<p style="color:${C.mutedFg};line-height:1.8;margin:0 0 2rem;">${gc('servicePage.contentText')}</p>` : ''}
       <h2 class="font-serif" style="font-size:2rem;font-weight:700;text-align:center;margin:0 0 3rem;color:${C.fg};">${gc('servicePage.gridHeading') || 'What We Service'}</h2>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2rem;">
         ${items.map(s => `
@@ -621,8 +625,11 @@ function weContactPage(siteId: string, gc: (k: string) => string, C: any, wk: st
     <div class="cw">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;">
         <div>
+          ${gc('contactPage.contentHeading') ? `<h2 class="font-serif" style="font-size:1.75rem;font-weight:700;margin:0 0 1rem;color:${C.fg};">${gc('contactPage.contentHeading')}</h2>` : ''}
+          ${gc('contactPage.contentText') ? `<p style="color:${C.mutedFg};line-height:1.8;margin:0 0 1.5rem;">${gc('contactPage.contentText')}</p>` : ''}
           <h2 class="font-serif" style="font-size:1.75rem;font-weight:700;margin:0 0 1.5rem;color:${C.fg};">${gc('contactPage.introHeading') || "We'd Love to Hear From You"}</h2>
           <p style="color:${C.mutedFg};line-height:1.8;margin:0 0 2rem;">${gc('contactPage.introText') || "Whether you have questions about equipment, need service, or just want to talk with folks who understand the land, we're here to help."}</p>
+          <h3 class="font-serif" style="font-size:1rem;font-weight:600;margin:0 0 1rem;color:${C.fg};">${gc('contactPage.locationHeading') || 'Contact Information'}</h3>
           <div style="display:flex;flex-direction:column;gap:1.25rem;">
             ${[
               { icon: '📞', label: 'Give Us a Call', value: gc('business.phone'), href: `tel:${gc('business.phone')}` },
@@ -663,6 +670,7 @@ function weContactPage(siteId: string, gc: (k: string) => string, C: any, wk: st
           </div>
         </div>
       </div>
+      ${gc('contactPage.mapEmbed') ? `<div style="margin-top:3rem;border-radius:1rem;overflow:hidden;border:2px solid #d4b896;">${gc('contactPage.mapEmbed')}</div>` : ''}
     </div>
   </section>`;
 }
@@ -699,6 +707,8 @@ function weRentalsPage(siteId: string, gc: (k: string) => string, C: any): strin
   </section>
   <section data-section="rentalGrid" style="padding:6rem 0;">
     <div class="cw">
+      ${gc('rentalsPage.contentHeading') ? `<h2 class="font-serif" style="font-size:1.75rem;font-weight:700;margin:0 0 1rem;color:${C.fg};">${gc('rentalsPage.contentHeading')}</h2>` : ''}
+      ${gc('rentalsPage.contentText') ? `<p style="color:${C.mutedFg};line-height:1.8;margin:0 0 2rem;">${gc('rentalsPage.contentText')}</p>` : ''}
       ${gc('rentalsPage.pricingNote') ? `<p style="text-align:center;font-size:1rem;color:${C.mutedFg};margin:0 0 2rem;font-style:italic;">${gc('rentalsPage.pricingNote')}</p>` : ''}
       <h2 class="font-serif" style="font-size:2rem;font-weight:700;text-align:center;margin:0 0 3rem;color:${C.fg};">Available Rentals</h2>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:2rem;">
@@ -739,6 +749,8 @@ function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any, 
   </section>
   <section data-section="manufacturersList" style="padding:6rem 0;">
     <div class="cw">
+      ${gc('manufacturersPage.contentHeading') ? `<h2 class="font-serif" style="font-size:1.75rem;font-weight:700;margin:0 0 1rem;color:${C.fg};">${gc('manufacturersPage.contentHeading')}</h2>` : ''}
+      ${gc('manufacturersPage.contentText') ? `<p style="color:${C.mutedFg};line-height:1.8;margin:0 0 2rem;">${gc('manufacturersPage.contentText')}</p>` : ''}
       ${gc('manufacturersPage.introText') ? `<p style="text-align:center;font-size:1.125rem;color:${C.mutedFg};max-width:700px;margin:0 auto 3rem;">${gc('manufacturersPage.introText')}</p>` : ''}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:2rem;">
         ${brands.map(b => `
