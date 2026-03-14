@@ -630,6 +630,77 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
           </div>
         );
 
+      case 'iconText': {
+        // Combined icon + text field: emoji/image on left, text input on right
+        // Saves to two keys: fieldKey.icon and fieldKey.text
+        const iconKey = `${fieldKey}.icon`;
+        const textKey = `${fieldKey}.text`;
+        const iconVal = content[iconKey] || field.defaultIcon || '🔧';
+        const textVal = content[textKey] || field.defaultText || field.default || '';
+        const isImageUrl = iconVal && (iconVal.startsWith('http') || iconVal.startsWith('/'));
+        return (
+          <div key={field.key}>
+            <label className="block text-sm font-medium mb-2">
+              {field.label}
+              {(field.helpText || field.help) && (
+                <span className="text-xs text-gray-500 block mt-1">{field.helpText || field.help}</span>
+              )}
+            </label>
+            <div className="flex gap-2 items-start">
+              {/* Icon side */}
+              <div className="flex flex-col gap-1 flex-shrink-0" style={{width: '80px'}}>
+                <div className="w-14 h-14 rounded-full border-2 border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden mx-auto">
+                  {isImageUrl
+                    ? <img src={iconVal} alt="" className="w-full h-full object-cover" />
+                    : <span className="text-2xl">{iconVal}</span>
+                  }
+                </div>
+                <input
+                  type="text"
+                  value={isImageUrl ? '' : iconVal}
+                  onChange={(e) => updateContent(iconKey, e.target.value)}
+                  className="w-full px-2 py-1 border rounded text-center text-sm"
+                  placeholder="emoji"
+                  title="Type an emoji"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    const url = window.prompt('Paste image URL (or leave blank to use emoji):', isImageUrl ? iconVal : '');
+                    if (url !== null) updateContent(iconKey, url || (field.defaultIcon || '🔧'));
+                  }}
+                  className="w-full px-2 py-1 border rounded text-xs text-gray-500 hover:bg-gray-50"
+                  title="Click to set image URL"
+                >
+                  📎 img URL
+                </button>
+              </div>
+              {/* Text side */}
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={textVal}
+                  onChange={(e) => updateContent(textKey, e.target.value)}
+                  className="w-full px-3 py-2 border rounded"
+                  placeholder={field.defaultText || field.default || ''}
+                />
+                {field.withDescription && (
+                  <textarea
+                    value={content[`${fieldKey}.description`] || field.defaultDescription || ''}
+                    onChange={(e) => updateContent(`${fieldKey}.description`, e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 border rounded mt-2 text-sm"
+                    placeholder={field.defaultDescription || 'Description...'}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
       default:
         // Render any unknown field types as text inputs so nothing gets dropped
         return (
