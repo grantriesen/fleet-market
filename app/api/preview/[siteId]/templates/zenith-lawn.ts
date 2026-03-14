@@ -54,8 +54,19 @@ export function renderZenithLawnPage(
   customizations: any,
   enabledFeatures: Set<string>,
   vis: Record<string, boolean>,
+  content: Record<string, string> = {},
 ) {
-  const getContent = (key: string) => customizations?.content?.[key] || config?.content?.[key] || '';
+  const getContent = (key: string) => {
+    // 1. Live content from site_content table (dealer's saved values)
+    if (content[key]) return content[key];
+    // 2. Fall back to config_json section defaults
+    const parts = key.split('.');
+    if (parts.length === 2) {
+      const [section, field] = parts;
+      return config?.sections?.[section]?.[field]?.default || '';
+    }
+    return '';
+  };
   const colors = {
     primary: customizations?.colors?.primary || config?.colors?.primary?.default || '#171717',
     secondary: customizations?.colors?.secondary || config?.colors?.secondary?.default || '#f5f5f5',
@@ -213,7 +224,7 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
             ${getContent('hero.subheading') || getContent('hero.subtitle') || ''}
           </p>
           <div class="animate-fade-in" style="animation-delay:0.2s;">
-            <a href="/api/preview/${siteId}?page=${getContent('hero.ctaLink') || 'inventory'}"
+            <a href="/api/preview/${siteId}?page=inventory"
               class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90"
               style="background-color: ${colors.accent};">
               ${getContent('hero.ctaPrimary') || 'View Inventory'}
@@ -308,49 +319,28 @@ function zlProductCard(siteId: string, p: any) {
 
 // ── Service ──
 function zlService(siteId: string, getContent: Function) {
-  // Build service items from customizable fields, falling back to defaults
-  const defaultServices = [
-    'Routine maintenance & tune-ups',
-    'Engine diagnostics & repair',
-    'Blade sharpening & replacement',
-    'Electrical system repair',
-    'Seasonal winterization',
-    'Warranty service for authorized brands',
-  ];
-
-  // Read up to 3 customizable service entries
-  const serviceItems: string[] = [];
-  for (let i = 1; i <= 3; i++) {
-    const name = getContent(`servicePage.service${i}.name`) || getContent(`services.service${i}.name`);
-    const desc = getContent(`servicePage.service${i}.description`) || getContent(`services.service${i}.description`);
-    if (name) {
-      serviceItems.push(`<li class="pb-4 border-b border-neutral-100 last:border-0 last:pb-0">
-        <p class="text-sm font-medium mb-1">${name}</p>
-        ${desc ? `<p class="text-sm text-neutral-500">${desc}</p>` : ''}
-      </li>`);
-    }
-  }
-
-  // Fall back to default bullet list if no custom services defined
-  const servicesListHtml = serviceItems.length > 0
-    ? `<ul class="space-y-4">${serviceItems.join('')}</ul>`
-    : `<ul class="space-y-2 text-sm text-neutral-500">${defaultServices.map(s => `<li>• ${s}</li>`).join('')}</ul>`;
-
   return `
   <section class="section-spacing">
     <div class="container-narrow">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
         <div>
-          <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-6">${getContent('services.heading') || getContent('servicePage.heading') || 'Service & Repair'}</h1>
-          <p class="text-lg text-neutral-500 mb-8">${getContent('services.description') || getContent('servicePage.description') || ''}</p>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-6">${getContent('services.heading') || 'Service & Repair'}</h1>
+          <p class="text-lg text-neutral-500 mb-8">${getContent('services.description') || ''}</p>
           <div class="space-y-8">
             <div>
               <h3 class="text-sm font-medium mb-3">Services Offered</h3>
-              ${servicesListHtml}
+              <ul class="space-y-2 text-sm text-neutral-500">
+                <li>• Routine maintenance & tune-ups</li>
+                <li>• Engine diagnostics & repair</li>
+                <li>• Blade sharpening & replacement</li>
+                <li>• Electrical system repair</li>
+                <li>• Seasonal winterization</li>
+                <li>• Warranty service for authorized brands</li>
+              </ul>
             </div>
             <div>
               <h3 class="text-sm font-medium mb-3">Turnaround Time</h3>
-              <p class="text-sm text-neutral-500">${getContent('servicePage.turnaround') || 'Most routine services completed within 3–5 business days. Priority service available for an additional fee.'}</p>
+              <p class="text-sm text-neutral-500">Most routine services completed within 3–5 business days. Priority service available for an additional fee.</p>
             </div>
           </div>
         </div>
@@ -570,6 +560,7 @@ function zlForm(siteId: string, fields: any[], buttonText: string) {
   }
   html += `
     <button type="submit" class="w-full py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90" style="background-color:${accent};">${buttonText}</button>
+    <p class="text-xs text-neutral-400 text-center">This form is for demonstration purposes only.</p>
   </form>`;
   return html;
 }
