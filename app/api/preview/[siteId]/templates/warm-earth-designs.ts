@@ -83,6 +83,7 @@ export function renderWarmEarthPage(
   siteId: string, currentPage: string, pages: any[], products: any[],
   config: any, customizations: any, enabledFeatures: Set<string>,
   vis: Record<string, boolean>, content?: Record<string, string>,
+  manufacturers: any[] = [],
 ) {
   const WE_KEY_ALIASES: Record<string,string> = {
     'business.name':    'businessInfo.businessName',

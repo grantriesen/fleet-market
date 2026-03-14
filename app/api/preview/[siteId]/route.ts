@@ -438,6 +438,7 @@ async function generateTemplateHTML(
     return renderWarmEarthPage(
       siteId, page, availablePages, displayProducts,
       config, customizations, weFeatures, weVis, content,
+      manufacturers || [],
     );
   }
 
