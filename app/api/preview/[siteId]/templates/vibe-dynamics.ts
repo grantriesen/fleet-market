@@ -576,7 +576,59 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
     </div>
   </section>`;
 
-  return heroHtml + servicesHtml + ctaHtml;
+  // Simple request form for all users
+  const simpleFormHtml = `
+  <section data-section="serviceForm" class="py-16 bg-gray-50">
+    <div class="max-w-3xl mx-auto px-6">
+      <div class="card-bold p-8">
+        <h2 class="text-3xl font-heading font-black text-gray-900 mb-2">${getContent('servicePage.formHeading') || 'Request Service'}</h2>
+        <p class="text-gray-500 mb-8">${getContent('servicePage.formSubheading') || 'Fill out the form below and our service team will be in touch within one business day.'}</p>
+        <form class="space-y-4" onsubmit="event.preventDefault(); this.style.display='none'; document.getElementById('vd-svc-success').style.display='block';">
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-800 mb-1">First Name *</label>
+              <input type="text" required class="w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none" placeholder="John">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-800 mb-1">Last Name *</label>
+              <input type="text" required class="w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none" placeholder="Smith">
+            </div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-800 mb-1">Phone *</label>
+              <input type="tel" required class="w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none" placeholder="(555) 123-4567">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-800 mb-1">Email *</label>
+              <input type="email" required class="w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none" placeholder="john@example.com">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-800 mb-1">Equipment Type & Model *</label>
+            <input type="text" required class="w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none" placeholder="e.g., Toro Z Master 60&quot;">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-800 mb-1">Describe the Issue *</label>
+            <textarea rows="4" required class="w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none" placeholder="What's going on with your equipment?"></textarea>
+          </div>
+          <button type="submit" class="btn-gradient w-full text-lg py-4">${getContent('servicePage.ctaButton') || 'Submit Request'}</button>
+        </form>
+        <div id="vd-svc-success" style="display:none;" class="text-center py-8">
+          <div class="text-5xl mb-4">✓</div>
+          <h3 class="text-2xl font-heading font-black text-gray-900 mb-2">Request Received!</h3>
+          <p class="text-gray-500">We'll be in touch within one business day.</p>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  // Show premium scheduling form if add-on is enabled, otherwise show simple form
+  const formSection = hasScheduler
+    ? serviceBookingSection(siteId, colors.primary, getContent)
+    : simpleFormHtml;
+
+  return heroHtml + servicesHtml + ctaHtml + formSection;
 }
 
 
