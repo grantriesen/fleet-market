@@ -281,9 +281,10 @@ function vdFooter(getContent: GetContent, colors: Colors, pages: any[], siteId: 
         <!-- Brand -->
         <div>
           <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent));">
-              <span class="text-lg">🌿</span>
-            </div>
+            ${getContent('businessInfo.logoImage')
+              ? `<img src="${getContent('businessInfo.logoImage')}" alt="${businessName}" style="max-height: 40px; max-width: 140px; object-fit: contain; filter: brightness(0) invert(1);">`
+              : `<div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent));"><span class="text-lg">🌿</span></div>`
+            }
             <span class="text-lg font-heading font-black text-white">${businessName}</span>
           </div>
           <p class="text-white/70 text-sm">${tagline}</p>
@@ -337,7 +338,7 @@ function vdHomeSections(
   if (vis.hero !== false) {
     html += `
     <section data-section="hero" class="relative overflow-hidden" style="min-height: 500px;">
-      <div class="absolute inset-0" style="background-image: url('${getContent('hero.image') || getContent('hero.backgroundImage') || ''}'); background-size: cover; background-position: center;"></div>
+      <div class="absolute inset-0" style="${getContent('hero.image') || getContent('hero.backgroundImage') ? `background-image: url('${getContent('hero.image') || getContent('hero.backgroundImage')}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));`}"></div>
       <div class="absolute inset-0 md:hidden" style="background-color: var(--color-primary); opacity: 0.92;"></div>
       <div class="hidden md:block absolute inset-0" style="background-color: var(--color-primary); right: 30%; transform: skewX(-10deg); transform-origin: top left;"></div>
       <div class="max-w-7xl mx-auto px-6 relative z-10 flex items-center" style="min-height: 500px;">
@@ -536,10 +537,11 @@ function vdHomeSections(
 // ============================================
 
 function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, hasScheduler: boolean, vis: Record<string, boolean>): string {
+  const serviceHeroImg = getContent('servicePage.heroImage');
   const heroHtml = `
-  <section data-section="servicePage" class="relative overflow-hidden py-16 md:py-20" style="background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));">
-    <div class="absolute top-10 right-10 w-32 h-32 rounded-full opacity-20" style="background-color: var(--color-accent);"></div>
-    <div class="max-w-7xl mx-auto px-6 text-center">
+  <section data-section="servicePage" class="relative overflow-hidden py-16 md:py-20" style="${serviceHeroImg ? `background-image: url('${serviceHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));`}">
+    ${serviceHeroImg ? `<div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4));"></div>` : `<div class="absolute top-10 right-10 w-32 h-32 rounded-full opacity-20" style="background-color: var(--color-accent);"></div>`}
+    <div class="max-w-7xl mx-auto px-6 text-center relative z-10">
       <h1 class="text-5xl md:text-6xl font-heading font-black text-white mb-4">${getContent('servicePage.heading') || 'SERVICE & REPAIR'}</h1>
       <p class="text-xl text-white/80 max-w-2xl mx-auto">${getContent('servicePage.subheading') || 'Expert service for all your equipment needs'}</p>
     </div>
@@ -568,8 +570,8 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
   const ctaHtml = `
   <section data-section="serviceCta" class="py-16 text-center" style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent));">
     <div class="max-w-3xl mx-auto px-6">
-      <h2 class="text-4xl font-heading font-black text-white mb-4">Need Service?</h2>
-      <p class="text-lg text-white/90 mb-8">Contact us to schedule a repair or maintenance appointment.</p>
+      <h2 class="text-4xl font-heading font-black text-white mb-4">${getContent('servicePage.ctaHeading') || 'Need Service?'}</h2>
+      <p class="text-lg text-white/90 mb-8">${getContent('servicePage.contentText') || 'Contact us to schedule a repair or maintenance appointment.'}</p>
       <a href="/api/preview/${siteId}?page=${getContent('servicePage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-primary);">${getContent('servicePage.ctaButton') || 'Get In Touch'}</a>
     </div>
   </section>`;
@@ -583,12 +585,13 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
 // ============================================
 
 function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, vis: Record<string, boolean>): string {
+  const contactHeroImg = getContent('contactPage.heroImage');
   const heroHtml = `
-  <section data-section="contactPage" class="relative overflow-hidden py-16 md:py-20" style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent));">
-    <div class="absolute top-10 right-10 w-32 h-32 rounded-full opacity-20" style="background-color: var(--color-secondary);"></div>
-    <div class="max-w-7xl mx-auto px-6 text-center">
+  <section data-section="contactPage" class="relative overflow-hidden py-16 md:py-20" style="${contactHeroImg ? `background-image: url('${contactHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-accent));`}">
+    ${contactHeroImg ? `<div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4));"></div>` : `<div class="absolute top-10 right-10 w-32 h-32 rounded-full opacity-20" style="background-color: var(--color-secondary);"></div>`}
+    <div class="max-w-7xl mx-auto px-6 text-center relative z-10">
       <h1 class="text-5xl md:text-6xl font-heading font-black text-white mb-4">${getContent('contactPage.heading') || 'GET IN TOUCH'}</h1>
-      <p class="text-xl text-white/80 max-w-2xl mx-auto">${getContent('contactPage.subheading') || 'We\'re here to help'}</p>
+      <p class="text-xl text-white/80 max-w-2xl mx-auto">${getContent('contactPage.subheading') || "We're here to help"}</p>
     </div>
   </section>`;
 
@@ -612,7 +615,7 @@ function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, v
       <div class="grid lg:grid-cols-2 gap-12">
         <!-- Form -->
         <div class="card-bold p-8">
-          <h2 class="text-3xl font-heading font-black text-gray-900 mb-6">Send a Message</h2>
+          <h2 class="text-3xl font-heading font-black text-gray-900 mb-6">${getContent('contactPage.formHeading') || 'Send a Message'}</h2>
           <form class="space-y-4">
             <div class="grid md:grid-cols-2 gap-4">
               <div><label class="block text-sm font-bold text-gray-800 mb-1">Your Name *</label><input type="text" class="w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none" placeholder="John Doe"></div>
@@ -664,9 +667,11 @@ function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, v
 // ============================================
 
 function vdManufacturersPage(getContent: GetContent, colors: Colors, manufacturers: any[], siteId: string, vis: Record<string, boolean>): string {
+  const mfgHeroImg = getContent('manufacturersPage.heroImage');
   const heroHtml = `
-  <section data-section="manufacturersPage" class="relative overflow-hidden py-16 md:py-20" style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent));">
-    <div class="max-w-7xl mx-auto px-6 text-center">
+  <section data-section="manufacturersPage" class="relative overflow-hidden py-16 md:py-20" style="${mfgHeroImg ? `background-image: url('${mfgHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-accent));`}">
+    ${mfgHeroImg ? `<div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4));"></div>` : ''}
+    <div class="max-w-7xl mx-auto px-6 text-center relative z-10">
       <h1 class="text-5xl md:text-6xl font-heading font-black text-white mb-4">${getContent('manufacturersPage.heading') || 'OUR BRANDS'}</h1>
       <p class="text-xl text-white/80 max-w-2xl mx-auto">${getContent('manufacturersPage.subheading') || 'Authorized dealer for the best names in outdoor power'}</p>
     </div>
@@ -690,7 +695,19 @@ function vdManufacturersPage(getContent: GetContent, colors: Colors, manufacture
     </div>
   </section>`;
 
-  return heroHtml + contentHtml;
+  const mfgCtaHeading = getContent('manufacturersPage.ctaHeading');
+  const mfgCtaText = getContent('manufacturersPage.ctaText');
+  const mfgCtaBtn = getContent('manufacturersPage.ctaPrimaryText') || 'Contact Us';
+  const ctaHtml = (mfgCtaHeading || mfgCtaText) ? `
+  <section class="py-16 text-center" style="background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));">
+    <div class="max-w-3xl mx-auto px-6">
+      ${mfgCtaHeading ? `<h2 class="text-4xl font-heading font-black text-white mb-4">${mfgCtaHeading}</h2>` : ''}
+      ${mfgCtaText ? `<p class="text-lg text-white/90 mb-8">${mfgCtaText}</p>` : ''}
+      <a href="/api/preview/${siteId}?page=${getContent('manufacturersPage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-primary);">${mfgCtaBtn}</a>
+    </div>
+  </section>` : '';
+
+  return heroHtml + contentHtml + ctaHtml;
 }
 
 
@@ -721,9 +738,11 @@ async function vdInventoryPage(
     if (data && data.length > 0) products = data;
   }
 
+  const invHeroImg = getContent('inventoryPage.heroImage');
   const heroHtml = `
-  <section data-section="inventoryPage" class="relative overflow-hidden py-16 md:py-20" style="background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));">
-    <div class="max-w-7xl mx-auto px-6 text-center">
+  <section data-section="inventoryPage" class="relative overflow-hidden py-16 md:py-20" style="${invHeroImg ? `background-image: url('${invHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));`}">
+    ${invHeroImg ? `<div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4));"></div>` : ''}
+    <div class="max-w-7xl mx-auto px-6 text-center relative z-10">
       <h1 class="text-5xl md:text-6xl font-heading font-black text-white mb-4">${getContent('inventoryPage.heading') || 'EQUIPMENT INVENTORY'}</h1>
       <p class="text-xl text-white/80 max-w-2xl mx-auto">${getContent('inventoryPage.subheading') || 'Browse our complete selection'}</p>
     </div>
@@ -781,23 +800,32 @@ async function vdRentalsPage(
   hasRentalScheduling: boolean,
   vis: Record<string, boolean>
 ): Promise<string> {
+  const rentalsHeroImg = getContent('rentalsPage.heroImage');
   const heroHtml = `
-  <section data-section="rentalsPage" class="relative overflow-hidden py-16 md:py-20" style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent));">
-    <div class="max-w-7xl mx-auto px-6 text-center">
+  <section data-section="rentalsPage" class="relative overflow-hidden py-16 md:py-20" style="${rentalsHeroImg ? `background-image: url('${rentalsHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-accent));`}">
+    ${rentalsHeroImg ? `<div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4));"></div>` : ''}
+    <div class="max-w-7xl mx-auto px-6 text-center relative z-10">
       <h1 class="text-5xl md:text-6xl font-heading font-black text-white mb-4">${getContent('rentalsPage.heading') || 'EQUIPMENT RENTALS'}</h1>
       <p class="text-xl text-white/80 max-w-2xl mx-auto">${getContent('rentalsPage.subheading') || 'Pro-grade equipment available daily, weekly, or monthly'}</p>
     </div>
   </section>`;
 
+  const howHeading = getContent('rentalsPage.contentHeading') || 'HOW RENTALS WORK';
+  const step1Title = getContent('rentalsPage.step1Title') || '1. Request';
+  const step1Desc = getContent('rentalsPage.step1Text') || 'Fill out our rental request form with your project details and preferred dates.';
+  const step2Title = getContent('rentalsPage.step2Title') || '2. Confirm';
+  const step2Desc = getContent('rentalsPage.step2Text') || "We'll confirm availability and send you a rental agreement to review.";
+  const step3Title = getContent('rentalsPage.step3Title') || '3. Pickup/Delivery';
+  const step3Desc = getContent('rentalsPage.step3Text') || 'Pick up your equipment or schedule delivery to your job site.';
   const infoHtml = `
   <section data-section="rentalInfo" class="py-16 bg-white">
     <div class="max-w-7xl mx-auto px-6">
-      <h2 class="text-4xl font-heading font-black text-center mb-12" style="color: var(--color-secondary);">HOW RENTALS WORK</h2>
+      <h2 class="text-4xl font-heading font-black text-center mb-12" style="color: var(--color-secondary);">${howHeading}</h2>
       <div class="grid md:grid-cols-3 gap-8">
         ${[
-          { icon: '📋', title: '1. Request', desc: 'Fill out our rental request form with your project details and preferred dates.' },
-          { icon: '✅', title: '2. Confirm', desc: 'We\'ll confirm availability and send you a rental agreement to review.' },
-          { icon: '🚚', title: '3. Pickup/Delivery', desc: 'Pick up your equipment or schedule delivery to your job site.' },
+          { icon: '📋', title: step1Title, desc: step1Desc },
+          { icon: '✅', title: step2Title, desc: step2Desc },
+          { icon: '🚚', title: step3Title, desc: step3Desc },
         ].map(step => `
           <div class="bg-white rounded-2xl p-8 text-center" style="border: 3px solid var(--color-secondary);">
             <span class="text-5xl mb-4 block">${step.icon}</span>
@@ -812,8 +840,8 @@ async function vdRentalsPage(
   const ctaHtml = `
   <section class="py-16 text-center" style="background-color: var(--color-secondary);">
     <div class="max-w-3xl mx-auto px-6">
-      <h2 class="text-4xl font-heading font-black text-white mb-4">Ready to Rent?</h2>
-      <p class="text-lg text-white/90 mb-8">Contact us for availability and pricing on any rental equipment.</p>
+      <h2 class="text-4xl font-heading font-black text-white mb-4">${getContent('rentalsPage.ctaHeading') || 'Ready to Rent?'}</h2>
+      <p class="text-lg text-white/90 mb-8">${getContent('rentalsPage.pricingNote') || 'Contact us for availability and pricing on any rental equipment.'}</p>
       <a href="/api/preview/${siteId}?page=${getContent('rentalsPage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-secondary);">${getContent('rentalsPage.ctaText') || 'Get a Quote'}</a>
     </div>
   </section>`;
