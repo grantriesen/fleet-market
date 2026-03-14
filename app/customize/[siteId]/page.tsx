@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ImageUpload from '@/components/ImageUpload';
@@ -21,6 +21,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [currentPage, setCurrentPage] = useState('index');
   const [previewKey, setPreviewKey] = useState(Date.now());
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   
   // Site data
   const [siteName, setSiteName] = useState('');
@@ -65,7 +66,14 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
 
   // Reload preview when switching pages
   useEffect(() => {
-    setPreviewKey(Date.now());
+    const iframe = iframeRef.current;
+    if (iframe) {
+      const ts = Date.now();
+      iframe.src = `/api/preview/${params.siteId}?page=${currentPage}&t=${ts}`;
+    } else {
+      // Fallback for initial load before ref is set
+      setPreviewKey(Date.now());
+    }
   }, [currentPage]);
 
   const loadSiteData = async () => {
@@ -406,9 +414,13 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
       
       if (pageError) console.error('Error saving page visibility:', pageError);
 
-      // Force preview to reload AFTER a brief delay to allow Supabase write to propagate
+      // Force preview to reload by directly setting iframe src — avoids React key remount race
       setTimeout(() => {
-        setPreviewKey(Date.now());
+        const iframe = iframeRef.current;
+        if (iframe) {
+          const ts = Date.now();
+          iframe.src = `/api/preview/${params.siteId}?page=${currentPage}&t=${ts}`;
+        }
       }, 300);
       
       // After iframe reloads, scroll back to the section being edited
@@ -1569,10 +1581,9 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                 </div>
                 <div className="flex-1 overflow-hidden">
                   <iframe
-                    key={previewKey}
-                    src={`/api/preview/${params.siteId}?page=${currentPage}&t=${previewKey}&_nc=${previewKey}`}
+                    ref={iframeRef}
+                    src={`/api/preview/${params.siteId}?page=${currentPage}&t=${previewKey}`}
                     className="w-full h-full border-0"
-                    referrerPolicy="no-referrer"
                   />
                 </div>
               </div>
