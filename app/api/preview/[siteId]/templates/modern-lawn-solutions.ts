@@ -517,6 +517,8 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
 
   <section data-section="inventoryGrid" style="padding: 2rem 0 4rem;">
     <div class="container-mls">
+      ${gc('inventoryPage.contentHeading') ? `<h2 style="font-size: 1.5rem; font-weight: 700; margin: 0 0 0.75rem; color: #111827;">${gc('inventoryPage.contentHeading')}</h2>` : ''}
+      ${gc('inventoryPage.contentText') ? `<p style="color: #6b7280; margin: 0 0 1.5rem; line-height: 1.7;">${gc('inventoryPage.contentText')}</p>` : ''}
       <!-- Filters Row -->
       <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: center;">
         <div style="position: relative; flex: 1; max-width: 400px;">
@@ -525,7 +527,7 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
         </div>
         ${categories.length > 0 ? `
         <select class="form-input" style="width: auto; min-width: 180px;" id="mls-cat-filter">
-          <option value="">All Categories</option>
+          <option value="">${gc('inventoryPage.filterLabel') || 'All Categories'}</option>
           ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
         </select>` : ''}
       </div>
