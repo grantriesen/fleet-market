@@ -86,7 +86,6 @@ export async function renderModernLawnPage(
   vis: Record<string, boolean>,
   content?: Record<string, string>,
   supabase?: any,
-  manufacturers: any[] = [],
 ) {
   // Content resolution: passed content (from route) > customizations > config > demo overrides
   const MLS_KEY_ALIASES: Record<string,string> = {
@@ -145,7 +144,7 @@ export async function renderModernLawnPage(
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice); break;
     case 'rentals': body = mlsRentalsPage(siteId, getContent); break;
-    case 'manufacturers': body = mlsManufacturersPage(siteId, getContent, manufacturers); break;
+    case 'manufacturers': body = mlsManufacturersPage(siteId, getContent); break;
     default: body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase); break;
   }
 
@@ -666,7 +665,7 @@ function mlsContactPage(siteId: string, gc: (k: string) => string, weekday: stri
     <div class="container-mls">
       <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
         <div class="card-mls" style="padding: 2rem;">
-          <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">Send Us a Message</h3>
+          <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">${gc('contactPage.formHeading') || 'Send Us a Message'}</h3>
           <form onsubmit="event.preventDefault(); this.reset(); alert('Message sent! We\\'ll be in touch.');">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
               <div><label class="form-label">Name *</label><input class="form-input" required placeholder="Your name"></div>
@@ -681,6 +680,7 @@ function mlsContactPage(siteId: string, gc: (k: string) => string, weekday: stri
           ${mlsContactSidebarFull(gc, weekday, saturday, sunday)}
         </div>
       </div>
+      ${gc('contactPage.mapEmbed') ? `<div style="margin-top: 2rem; border-radius: 0.75rem; overflow: hidden; border: 1px solid #e5e7eb;">${gc('contactPage.mapEmbed')}</div>` : ''}
     </div>
   </section>`;
 }
@@ -754,14 +754,15 @@ function mlsRentalsPage(siteId: string, gc: (k: string) => string): string {
 // ══════════════════════════════════════════════════
 //  MANUFACTURERS PAGE
 // ══════════════════════════════════════════════════
-function mlsManufacturersPage(siteId: string, gc: (k: string) => string, manufacturers: any[] = []): string {
-  const brands = manufacturers.length > 0 ? manufacturers : [
-    { name: 'Toro', logo_url: '', description: 'Count on it' },
-    { name: 'Exmark', logo_url: '', description: 'The next cut above' },
-    { name: 'ECHO', logo_url: '', description: 'Professional-grade outdoor power' },
-    { name: 'Honda', logo_url: '', description: 'The power of dreams' },
-    { name: 'Husqvarna', logo_url: '', description: 'Rethink the outdoors' },
-    { name: 'Kubota', logo_url: '', description: 'For Earth, For Life' },
+function mlsManufacturersPage(siteId: string, gc: (k: string) => string): string {
+  const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'Exmark': '/images/logos/exmark.png', 'ECHO': '/images/logos/Echo.png', 'Honda': '/images/logos/Honda.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Kubota': '/images/logos/kubota.jpg' };
+  const brands = [
+    { name: 'Toro', tagline: 'Count on it' },
+    { name: 'Exmark', tagline: 'The next cut above' },
+    { name: 'ECHO', tagline: 'Professional-grade outdoor power' },
+    { name: 'Honda', tagline: 'The power of dreams' },
+    { name: 'Husqvarna', tagline: 'Rethink the outdoors' },
+    { name: 'Kubota', tagline: 'For Earth, For Life' },
   ];
 
   return `
@@ -774,22 +775,15 @@ function mlsManufacturersPage(siteId: string, gc: (k: string) => string, manufac
 
   <section data-section="manufacturersList" style="padding: 3rem 0 4rem;">
     <div class="container-mls">
-      ${gc('manufacturersPage.introText') ? `<p style="color: #6b7280; margin: 0 0 2rem; line-height: 1.7; max-width: 700px;">${gc('manufacturersPage.introText')}</p>` : ''}
-      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem;">
-        ${brands.map((b: any) => `
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem;">
+        ${brands.map(b => `
         <div class="card-mls" style="padding: 2rem; text-align: center;">
           <div style="height: 4rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-            ${(b.logo_url || b.logoUrl) ? `<img src="${b.logo_url || b.logoUrl}" alt="${b.name}" style="height: 48px; width: auto; max-width: 120px; object-fit: contain;">` : `<span style="font-weight: 700; font-size: 1rem; color: #374151;">${b.name}</span>`}
+            <img src="${logos[b.name] || ''}" alt="${b.name}" style="height: 48px; width: auto;">
           </div>
-          ${b.description ? `<p style="color: #6b7280; font-size: 0.875rem; margin: 0;">${b.description}</p>` : ''}
+          ${b.tagline ? `<p style="color: #6b7280; font-size: 0.875rem; margin: 0;">${b.tagline}</p>` : ''}
         </div>`).join('')}
       </div>
-      ${(gc('manufacturersPage.ctaHeading') || gc('manufacturersPage.ctaText')) ? `
-      <div class="card-mls" style="margin-top: 3rem; padding: 2rem; text-align: center;">
-        ${gc('manufacturersPage.ctaHeading') ? `<h2 class="font-heading" style="font-size: 1.5rem; font-weight: 600; margin: 0 0 0.75rem; color: #111827;">${gc('manufacturersPage.ctaHeading')}</h2>` : ''}
-        ${gc('manufacturersPage.ctaText') ? `<p style="color: #6b7280; margin: 0 0 1.5rem; line-height: 1.7;">${gc('manufacturersPage.ctaText')}</p>` : ''}
-        <a href="/api/preview/${siteId}?page=contact" class="btn-primary" style="display: inline-flex;">${gc('manufacturersPage.ctaButtonText') || 'Contact Us'}</a>
-      </div>` : ''}
     </div>
   </section>`;
 }
