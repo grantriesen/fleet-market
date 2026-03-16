@@ -698,6 +698,62 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
         );
       }
 
+      case 'buttonField': {
+        // Single combined row: button text (2fr) + destination selector (1fr)
+        // Saves to: fieldKey.text and fieldKey.destination
+        const btnTextKey = `${fieldKey}.text`;
+        const btnDestKey = `${fieldKey}.destination`;
+        const btnTextVal = content[btnTextKey] !== undefined ? content[btnTextKey] : (field.defaultText || field.default || '');
+        const btnDestVal = content[btnDestKey] !== undefined ? content[btnDestKey] : (field.defaultDestination || '');
+        const bfPages = templateConfig?.pages || [];
+        const selectedPage = bfPages.find((p: any) => p.slug === btnDestVal);
+        const destLabel = selectedPage ? selectedPage.name : btnDestVal === '__custom' ? 'Custom' : '↗ Link';
+        return (
+          <div key={field.key}>
+            <label className="block text-sm font-medium mb-2">
+              {field.label}
+              {(field.helpText || field.help) && (
+                <span className="text-xs text-gray-500 block mt-1">{field.helpText || field.help}</span>
+              )}
+            </label>
+            <div className="flex gap-2 items-center">
+              {/* Button text — 2fr */}
+              <input
+                type="text"
+                value={btnTextVal}
+                onChange={(e) => updateContent(btnTextKey, e.target.value)}
+                className="flex-[2] px-3 py-2 border rounded text-sm"
+                placeholder={field.defaultText || field.default || 'Button label'}
+              />
+              {/* Destination selector — 1fr, uses native <select> for simplicity */}
+              <div className="flex-1">
+                <select
+                  value={btnDestVal}
+                  onChange={(e) => updateContent(btnDestKey, e.target.value)}
+                  className="w-full px-2 py-2 border rounded text-xs bg-white text-gray-600"
+                  title="Button destination"
+                >
+                  <option value="">↗ Link</option>
+                  {bfPages.map((p: any) => (
+                    <option key={p.slug} value={p.slug}>{p.name}</option>
+                  ))}
+                  <option value="__custom">Custom URL...</option>
+                </select>
+              </div>
+            </div>
+            {btnDestVal === '__custom' && (
+              <input
+                type="text"
+                value={content[`${btnDestKey}_url`] || ''}
+                onChange={(e) => updateContent(`${btnDestKey}_url`, e.target.value)}
+                className="w-full px-3 py-2 border rounded mt-2 text-sm"
+                placeholder="https://example.com"
+              />
+            )}
+          </div>
+        );
+      }
+
       default:
         // Render any unknown field types as text inputs so nothing gets dropped
         return (
