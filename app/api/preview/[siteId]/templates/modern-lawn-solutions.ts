@@ -86,6 +86,7 @@ export async function renderModernLawnPage(
   vis: Record<string, boolean>,
   content?: Record<string, string>,
   supabase?: any,
+  manufacturers: any[] = [],
 ) {
   // Content resolution: passed content (from route) > customizations > config > demo overrides
   const MLS_KEY_ALIASES: Record<string,string> = {
@@ -144,7 +145,7 @@ export async function renderModernLawnPage(
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice); break;
     case 'rentals': body = mlsRentalsPage(siteId, getContent); break;
-    case 'manufacturers': body = mlsManufacturersPage(siteId, getContent); break;
+    case 'manufacturers': body = mlsManufacturersPage(siteId, getContent, manufacturers); break;
     default: body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase); break;
   }
 
@@ -711,8 +712,6 @@ function mlsRentalsPage(siteId: string, gc: (k: string) => string): string {
 
   <section data-section="rentalGrid" style="padding: 2rem 0 4rem;">
     <div class="container-mls">
-      ${gc('rentalsPage.contentHeading') ? `<h2 style="font-size: 1.5rem; font-weight: 700; margin: 0 0 0.75rem; color: #111827;">${gc('rentalsPage.contentHeading')}</h2>` : ''}
-      ${gc('rentalsPage.contentText') ? `<p style="color: #6b7280; margin: 0 0 1.5rem; line-height: 1.7;">${gc('rentalsPage.contentText')}</p>` : ''}
       <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1.5rem;">Showing ${rentals.length} rental items</p>
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
         ${rentals.map(r => `
@@ -748,7 +747,6 @@ function mlsRentalsPage(siteId: string, gc: (k: string) => string): string {
           </div>
         </div>`).join('')}
       </div>
-      ${gc('rentalsPage.pricingNote') ? `<p style="margin-top: 2rem; font-size: 0.875rem; color: #6b7280; font-style: italic; border-top: 1px solid #e5e7eb; padding-top: 1.5rem;">${gc('rentalsPage.pricingNote')}</p>` : ''}
     </div>
   </section>`;
 }
@@ -756,15 +754,14 @@ function mlsRentalsPage(siteId: string, gc: (k: string) => string): string {
 // ══════════════════════════════════════════════════
 //  MANUFACTURERS PAGE
 // ══════════════════════════════════════════════════
-function mlsManufacturersPage(siteId: string, gc: (k: string) => string): string {
-  const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'Exmark': '/images/logos/exmark.png', 'ECHO': '/images/logos/Echo.png', 'Honda': '/images/logos/Honda.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Kubota': '/images/logos/kubota.jpg' };
-  const brands = [
-    { name: 'Toro', tagline: 'Count on it' },
-    { name: 'Exmark', tagline: 'The next cut above' },
-    { name: 'ECHO', tagline: 'Professional-grade outdoor power' },
-    { name: 'Honda', tagline: 'The power of dreams' },
-    { name: 'Husqvarna', tagline: 'Rethink the outdoors' },
-    { name: 'Kubota', tagline: 'For Earth, For Life' },
+function mlsManufacturersPage(siteId: string, gc: (k: string) => string, manufacturers: any[] = []): string {
+  const brands = manufacturers.length > 0 ? manufacturers : [
+    { name: 'Toro', logo_url: '', description: 'Count on it' },
+    { name: 'Exmark', logo_url: '', description: 'The next cut above' },
+    { name: 'ECHO', logo_url: '', description: 'Professional-grade outdoor power' },
+    { name: 'Honda', logo_url: '', description: 'The power of dreams' },
+    { name: 'Husqvarna', logo_url: '', description: 'Rethink the outdoors' },
+    { name: 'Kubota', logo_url: '', description: 'For Earth, For Life' },
   ];
 
   return `
@@ -777,15 +774,22 @@ function mlsManufacturersPage(siteId: string, gc: (k: string) => string): string
 
   <section data-section="manufacturersList" style="padding: 3rem 0 4rem;">
     <div class="container-mls">
-      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem;">
-        ${brands.map(b => `
+      ${gc('manufacturersPage.introText') ? `<p style="color: #6b7280; margin: 0 0 2rem; line-height: 1.7; max-width: 700px;">${gc('manufacturersPage.introText')}</p>` : ''}
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem;">
+        ${brands.map((b: any) => `
         <div class="card-mls" style="padding: 2rem; text-align: center;">
           <div style="height: 4rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-            <img src="${logos[b.name] || ''}" alt="${b.name}" style="height: 48px; width: auto;">
+            ${(b.logo_url || b.logoUrl) ? `<img src="${b.logo_url || b.logoUrl}" alt="${b.name}" style="height: 48px; width: auto; max-width: 120px; object-fit: contain;">` : `<span style="font-weight: 700; font-size: 1rem; color: #374151;">${b.name}</span>`}
           </div>
-          ${b.tagline ? `<p style="color: #6b7280; font-size: 0.875rem; margin: 0;">${b.tagline}</p>` : ''}
+          ${b.description ? `<p style="color: #6b7280; font-size: 0.875rem; margin: 0;">${b.description}</p>` : ''}
         </div>`).join('')}
       </div>
+      ${(gc('manufacturersPage.ctaHeading') || gc('manufacturersPage.ctaText')) ? `
+      <div class="card-mls" style="margin-top: 3rem; padding: 2rem; text-align: center;">
+        ${gc('manufacturersPage.ctaHeading') ? `<h2 class="font-heading" style="font-size: 1.5rem; font-weight: 600; margin: 0 0 0.75rem; color: #111827;">${gc('manufacturersPage.ctaHeading')}</h2>` : ''}
+        ${gc('manufacturersPage.ctaText') ? `<p style="color: #6b7280; margin: 0 0 1.5rem; line-height: 1.7;">${gc('manufacturersPage.ctaText')}</p>` : ''}
+        <a href="/api/preview/${siteId}?page=contact" class="btn-primary" style="display: inline-flex;">${gc('manufacturersPage.ctaButtonText') || 'Contact Us'}</a>
+      </div>` : ''}
     </div>
   </section>`;
 }

@@ -422,7 +422,7 @@ async function generateTemplateHTML(
     } catch {}
     return await renderModernLawnPage(
       siteId, page, availablePages, displayProducts,
-      config, customizations, mlsFeatures, mlsVis, content, supabase,
+      config, customizations, mlsFeatures, mlsVis, content, supabase, manufacturers || [],
     );
   }
 
