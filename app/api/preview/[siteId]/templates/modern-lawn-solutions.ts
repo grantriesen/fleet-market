@@ -711,6 +711,8 @@ function mlsRentalsPage(siteId: string, gc: (k: string) => string): string {
 
   <section data-section="rentalGrid" style="padding: 2rem 0 4rem;">
     <div class="container-mls">
+      ${gc('rentalsPage.contentHeading') ? `<h2 style="font-size: 1.5rem; font-weight: 700; margin: 0 0 0.75rem; color: #111827;">${gc('rentalsPage.contentHeading')}</h2>` : ''}
+      ${gc('rentalsPage.contentText') ? `<p style="color: #6b7280; margin: 0 0 1.5rem; line-height: 1.7;">${gc('rentalsPage.contentText')}</p>` : ''}
       <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1.5rem;">Showing ${rentals.length} rental items</p>
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
         ${rentals.map(r => `
@@ -746,6 +748,7 @@ function mlsRentalsPage(siteId: string, gc: (k: string) => string): string {
           </div>
         </div>`).join('')}
       </div>
+      ${gc('rentalsPage.pricingNote') ? `<p style="margin-top: 2rem; font-size: 0.875rem; color: #6b7280; font-style: italic; border-top: 1px solid #e5e7eb; padding-top: 1.5rem;">${gc('rentalsPage.pricingNote')}</p>` : ''}
     </div>
   </section>`;
 }
