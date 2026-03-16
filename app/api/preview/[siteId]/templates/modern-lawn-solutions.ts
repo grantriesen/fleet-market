@@ -380,8 +380,8 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
             <h1 class="font-heading" style="font-size: 3.25rem; font-weight: 700; line-height: 1.1; margin: 0 0 1.5rem; color: #111827;">${gc('hero.heading')}</h1>
             <p style="font-size: 1.125rem; color: #6b7280; margin: 0 0 2rem; line-height: 1.7;">${gc('hero.subheading')}</p>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-              <a href="/api/preview/${siteId}?page=inventory" class="btn-primary">${gc('hero.ctaPrimary') || 'Browse Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-              <a href="/api/preview/${siteId}?page=contact" class="btn-outline">${gc('hero.ctaSecondary') || 'Contact Us'}</a>
+              <a href="/api/preview/${siteId}?page=${gc('hero.ctaPrimaryLink') || 'inventory'}" class="btn-primary">${gc('hero.ctaPrimary') || 'Browse Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+              <a href="/api/preview/${siteId}?page=${gc('hero.ctaSecondaryLink') || 'contact'}" class="btn-outline">${gc('hero.ctaSecondary') || 'Contact Us'}</a>
             </div>
           </div>
           <div style="border-radius: 0.75rem; overflow: hidden; height: 500px;">
@@ -421,7 +421,7 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
           </div>`).join('')}
         </div>
         <div style="text-align: center; margin-top: 2.5rem;">
-          <a href="/api/preview/${siteId}?page=inventory" class="btn-outline">View All Equipment <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+          <a href="/api/preview/${siteId}?page=${gc('featured.ctaLink') || 'inventory'}" class="btn-outline">${gc('featured.ctaText') || 'View All Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
         </div>
       </div>
     </section>`;
@@ -489,7 +489,7 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
       <div class="container-mls" style="text-align: center;">
         <h2 class="font-heading" style="font-size: 2rem; font-weight: 700; margin: 0 0 1rem; color: #fff;">${gc('cta.heading')}</h2>
         <p style="font-size: 1.0625rem; color: rgba(255,255,255,0.85); max-width: 600px; margin: 0 auto 2rem; line-height: 1.7;">${gc('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background: #fff; color: ${colors.primary}; padding: 0.875rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${gc('cta.button')}</a>
+        <a href="/api/preview/${siteId}?page=${gc('cta.ctaLink') || 'contact'}" style="display: inline-block; background: #fff; color: ${colors.primary}; padding: 0.875rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${gc('cta.ctaText') || gc('cta.button') || 'Contact Us Today'}</a>
       </div>
     </section>`;
   }
