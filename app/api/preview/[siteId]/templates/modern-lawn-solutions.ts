@@ -75,7 +75,7 @@ export const MODERN_LAWN_SAMPLE_PRODUCTS = [
 ];
 
 // ── Main Render Function ──
-export function renderModernLawnPage(
+export async function renderModernLawnPage(
   siteId: string,
   currentPage: string,
   pages: any[],
