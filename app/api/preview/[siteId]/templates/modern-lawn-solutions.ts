@@ -75,7 +75,7 @@ export const MODERN_LAWN_SAMPLE_PRODUCTS = [
 ];
 
 // ── Main Render Function ──
-export function renderModernLawnPage(
+export async function renderModernLawnPage(
   siteId: string,
   currentPage: string,
   pages: any[],
@@ -85,6 +85,7 @@ export function renderModernLawnPage(
   enabledFeatures: Set<string>,
   vis: Record<string, boolean>,
   content?: Record<string, string>,
+  supabase?: any,
 ) {
   // Content resolution: passed content (from route) > customizations > config > demo overrides
   const MLS_KEY_ALIASES: Record<string,string> = {
@@ -380,8 +381,8 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
             <h1 class="font-heading" style="font-size: 3.25rem; font-weight: 700; line-height: 1.1; margin: 0 0 1.5rem; color: #111827;">${gc('hero.heading')}</h1>
             <p style="font-size: 1.125rem; color: #6b7280; margin: 0 0 2rem; line-height: 1.7;">${gc('hero.subheading')}</p>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-              <a href="/api/preview/${siteId}?page=${gc('hero.button1.destination') || gc('hero.ctaPrimaryLink') || 'inventory'}" class="btn-primary">${gc('hero.button1.text') || gc('hero.ctaPrimary') || 'Browse Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-              <a href="/api/preview/${siteId}?page=${gc('hero.button2.destination') || gc('hero.ctaSecondaryLink') || 'contact'}" class="btn-outline">${gc('hero.button2.text') || gc('hero.ctaSecondary') || 'Contact Us'}</a>
+              <a href="/api/preview/${siteId}?page=${gc('hero.ctaPrimaryLink') || 'inventory'}" class="btn-primary">${gc('hero.ctaPrimary') || 'Browse Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+              <a href="/api/preview/${siteId}?page=${gc('hero.ctaSecondaryLink') || 'contact'}" class="btn-outline">${gc('hero.ctaSecondary') || 'Contact Us'}</a>
             </div>
           </div>
           <div style="border-radius: 0.75rem; overflow: hidden; height: 500px;">
@@ -421,7 +422,7 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
           </div>`).join('')}
         </div>
         <div style="text-align: center; margin-top: 2.5rem;">
-          <a href="/api/preview/${siteId}?page=${gc('featured.button.destination') || gc('featured.ctaLink') || 'inventory'}" class="btn-outline">${gc('featured.button.text') || gc('featured.ctaText') || 'View All Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+          <a href="/api/preview/${siteId}?page=${gc('featured.ctaLink') || 'inventory'}" class="btn-outline">${gc('featured.ctaText') || 'View All Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
         </div>
       </div>
     </section>`;
@@ -453,12 +454,43 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
   // ── Testimonials ──
   if (vis.testimonials !== false) {
     let testimonials: any[] = [];
-    try { testimonials = JSON.parse(gc('testimonials.items') || '[]'); } catch {}
+    // Try DB first
+    if (supabase) {
+      try {
+        const { data } = await supabase
+          .from('testimonials')
+          .select('author_name, author_title, author_company, testimonial_text, rating')
+          .eq('site_id', siteId)
+          .order('display_order', { ascending: true });
+        if (data && data.length > 0) {
+          testimonials = data.map((t: any) => ({
+            name: t.author_name,
+            role: [t.author_title, t.author_company].filter(Boolean).join(', '),
+            content: t.testimonial_text,
+            rating: t.rating || 5,
+          }));
+        }
+      } catch {}
+    }
+    // Fall back to individual config fields
+    if (testimonials.length === 0) {
+      const t1q = gc('testimonials.testimonial1Quote'), t1a = gc('testimonials.testimonial1Author'), t1r = gc('testimonials.testimonial1Role');
+      const t2q = gc('testimonials.testimonial2Quote'), t2a = gc('testimonials.testimonial2Author'), t2r = gc('testimonials.testimonial2Role');
+      const t3q = gc('testimonials.testimonial3Quote'), t3a = gc('testimonials.testimonial3Author'), t3r = gc('testimonials.testimonial3Role');
+      if (t1q || t2q || t3q) {
+        testimonials = [
+          t1q ? { name: t1a || '', role: t1r || '', content: t1q, rating: 5 } : null,
+          t2q ? { name: t2a || '', role: t2r || '', content: t2q, rating: 5 } : null,
+          t3q ? { name: t3a || '', role: t3r || '', content: t3q, rating: 5 } : null,
+        ].filter(Boolean) as any[];
+      }
+    }
+    // Final hardcoded fallback for demo
     if (testimonials.length === 0) {
       testimonials = [
         { name: 'Mike J.', role: 'Landscaping Business Owner', content: 'The team helped me find the perfect zero-turn mower. Expertise saved me time and money!', rating: 5 },
         { name: 'Sarah W.', role: 'Homeowner', content: 'Staff took the time to understand my needs. Now I have the perfect setup for my property.', rating: 5 },
-        { name: 'David C.', role: 'Property Manager', content: 'We\'ve been buying equipment here for over 5 years. Service department is top-notch.', rating: 5 },
+        { name: 'David C.', role: 'Property Manager', content: "We've been buying equipment here for over 5 years. Service department is top-notch.", rating: 5 },
       ];
     }
     html += `
@@ -489,7 +521,7 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
       <div class="container-mls" style="text-align: center;">
         <h2 class="font-heading" style="font-size: 2rem; font-weight: 700; margin: 0 0 1rem; color: #fff;">${gc('cta.heading')}</h2>
         <p style="font-size: 1.0625rem; color: rgba(255,255,255,0.85); max-width: 600px; margin: 0 auto 2rem; line-height: 1.7;">${gc('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=${gc('cta.button.destination') || gc('cta.ctaLink') || 'contact'}" style="display: inline-block; background: #fff; color: ${colors.primary}; padding: 0.875rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${gc('cta.button.text') || gc('cta.ctaText') || gc('cta.button') || 'Contact Us Today'}</a>
+        <a href="/api/preview/${siteId}?page=${gc('cta.ctaLink') || 'contact'}" style="display: inline-block; background: #fff; color: ${colors.primary}; padding: 0.875rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${gc('cta.ctaText') || gc('cta.button') || 'Contact Us Today'}</a>
       </div>
     </section>`;
   }

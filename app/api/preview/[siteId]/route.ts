@@ -420,9 +420,9 @@ async function generateTemplateHTML(
         .from('site_features').select('feature_key').eq('site_id', site.id).eq('is_enabled', true);
       if (features) features.forEach((f: any) => mlsFeatures.add(f.feature_key));
     } catch {}
-    return renderModernLawnPage(
+    return await renderModernLawnPage(
       siteId, page, availablePages, displayProducts,
-      config, customizations, mlsFeatures, mlsVis, content,
+      config, customizations, mlsFeatures, mlsVis, content, supabase,
     );
   }
 
@@ -438,7 +438,6 @@ async function generateTemplateHTML(
     return renderWarmEarthPage(
       siteId, page, availablePages, displayProducts,
       config, customizations, weFeatures, weVis, content,
-      manufacturers || [],
     );
   }
 
