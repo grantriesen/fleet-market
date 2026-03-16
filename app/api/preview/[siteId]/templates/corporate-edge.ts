@@ -318,7 +318,7 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
 
   const quickLinks = pages
     .filter((p: any) => p.is_visible !== false)
-    .map(p => `<li><a href="/api/preview/${siteId}?page=${p.slug}" class="text-white/70 hover:text-white transition-corporate">${p.name || p.title}</a></li>`)
+    .map((p: any) => `<li><a href="/api/preview/${siteId}?page=${p.slug}" class="text-white/70 hover:text-white transition-corporate">${p.name || p.title}</a></li>`)
     .join('\n');
 
   const brandList = manufacturers.length > 0
@@ -343,19 +343,16 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
           <p class="text-white/70 mb-6 leading-relaxed">${tagline}</p>
           <div class="flex gap-4">${socialLinks}</div>
         </div>
-
         <!-- Quick Links -->
         <div>
           <h3 class="font-heading font-semibold text-lg mb-6">Quick Links</h3>
           <ul class="space-y-3">${quickLinks}</ul>
         </div>
-
         <!-- Brands -->
         <div>
           <h3 class="font-heading font-semibold text-lg mb-6">Brands We Carry</h3>
           <ul class="space-y-3 text-white/70">${brandList}</ul>
         </div>
-
         <!-- Contact -->
         <div>
           <h3 class="font-heading font-semibold text-lg mb-6">Contact Us</h3>
@@ -377,8 +374,6 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
         </div>
       </div>
     </div>
-
-    <!-- Bottom bar -->
     <div class="border-t border-white/10">
       <div class="container-corporate py-6">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-white/60">
@@ -392,259 +387,6 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
     </div>
   </footer>`;
 }
-
-// ── Home Sections ──
-function ceHomeSections(siteId: string, getContent: Function, products: any[], enabledFeatures: Set<string>, vis: Record<string, boolean>, colors: any, manufacturers: any[] = []) {
-  let html = '';
-
-  // ── Hero ──
-  if (vis.hero !== false) {
-    const heroImg = getContent('hero.image') || getContent('hero.backgroundImage') || '/images/hero-mower.jpg';
-    html += `
-    <section data-section="hero" class="relative overflow-hidden flex items-center" style="min-height: 550px;">
-      <div class="absolute inset-0 bg-cover bg-center bg-no-repeat" style="background-image: url('${heroImg}');"></div>
-      <div class="absolute inset-0" style="background: linear-gradient(to right, ${colors.primary}f2, ${colors.primary}d9, ${colors.primary}b3);"></div>
-      <div class="relative container-corporate py-20 lg:py-32">
-        <div class="max-w-3xl mx-auto text-center">
-          <h1 class="font-heading text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-            ${getContent('hero.heading') || getContent('hero.headline') || getContent('hero.title') || 'Professional Equipment You Can Trust'}
-          </h1>
-          <p class="text-base md:text-xl text-white/80 mb-10 leading-relaxed">
-            ${getContent('hero.subheading') || getContent('hero.subheadline') || getContent('hero.subtitle') || ''}
-          </p>
-          <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/api/preview/${siteId}?page=${getContent('hero.button1.destination') || getContent('hero.ctaPrimaryLink') || 'inventory'}"
-              class="inline-flex items-center justify-center px-8 py-3.5 rounded font-semibold text-lg text-white transition-corporate hover:brightness-110"
-              style="background-color: ${colors.secondary};">
-              ${getContent('hero.button1.text') || getContent('hero.ctaPrimary') || getContent('hero.primaryCta') || 'Browse Inventory'}
-            </a>
-            <a href="/api/preview/${siteId}?page=${getContent('hero.button2.destination') || getContent('hero.ctaSecondaryLink') || 'contact'}"
-              class="inline-flex items-center justify-center px-8 py-3.5 rounded font-semibold text-lg text-white border-2 border-white hover:bg-white transition-corporate"
-              style="hover:color: ${colors.primary};">
-              ${getContent('hero.button2.text') || getContent('hero.ctaSecondary') || getContent('hero.secondaryCta') || 'Schedule Consultation'}
-            </a>
-          </div>
-        </div>
-      </div>
-      <!-- Bottom wave -->
-      <div class="absolute bottom-0 left-0 right-0">
-        <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto" preserveAspectRatio="none">
-          <path d="M0 60L1440 60L1440 30C1440 30 1320 0 720 0C120 0 0 30 0 30L0 60Z" fill="#f8fafc"/>
-        </svg>
-      </div>
-    </section>`;
-  }
-
-  // ── Trust Badges (Why Choose Us) ──
-  if (vis.trustBadges !== false) {
-    const b1t = getContent('trustBadges.badge1Title'), b1i = getContent('trustBadges.badge1Icon'), b1d = getContent('trustBadges.badge1Text');
-    const b2t = getContent('trustBadges.badge2Title'), b2i = getContent('trustBadges.badge2Icon'), b2d = getContent('trustBadges.badge2Text');
-    const b3t = getContent('trustBadges.badge3Title'), b3i = getContent('trustBadges.badge3Icon'), b3d = getContent('trustBadges.badge3Text');
-    const b4t = getContent('trustBadges.badge4Title'), b4i = getContent('trustBadges.badge4Icon'), b4d = getContent('trustBadges.badge4Text');
-    const badges = [
-      b1t ? { icon: b1i || '✓', title: b1t, description: b1d } : null,
-      b2t ? { icon: b2i || '🔧', title: b2t, description: b2d } : null,
-      b3t ? { icon: b3i || '📦', title: b3t, description: b3d } : null,
-      b4t ? { icon: b4i || '💳', title: b4t, description: b4d } : null,
-    ].filter(Boolean);
-    if (badges.length > 0) {
-      html += `
-      <section data-section="trustBadges" class="py-16 bg-gray-100">
-        <div class="container-corporate">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            ${badges.map((b: any) => `
-            <div class="bg-white p-6 rounded shadow-sm border border-gray-200 text-center transition-corporate hover:shadow-md hover:-translate-y-1">
-              <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style="background-color: ${colors.primary}15;">
-                <span class="text-2xl">${b.icon}</span>
-              </div>
-              <h3 class="font-heading font-semibold text-lg text-gray-900 mb-2">${b.title}</h3>
-              <p class="text-gray-500 text-sm">${b.description}</p>
-            </div>`).join('')}
-          </div>
-        </div>
-      </section>`;
-    }
-  }
-
-  // ── Stats ──
-  if (vis.stats !== false) {
-    const s1v = getContent('stats.stat1Number'), s1l = getContent('stats.stat1Label');
-    const s2v = getContent('stats.stat2Number'), s2l = getContent('stats.stat2Label');
-    const s3v = getContent('stats.stat3Number'), s3l = getContent('stats.stat3Label');
-    const s4v = getContent('stats.stat4Number'), s4l = getContent('stats.stat4Label');
-    const stats = [
-      s1v ? { value: s1v, label: s1l } : null,
-      s2v ? { value: s2v, label: s2l } : null,
-      s3v ? { value: s3v, label: s3l } : null,
-      s4v ? { value: s4v, label: s4l } : null,
-    ].filter(Boolean);
-    if (stats.length > 0) {
-      html += `
-      <section data-section="stats" class="py-16 bg-white">
-        <div class="container-corporate">
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            ${stats.map((s: any) => `
-            <div class="text-center p-6 bg-white rounded shadow-sm border border-gray-200 transition-corporate hover:shadow-md">
-              <div class="font-heading text-3xl lg:text-5xl font-bold mb-2" style="color: ${colors.primary};">${s.value}</div>
-              <div class="text-gray-500 font-medium text-sm md:text-base">${s.label}</div>
-            </div>`).join('')}
-          </div>
-        </div>
-      </section>`;
-    }
-  }
-
-  // ── Featured Products ──
-  if (vis.featuredProducts !== false && products.length > 0) {
-    const featured = products.slice(0, 4);
-    html += `
-    <section data-section="featuredProducts" class="py-20 bg-white">
-      <div class="container-corporate">
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-12">
-          <div>
-            <h2 class="font-heading text-3xl lg:text-4xl font-bold text-gray-900 mb-2">${getContent('featured.heading') || 'Featured Equipment'}</h2>
-            <p class="text-gray-500">${getContent('featured.subheading') || 'Explore our selection of premium lawn care equipment'}</p>
-          </div>
-          <a href="/api/preview/${siteId}?page=inventory" class="inline-flex items-center gap-2 font-semibold hover:gap-3 transition-all" style="color: ${colors.primary};">
-            View All Inventory
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-          </a>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          ${featured.map((p: any) => {
-            const imgUrl = p.image_url || p.primary_image || ''; const hasImage = imgUrl && !imgUrl.includes('placeholder');
-            const displayPrice = p.sale_price || p.price;
-            return `
-          <div class="group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white">
-            <div class="aspect-square relative overflow-hidden bg-gray-100">
-              ${hasImage
-                ? `<img src="${imgUrl}" alt="${p.name || p.title}" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
-                : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                    <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                  </div>`}
-              <span class="absolute top-3 left-3 px-2.5 py-1 rounded text-xs font-semibold text-white" style="background-color: ${colors.primary};">${p.brand || 'Brand'}</span>
-              ${p.condition === 'used' ? `<span class="absolute top-3 right-3 px-2 py-1 rounded text-xs font-semibold bg-amber-500 text-white">Used${p.hours ? ` · ${p.hours}hrs` : ''}</span>` : ''}
-            </div>
-            <div class="p-5">
-              <p class="text-sm text-gray-500 mb-1">${p.category || ''}</p>
-              <h3 class="font-heading font-semibold text-gray-900 mb-2 truncate">${p.name || p.title}</h3>
-              <p class="text-gray-500 text-sm mb-4 line-clamp-2">${p.description || ''}</p>
-              <div class="flex items-center justify-between">
-                <div>
-                  ${p.sale_price ? `<span class="text-gray-400 line-through text-sm mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
-                  <span class="font-heading font-bold text-lg" style="color: ${colors.primary};">$${Number(displayPrice).toLocaleString()}</span>
-                </div>
-                <a href="/api/preview/${siteId}?page=contact" class="text-sm font-semibold hover:underline" style="color: ${colors.primary};">Details →</a>
-              </div>
-            </div>
-          </div>`;
-          }).join('')}
-        </div>
-      </div>
-    </section>`;
-  }
-
-  // ── Manufacturers ──
-  if (vis.manufacturers !== false) {
-    const mfgList = manufacturers.length > 0 ? manufacturers : [
-      { name: 'John Deere', logo_url: '' }, { name: 'Exmark', logo_url: '' },
-      { name: 'Stihl', logo_url: '' }, { name: 'Husqvarna', logo_url: '' },
-      { name: 'Kubota', logo_url: '' }, { name: 'Toro', logo_url: '' },
-    ];
-    html += `
-    <section data-section="manufacturers" class="py-20 bg-gray-100">
-      <div class="container-corporate">
-        <div class="text-center mb-12">
-          <h2 class="font-heading text-3xl lg:text-4xl font-bold text-gray-900 mb-4">${getContent('manufacturers.heading') || 'Authorized Dealer'}</h2>
-          <p class="text-gray-500 max-w-2xl mx-auto">${getContent('manufacturers.subheading') || "We're proud to be an authorized dealer for the industry's leading brands"}</p>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-          ${mfgList.slice(0, 6).map((m: any) => `
-          <a href="/api/preview/${siteId}?page=manufacturers" class="group bg-white p-6 rounded border border-gray-200 transition-corporate hover:shadow-md hover:border-blue-200 text-center">
-            ${(m.logo_url || m.logoUrl) ? `<img src="${m.logo_url || m.logoUrl}" alt="${m.name}" style="max-height: 48px; width: auto; margin: 0 auto 0.75rem auto; display: block;">` : `<div style="height:48px;display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;"><span class="font-bold text-gray-700 text-sm">${m.name}</span></div>`}
-            <p class="font-semibold text-gray-900 text-sm">${m.name}</p>
-            <div class="flex items-center justify-center gap-1 mt-1">
-              <svg class="w-3 h-3" style="color: ${colors.accent};" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-              <span class="text-xs" style="color: ${colors.accent};">Authorized</span>
-            </div>
-          </a>`).join('')}
-        </div>
-        <div class="text-center mt-10">
-          <a href="/api/preview/${siteId}?page=manufacturers" class="inline-flex items-center gap-2 font-semibold hover:gap-3 transition-all" style="color: ${colors.primary};">
-            View All Manufacturers
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-          </a>
-        </div>
-      </div>
-    </section>`;
-  }
-
-  // ── Testimonials ──
-  if (vis.testimonials !== false) {
-    let testimonials: any[] = [];
-    try { testimonials = JSON.parse(getContent('testimonials.items') || '[]'); } catch {}
-    if (testimonials.length > 0) {
-      html += `
-      <section data-section="testimonials" class="py-20 bg-white">
-        <div class="container-corporate">
-          <div class="text-center mb-12">
-            <h2 class="font-heading text-3xl lg:text-4xl font-bold text-gray-900 mb-4">What Our Customers Say</h2>
-            <p class="text-gray-500 max-w-2xl mx-auto">Don't just take our word for it — hear from the professionals who trust us</p>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            ${testimonials.map((t: any) => `
-            <div class="border border-gray-200 rounded transition-corporate hover:shadow-lg p-8 bg-white">
-              <svg class="w-10 h-10 mb-4 opacity-20" style="color: ${colors.primary};" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983z"/></svg>
-              <p class="text-gray-700 mb-6 leading-relaxed">"${t.quote}"</p>
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-                  <span class="font-heading font-bold text-sm" style="color: ${colors.primary};">${t.name?.split(' ').map((w: string) => w[0]).join('') || ''}</span>
-                </div>
-                <div>
-                  <p class="font-heading font-semibold text-gray-900">${t.name}</p>
-                  <p class="text-sm text-gray-500">${t.title}, ${t.company}</p>
-                </div>
-              </div>
-            </div>`).join('')}
-          </div>
-        </div>
-      </section>`;
-    }
-  }
-
-  // ── CTA ──
-  if (vis.cta !== false) {
-    html += `
-    <section data-section="cta" class="py-20" style="background-color: ${colors.primary};">
-      <div class="container-corporate">
-        <div class="max-w-3xl mx-auto text-center">
-          <h2 class="font-heading text-3xl lg:text-4xl font-bold text-white mb-4">${getContent('cta.heading') || getContent('cta.headline') || 'Ready to Upgrade Your Equipment?'}</h2>
-          <p class="text-white/80 text-lg mb-8 leading-relaxed">${getContent('cta.description') || getContent('cta.subheadline') || getContent('cta.subheading') || ''}</p>
-          <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/api/preview/${siteId}?page=${getContent('cta.button1.destination') || getContent('cta.ctaLink') || 'contact'}"
-              class="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded font-semibold text-lg text-white transition-corporate hover:brightness-110"
-              style="background-color: ${colors.secondary};">
-              ${getContent('cta.button1.text') || getContent('cta.button') || 'Schedule Consultation'}
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-            </a>
-            ${(getContent('cta.button2.text') || getContent('cta.secondaryButton')) ? `
-            <a href="/api/preview/${siteId}?page=${getContent('cta.button2.destination') || 'inventory'}"
-              class="inline-flex items-center justify-center px-8 py-3.5 rounded font-semibold text-lg text-white border-2 border-white hover:bg-white transition-corporate">
-              ${getContent('cta.button2.text') || getContent('cta.secondaryButton')}
-            </a>` : `
-            <a href="/api/preview/${siteId}?page=inventory"
-              class="inline-flex items-center justify-center px-8 py-3.5 rounded font-semibold text-lg text-white border-2 border-white hover:bg-white transition-corporate">
-              Browse Equipment
-            </a>`}
-          </div>
-        </div>
-      </div>
-    </section>`;
-  }
-
-  return html;
-}
-
 // ── Service Page ──
 function ceServicePage(siteId: string, getContent: Function) {
   let services: any[] = [];
