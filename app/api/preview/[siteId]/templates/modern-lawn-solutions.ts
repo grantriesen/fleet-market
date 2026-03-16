@@ -85,6 +85,7 @@ export async function renderModernLawnPage(
   enabledFeatures: Set<string>,
   vis: Record<string, boolean>,
   content?: Record<string, string>,
+  supabase?: any,
 ) {
   // Content resolution: passed content (from route) > customizations > config > demo overrides
   const MLS_KEY_ALIASES: Record<string,string> = {
