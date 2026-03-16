@@ -1390,12 +1390,21 @@ function gvRentalsPageStatic(
   <section data-section="rentalsList" class="py-12 bg-background">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center py-12">
-        <div class="w-20 h-20 mx-auto mb-6 bg-primary rounded-full flex items-center justify-center"><span class="text-3xl">🚜</span></div>
-        <h2 class="text-2xl font-bold text-foreground mb-2">Rental Equipment</h2>
-        <p class="text-muted-foreground mb-6">Contact us for current rental availability and rates.</p>
-        <a href="tel:${phone.replace(/[^0-9]/g, '')}" class="cta-button rounded-md inline-flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          Call: ${phone}
+        ${(() => {
+          const ctaImg = getContent('rentalsPage.ctaIcon');
+          const ctaEmoji = getContent('rentalsPage.ctaEmoji') || '🚜';
+          const isImg = ctaImg && (ctaImg.startsWith('http') || ctaImg.startsWith('/'));
+          return `<div class="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center overflow-hidden" style="background-color:var(--color-primary);border:3px solid var(--color-primary);">
+            ${isImg
+              ? `<img src="${ctaImg}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:9999px;">`
+              : `<span class="text-3xl">${ctaEmoji}</span>`
+            }
+          </div>`;
+        })()}
+        <h2 class="text-2xl font-bold text-foreground mb-2">${getContent('rentalsPage.ctaHeading') || 'Rental Equipment'}</h2>
+        <p class="text-muted-foreground mb-6">${getContent('rentalsPage.ctaText') || 'Contact us for current rental availability and rates.'}</p>
+        <a href="/api/preview/${siteId}?page=${getContent('rentalsPage.ctaLink') || 'contact'}" class="cta-button rounded-md inline-flex items-center gap-2">
+          ${getContent('rentalsPage.ctaButton') || 'Contact Us'}
         </a>
       </div>
 
