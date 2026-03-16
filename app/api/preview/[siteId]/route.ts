@@ -392,6 +392,7 @@ async function generateTemplateHTML(
       ceEnabledFeatures,
       ceVis,
       content,
+      manufacturers || [],
     );
   }
 
