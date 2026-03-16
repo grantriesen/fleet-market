@@ -400,15 +400,15 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
             ${getContent('hero.subheading') || getContent('hero.subheadline') || getContent('hero.subtitle') || ''}
           </p>
           <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/api/preview/${siteId}?page=inventory"
+            <a href="/api/preview/${siteId}?page=${getContent('hero.button1.destination') || getContent('hero.ctaPrimaryLink') || 'inventory'}"
               class="inline-flex items-center justify-center px-8 py-3.5 rounded font-semibold text-lg text-white transition-corporate hover:brightness-110"
               style="background-color: ${colors.secondary};">
-              ${getContent('hero.ctaPrimary') || getContent('hero.primaryCta') || getContent('hero.ctaButton') || 'Browse Inventory'}
+              ${getContent('hero.button1.text') || getContent('hero.ctaPrimary') || getContent('hero.primaryCta') || 'Browse Inventory'}
             </a>
-            <a href="/api/preview/${siteId}?page=contact"
+            <a href="/api/preview/${siteId}?page=${getContent('hero.button2.destination') || getContent('hero.ctaSecondaryLink') || 'contact'}"
               class="inline-flex items-center justify-center px-8 py-3.5 rounded font-semibold text-lg text-white border-2 border-white hover:bg-white transition-corporate"
               style="hover:color: ${colors.primary};">
-              ${getContent('hero.ctaSecondary') || getContent('hero.secondaryCta') || 'Schedule Consultation'}
+              ${getContent('hero.button2.text') || getContent('hero.ctaSecondary') || getContent('hero.secondaryCta') || 'Schedule Consultation'}
             </a>
           </div>
         </div>
@@ -608,16 +608,21 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
           <h2 class="font-heading text-3xl lg:text-4xl font-bold text-white mb-4">${getContent('cta.heading') || getContent('cta.headline') || 'Ready to Upgrade Your Equipment?'}</h2>
           <p class="text-white/80 text-lg mb-8 leading-relaxed">${getContent('cta.description') || getContent('cta.subheadline') || getContent('cta.subheading') || ''}</p>
           <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/api/preview/${siteId}?page=contact"
+            <a href="/api/preview/${siteId}?page=${getContent('cta.button1.destination') || getContent('cta.ctaLink') || 'contact'}"
               class="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded font-semibold text-lg text-white transition-corporate hover:brightness-110"
               style="background-color: ${colors.secondary};">
-              ${getContent('cta.button') || 'Schedule Consultation'}
+              ${getContent('cta.button1.text') || getContent('cta.button') || 'Schedule Consultation'}
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
             </a>
+            ${(getContent('cta.button2.text') || getContent('cta.secondaryButton')) ? `
+            <a href="/api/preview/${siteId}?page=${getContent('cta.button2.destination') || 'inventory'}"
+              class="inline-flex items-center justify-center px-8 py-3.5 rounded font-semibold text-lg text-white border-2 border-white hover:bg-white transition-corporate">
+              ${getContent('cta.button2.text') || getContent('cta.secondaryButton')}
+            </a>` : `
             <a href="/api/preview/${siteId}?page=inventory"
               class="inline-flex items-center justify-center px-8 py-3.5 rounded font-semibold text-lg text-white border-2 border-white hover:bg-white transition-corporate">
               Browse Equipment
-            </a>
+            </a>`}
           </div>
         </div>
       </div>
