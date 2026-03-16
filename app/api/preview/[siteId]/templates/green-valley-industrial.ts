@@ -1003,8 +1003,8 @@ function gvServicePage(
       <!-- Urgent Service & Contact -->
       <div class="grid md:grid-cols-2 gap-4 mt-6">
         <div class="bg-primary text-white rounded-lg p-5">
-          <h3 class="font-bold text-lg mb-1 uppercase tracking-wide">Need Urgent Service?</h3>
-          <p class="text-white/80 text-sm mb-3">For emergency repairs, give us a call.</p>
+          <h3 class="font-bold text-lg mb-1 uppercase tracking-wide">${getContent('servicePage.urgentHeading') || 'Need Urgent Service?'}</h3>
+          <p class="text-white/80 text-sm mb-3">${getContent('servicePage.urgentText') || 'For emergency repairs, give us a call.'}</p>
           <a href="tel:${phone.replace(/[^0-9]/g, '')}" class="block w-full cta-button rounded-md text-center text-sm">Call: ${phone}</a>
         </div>
         <div class="industrial-card rounded-lg p-5 flex items-center gap-4">
@@ -1132,7 +1132,7 @@ function gvServicePage(
   <section data-section="serviceCta" class="py-12 bg-muted">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
       <h2 class="section-heading text-center mb-2">Request Service</h2>
-      <p class="text-center text-muted-foreground mb-8">Fill out the form below and we'll get back to you within 1 business day.</p>
+      <p class="text-center text-muted-foreground mb-8">${getContent('servicePage.formSubheading') || "Fill out the form below and we'll get back to you as quickly as possible."}</p>
       <div class="industrial-card rounded-lg">
         <div class="p-6">
           <form class="space-y-4" method="POST" action="/api/service/book/${siteId}" id="serviceBasicForm">
@@ -1151,8 +1151,8 @@ function gvServicePage(
       <!-- Urgent + Email -->
       <div class="grid md:grid-cols-2 gap-4 mt-6">
         <div class="bg-primary text-white rounded-lg p-5">
-          <h3 class="font-bold text-lg mb-1 uppercase tracking-wide">Need Urgent Service?</h3>
-          <p class="text-white/80 text-sm mb-3">For emergency repairs, give us a call.</p>
+          <h3 class="font-bold text-lg mb-1 uppercase tracking-wide">${getContent('servicePage.urgentHeading') || 'Need Urgent Service?'}</h3>
+          <p class="text-white/80 text-sm mb-3">${getContent('servicePage.urgentText') || 'For emergency repairs, give us a call.'}</p>
           <a href="tel:${phone.replace(/[^0-9]/g, '')}" class="block w-full cta-button rounded-md text-center text-sm">Call: ${phone}</a>
         </div>
         <div class="industrial-card rounded-lg p-5 flex items-center gap-4">
