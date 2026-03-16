@@ -315,7 +315,7 @@ function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => stri
   const ig = getContent('social.instagram');
   const yt = getContent('social.youtube');
 
-  const navLinks = ['home', 'inventory', 'rentals', 'service', 'manufacturers', 'contact'];
+  // Use available pages array so footer respects page visibility
 
   return `
   <footer style="background: #111827; color: #e5e7eb;">
@@ -335,7 +335,7 @@ function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => stri
         <div>
           <h4 style="font-size: 1rem; font-weight: 600; color: #fff; margin: 0 0 1rem;">Quick Links</h4>
           <nav style="display: flex; flex-direction: column; gap: 0.5rem;">
-            ${navLinks.map(slug => `<a href="/api/preview/${siteId}?page=${slug}" style="font-size: 0.875rem; color: #9ca3af; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#9ca3af'">${slug.charAt(0).toUpperCase() + slug.slice(1)}</a>`).join('')}
+            ${pages.map((p: any) => `<a href="/api/preview/${siteId}?page=${p.slug}" style="font-size: 0.875rem; color: #9ca3af; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#9ca3af'">${p.name}</a>`).join('')}
           </nav>
         </div>
         <!-- Contact Info -->
@@ -351,9 +351,12 @@ function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => stri
         <div>
           <h4 style="font-size: 1rem; font-weight: 600; color: #fff; margin: 0 0 1rem;">Business Hours</h4>
           <div style="font-size: 0.875rem; color: #9ca3af; display: flex; flex-direction: column; gap: 0.25rem;">
-            <div style="display: flex; justify-content: space-between;"><span>Mon - Fri</span><span>${weekday}</span></div>
-            <div style="display: flex; justify-content: space-between;"><span>Saturday</span><span>${saturday}</span></div>
-            <div style="display: flex; justify-content: space-between;"><span>Sunday</span><span>${sunday}</span></div>
+            ${['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map(day => {
+              const h = getContent('hours.' + day);
+              if (!h) return '';
+              const label = day.charAt(0).toUpperCase() + day.slice(1);
+              return '<div style="display: flex; justify-content: space-between; gap: 1rem;"><span>' + label + '</span><span>' + h + '</span></div>';
+            }).filter(Boolean).join('')}
           </div>
         </div>
       </div>
