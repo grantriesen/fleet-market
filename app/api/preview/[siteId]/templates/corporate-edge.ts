@@ -155,7 +155,7 @@ export function renderCorporateEdgePage(
     colors,
     ceHeader(siteId, currentPage, pages, getContent, weekdayHours, colors) +
     body +
-    ceFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours)
+    ceFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours, colors, manufacturers)
   );
 }
 
@@ -290,12 +290,17 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
 }
 
 // ── Footer ──
-function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHours: string, saturdayHours: string, sundayHours: string) {
-  const businessName = getContent('business.name') || 'Premier Equipment';
-  const phone = getContent('business.phone') || '';
-  const email = getContent('business.email') || '';
-  const address = getContent('business.address') || '';
-  const tagline = getContent('footer.tagline') || getContent('business.tagline') || '';
+function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHours: string, saturdayHours: string, sundayHours: string, colors: any = {}, manufacturers: any[] = []) {
+  const businessName = getContent('businessInfo.businessName') || getContent('business.name') || 'Premier Equipment';
+  const logoImage = getContent('businessInfo.logoImage');
+  const phone = getContent('businessInfo.phone') || getContent('business.phone') || '';
+  const email = getContent('businessInfo.email') || getContent('business.email') || '';
+  const address = getContent('businessInfo.address') || getContent('business.address') || '';
+  const city = getContent('businessInfo.city');
+  const state = getContent('businessInfo.state');
+  const zip = getContent('businessInfo.zip');
+  const tagline = getContent('footer.tagline') || getContent('businessInfo.tagline') || getContent('business.tagline') || '';
+  const primary = colors.primary || '#1e3a8a';
   const initials = businessName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
   const socialLinks = ['facebook', 'linkedin', 'youtube'].map(platform => {
@@ -311,20 +316,28 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
     </a>`;
   }).filter(Boolean).join('');
 
-  const quickLinks = pages.map(p =>
-    `<li><a href="/api/preview/${siteId}?page=${p.slug}" class="text-white/70 hover:text-white transition-corporate">${p.name || p.title}</a></li>`
-  ).join('\n');
+  const quickLinks = pages
+    .filter((p: any) => p.is_visible !== false)
+    .map(p => `<li><a href="/api/preview/${siteId}?page=${p.slug}" class="text-white/70 hover:text-white transition-corporate">${p.name || p.title}</a></li>`)
+    .join('\n');
+
+  const brandList = manufacturers.length > 0
+    ? manufacturers.slice(0, 6).map((m: any) => `<li>${m.name}</li>`).join('')
+    : '<li>John Deere</li><li>Exmark</li><li>Stihl</li><li>Husqvarna</li><li>Kubota</li><li>Scag</li>';
+
+  const fullAddress = [address, city, state, zip].filter(Boolean).join(', ');
 
   return `
-  <footer style="background-color: var(--ce-primary, #1e3a8a); --ce-primary: ${getContent('_colors_primary') || '#1e3a8a'};" class="text-white">
+  <footer style="background-color: ${primary};" class="text-white">
     <div class="container-corporate py-16">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
         <!-- Brand -->
         <div>
           <div class="flex items-center gap-3 mb-6">
-            <div class="bg-white rounded p-2">
-              <span class="font-heading font-bold text-lg" style="color: ${getContent('_colors_primary') || '#1e3a8a'};">${initials}</span>
-            </div>
+            ${logoImage
+              ? `<img src="${logoImage}" alt="${businessName}" style="max-height:48px;max-width:160px;object-fit:contain;">`
+              : `<div class="bg-white rounded p-2"><span class="font-heading font-bold text-lg" style="color:${primary};">${initials}</span></div>`
+            }
             <span class="font-heading font-bold text-xl">${businessName}</span>
           </div>
           <p class="text-white/70 mb-6 leading-relaxed">${tagline}</p>
@@ -340,9 +353,7 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
         <!-- Brands -->
         <div>
           <h3 class="font-heading font-semibold text-lg mb-6">Brands We Carry</h3>
-          <ul class="space-y-3 text-white/70">
-            <li>John Deere</li><li>Exmark</li><li>Stihl</li><li>Husqvarna</li><li>Kubota</li><li>Scag</li>
-          </ul>
+          <ul class="space-y-3 text-white/70">${brandList}</ul>
         </div>
 
         <!-- Contact -->
@@ -351,14 +362,16 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
           <ul class="space-y-4 text-white/70">
             ${phone ? `<li class="flex items-start gap-3"><svg class="w-5 h-5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg><a href="tel:${phone}" class="hover:text-white">${phone}</a></li>` : ''}
             ${email ? `<li class="flex items-start gap-3"><svg class="w-5 h-5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><a href="mailto:${email}" class="hover:text-white">${email}</a></li>` : ''}
-            ${address ? `<li class="flex items-start gap-3"><svg class="w-5 h-5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span>${address}</span></li>` : ''}
+            ${fullAddress ? `<li class="flex items-start gap-3"><svg class="w-5 h-5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span>${fullAddress}</span></li>` : ''}
           </ul>
           <div class="mt-6 pt-6 border-t border-white/10">
             <h4 class="font-semibold mb-2">Business Hours</h4>
             <div class="text-white/70 text-sm space-y-1">
-              <p>Mon–Fri: ${weekdayHours}</p>
-              <p>Saturday: ${saturdayHours}</p>
-              <p>Sunday: ${sundayHours}</p>
+              ${['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map(day => {
+                const h = getContent('hours.' + day);
+                if (!h) return '';
+                return `<p>${day.charAt(0).toUpperCase() + day.slice(1)}: ${h}</p>`;
+              }).filter(Boolean).join('')}
             </div>
           </div>
         </div>
