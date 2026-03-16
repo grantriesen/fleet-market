@@ -75,7 +75,7 @@ export const MODERN_LAWN_SAMPLE_PRODUCTS = [
 ];
 
 // ── Main Render Function ──
-export async function renderModernLawnPage(
+export function renderModernLawnPage(
   siteId: string,
   currentPage: string,
   pages: any[],
@@ -85,7 +85,6 @@ export async function renderModernLawnPage(
   enabledFeatures: Set<string>,
   vis: Record<string, boolean>,
   content?: Record<string, string>,
-  supabase?: any,
 ) {
   // Content resolution: passed content (from route) > customizations > config > demo overrides
   const MLS_KEY_ALIASES: Record<string,string> = {
@@ -139,13 +138,13 @@ export async function renderModernLawnPage(
 
   let body = '';
   switch (currentPage) {
-    case 'home': case 'index': body = mlsHome(siteId, getContent, products, vis, colors, fmtPrice); break;
+    case 'home': case 'index': body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase); break;
     case 'service': body = mlsServicePage(siteId, getContent); break;
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice); break;
     case 'rentals': body = mlsRentalsPage(siteId, getContent); break;
     case 'manufacturers': body = mlsManufacturersPage(siteId, getContent); break;
-    default: body = mlsHome(siteId, getContent, products, vis, colors, fmtPrice); break;
+    default: body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase); break;
   }
 
   return mlsHtmlShell(
@@ -367,7 +366,7 @@ function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => stri
 // ══════════════════════════════════════════════════
 //  HOME PAGE
 // ══════════════════════════════════════════════════
-function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis: Record<string, boolean>, colors: any, fmtPrice: (p: number | null) => string): string {
+async function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis: Record<string, boolean>, colors: any, fmtPrice: (p: number | null) => string, supabase?: any): Promise<string> {
   let html = '';
 
   // ── Hero: Split Layout ──
@@ -454,43 +453,12 @@ function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis
   // ── Testimonials ──
   if (vis.testimonials !== false) {
     let testimonials: any[] = [];
-    // Try DB first
-    if (supabase) {
-      try {
-        const { data } = await supabase
-          .from('testimonials')
-          .select('author_name, author_title, author_company, testimonial_text, rating')
-          .eq('site_id', siteId)
-          .order('display_order', { ascending: true });
-        if (data && data.length > 0) {
-          testimonials = data.map((t: any) => ({
-            name: t.author_name,
-            role: [t.author_title, t.author_company].filter(Boolean).join(', '),
-            content: t.testimonial_text,
-            rating: t.rating || 5,
-          }));
-        }
-      } catch {}
-    }
-    // Fall back to individual config fields
-    if (testimonials.length === 0) {
-      const t1q = gc('testimonials.testimonial1Quote'), t1a = gc('testimonials.testimonial1Author'), t1r = gc('testimonials.testimonial1Role');
-      const t2q = gc('testimonials.testimonial2Quote'), t2a = gc('testimonials.testimonial2Author'), t2r = gc('testimonials.testimonial2Role');
-      const t3q = gc('testimonials.testimonial3Quote'), t3a = gc('testimonials.testimonial3Author'), t3r = gc('testimonials.testimonial3Role');
-      if (t1q || t2q || t3q) {
-        testimonials = [
-          t1q ? { name: t1a || '', role: t1r || '', content: t1q, rating: 5 } : null,
-          t2q ? { name: t2a || '', role: t2r || '', content: t2q, rating: 5 } : null,
-          t3q ? { name: t3a || '', role: t3r || '', content: t3q, rating: 5 } : null,
-        ].filter(Boolean) as any[];
-      }
-    }
-    // Final hardcoded fallback for demo
+    try { testimonials = JSON.parse(gc('testimonials.items') || '[]'); } catch {}
     if (testimonials.length === 0) {
       testimonials = [
         { name: 'Mike J.', role: 'Landscaping Business Owner', content: 'The team helped me find the perfect zero-turn mower. Expertise saved me time and money!', rating: 5 },
         { name: 'Sarah W.', role: 'Homeowner', content: 'Staff took the time to understand my needs. Now I have the perfect setup for my property.', rating: 5 },
-        { name: 'David C.', role: 'Property Manager', content: "We've been buying equipment here for over 5 years. Service department is top-notch.", rating: 5 },
+        { name: 'David C.', role: 'Property Manager', content: 'We\'ve been buying equipment here for over 5 years. Service department is top-notch.', rating: 5 },
       ];
     }
     html += `
