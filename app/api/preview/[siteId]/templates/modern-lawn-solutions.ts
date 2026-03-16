@@ -508,12 +508,12 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
   const categories = [...new Set(products.map((p: any) => p.category).filter(Boolean))];
 
   return `
-  <section data-section="inventoryHero" class="page-header-mls">
-    <div class="container-mls">
-      <h1>${gc('inventoryPage.heading') || gc('inventory.heading') || 'Equipment Inventory'}</h1>
-      <p>${gc('inventoryPage.subheading') || gc('inventory.description') || 'Browse our complete selection of lawn care equipment.'}</p>
-    </div>
-  </section>
+  ${(() => {
+    const _img = gc('inventoryPage.heroImage');
+    return _img
+      ? `<section data-section="inventoryHero" style="padding:3rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${gc('inventoryPage.heading') || gc('inventory.heading') || 'Equipment Inventory'}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${gc('inventoryPage.subheading') || gc('inventory.description') || 'Browse our complete selection of lawn care equipment.'}</p></div></section>`
+      : `<section data-section="inventoryHero" class="page-header-mls"><div class="container-mls"><h1>${gc('inventoryPage.heading') || gc('inventory.heading') || 'Equipment Inventory'}</h1><p>${gc('inventoryPage.subheading') || gc('inventory.description') || 'Browse our complete selection of lawn care equipment.'}</p></div></section>`;
+  })()}
 
   <section data-section="inventoryGrid" style="padding: 2rem 0 4rem;">
     <div class="container-mls">
@@ -598,12 +598,12 @@ function mlsServicePage(siteId: string, gc: (k: string) => string): string {
   }
 
   return `
-  <section data-section="serviceHero" class="page-header-mls">
-    <div class="container-mls">
-      <h1>${gc('servicePage.heading') || gc('services.heading') || 'Equipment Service'}</h1>
-      <p>${gc('servicePage.subheading') || gc('services.description') || 'Professional maintenance and repair services.'}</p>
-    </div>
-  </section>
+  ${(() => {
+    const _img = gc('servicePage.heroImage');
+    return _img
+      ? `<section data-section="serviceHero" style="padding:3rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${gc('servicePage.heading') || gc('services.heading') || 'Equipment Service'}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${gc('servicePage.subheading') || gc('services.description') || 'Professional maintenance and repair services.'}</p></div></section>`
+      : `<section data-section="serviceHero" class="page-header-mls"><div class="container-mls"><h1>${gc('servicePage.heading') || gc('services.heading') || 'Equipment Service'}</h1><p>${gc('servicePage.subheading') || gc('services.description') || 'Professional maintenance and repair services.'}</p></div></section>`;
+  })()}
 
   <section data-section="serviceTypes" style="padding: 3rem 0;">
     <div class="container-mls">
@@ -654,12 +654,12 @@ function mlsServicePage(siteId: string, gc: (k: string) => string): string {
 // ══════════════════════════════════════════════════
 function mlsContactPage(siteId: string, gc: (k: string) => string, weekday: string, saturday: string, sunday: string): string {
   return `
-  <section data-section="contactHero" class="page-header-mls">
-    <div class="container-mls">
-      <h1>${gc('contactPage.heading') || gc('contact.heading') || 'Contact Us'}</h1>
-      <p>${gc('contactPage.subheading') || gc('contact.description') || 'We\'d love to hear from you.'}</p>
-    </div>
-  </section>
+  ${(() => {
+    const _img = gc('contactPage.heroImage');
+    return _img
+      ? `<section data-section="contactHero" style="padding:3rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${gc('contactPage.heading') || gc('contact.heading') || 'Contact Us'}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${gc('contactPage.subheading') || gc('contact.description') || "We'd love to hear from you."}</p></div></section>`
+      : `<section data-section="contactHero" class="page-header-mls"><div class="container-mls"><h1>${gc('contactPage.heading') || gc('contact.heading') || 'Contact Us'}</h1><p>${gc('contactPage.subheading') || gc('contact.description') || "We'd love to hear from you."}</p></div></section>`;
+  })()}
 
   <section data-section="contactForm" style="padding: 3rem 0 4rem;">
     <div class="container-mls">
@@ -703,12 +703,12 @@ function mlsRentalsPage(siteId: string, gc: (k: string) => string): string {
   }
 
   return `
-  <section data-section="rentalsHero" class="page-header-mls">
-    <div class="container-mls">
-      <h1>${gc('rentalsPage.heading') || gc('rentals.heading') || 'Equipment Rentals'}</h1>
-      <p>${gc('rentalsPage.subheading') || gc('rentals.description') || 'Professional equipment available for rent.'}</p>
-    </div>
-  </section>
+  ${(() => {
+    const _img = gc('rentalsPage.heroImage');
+    return _img
+      ? `<section data-section="rentalsHero" style="padding:3rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${gc('rentalsPage.heading') || gc('rentals.heading') || 'Equipment Rentals'}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${gc('rentalsPage.subheading') || gc('rentals.description') || 'Professional equipment available for rent.'}</p></div></section>`
+      : `<section data-section="rentalsHero" class="page-header-mls"><div class="container-mls"><h1>${gc('rentalsPage.heading') || gc('rentals.heading') || 'Equipment Rentals'}</h1><p>${gc('rentalsPage.subheading') || gc('rentals.description') || 'Professional equipment available for rent.'}</p></div></section>`;
+  })()}
 
   <section data-section="rentalGrid" style="padding: 2rem 0 4rem;">
     <div class="container-mls">
@@ -766,12 +766,12 @@ function mlsManufacturersPage(siteId: string, gc: (k: string) => string): string
   ];
 
   return `
-  <section data-section="mfgHero" class="page-header-mls">
-    <div class="container-mls">
-      <h1>${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading') || 'Our Manufacturers'}</h1>
-      <p>${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription') || 'Trusted brands we proudly represent.'}</p>
-    </div>
-  </section>
+  ${(() => {
+    const _img = gc('manufacturersPage.heroImage');
+    return _img
+      ? `<section data-section="mfgHero" style="padding:3rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading') || 'Our Manufacturers'}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription') || 'Trusted brands we proudly represent.'}</p></div></section>`
+      : `<section data-section="mfgHero" class="page-header-mls"><div class="container-mls"><h1>${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading') || 'Our Manufacturers'}</h1><p>${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription') || 'Trusted brands we proudly represent.'}</p></div></section>`;
+  })()}
 
   <section data-section="manufacturersList" style="padding: 3rem 0 4rem;">
     <div class="container-mls">
