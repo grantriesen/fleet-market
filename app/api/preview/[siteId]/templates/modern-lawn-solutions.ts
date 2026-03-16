@@ -490,7 +490,7 @@ async function mlsHome(siteId: string, gc: (k: string) => string, products: any[
       <div class="container-mls" style="text-align: center;">
         <h2 class="font-heading" style="font-size: 2rem; font-weight: 700; margin: 0 0 1rem; color: #fff;">${gc('cta.heading')}</h2>
         <p style="font-size: 1.0625rem; color: rgba(255,255,255,0.85); max-width: 600px; margin: 0 auto 2rem; line-height: 1.7;">${gc('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=${gc('cta.ctaLink') || 'contact'}" style="display: inline-block; background: #fff; color: ${colors.primary}; padding: 0.875rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${gc('cta.ctaText') || gc('cta.button') || 'Contact Us Today'}</a>
+        <a href="/api/preview/${siteId}?page=${gc('cta.button.destination') || gc('cta.ctaLink') || 'contact'}" style="display: inline-block; background: #fff; color: ${colors.primary}; padding: 0.875rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${gc('cta.button.text') || gc('cta.ctaText') || gc('cta.button') || 'Contact Us Today'}</a>
       </div>
     </section>`;
   }
