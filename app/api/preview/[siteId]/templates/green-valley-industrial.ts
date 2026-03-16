@@ -1221,6 +1221,7 @@ function gvInventoryPageStatic(
   <section class="bg-muted py-4 border-b-2 border-border sticky top-16 z-30">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex flex-wrap gap-4 items-center">
+        ${getContent('inventoryPage.filterLabel') ? `<span class="text-xs font-bold text-muted-foreground uppercase tracking-wider mr-2">${getContent('inventoryPage.filterLabel')}</span>` : ''}
         ${categories.length > 1 ? `
         <div class="flex items-center gap-2">
           <label class="text-xs font-bold text-muted-foreground uppercase tracking-wider">Category</label>
@@ -1297,9 +1298,9 @@ function gvInventoryPageStatic(
       `}
 
       <div class="mt-12 bg-muted rounded-lg p-6 md:p-8 text-center">
-        <h2 class="text-2xl font-bold text-primary uppercase tracking-tight mb-2">Don't see what you're looking for?</h2>
-        <p class="text-muted-foreground mb-4">Contact us and we'll help you find the right equipment for your needs.</p>
-        <a href="/api/preview/${siteId}?page=contact" class="inline-flex items-center gap-2 cta-button rounded-md">Contact Us</a>
+        <h2 class="text-2xl font-bold text-primary uppercase tracking-tight mb-2">${getContent('inventoryPage.ctaHeading') || "Don't see what you're looking for?"}</h2>
+        <p class="text-muted-foreground mb-4">${getContent('inventoryPage.ctaText') || "Contact us and we'll help you find the right equipment for your needs."}</p>
+        <a href="/api/preview/${siteId}?page=${getContent('inventoryPage.ctaLink') || 'contact'}" class="inline-flex items-center gap-2 cta-button rounded-md">${getContent('inventoryPage.ctaButton') || 'Contact Us'}</a>
       </div>
     </div>
   </section>
