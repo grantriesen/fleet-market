@@ -510,6 +510,17 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
   // ── ButtonField widget (needs hooks so defined as inner component) ──
   const ButtonFieldWidget = ({ fieldKey, field }: { fieldKey: string; field: any }) => {
     const [open, setOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      if (!open) return;
+      const handler = (e: MouseEvent) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+          setOpen(false);
+        }
+      };
+      document.addEventListener('mousedown', handler);
+      return () => document.removeEventListener('mousedown', handler);
+    }, [open]);
     const btnTextKey = `${fieldKey}.text`;
     const btnDestKey = `${fieldKey}.destination`;
     const btnTextVal = content[btnTextKey] !== undefined ? content[btnTextKey] : (field.defaultText || field.default || '');
@@ -532,7 +543,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
             className="flex-1 px-3 py-2 border rounded text-sm"
             placeholder={field.defaultText || field.default || 'Button label'}
           />
-          <div className="relative flex-shrink-0">
+          <div className="relative flex-shrink-0" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setOpen(!open)}
@@ -540,9 +551,8 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
               className={`h-full px-2.5 border rounded flex items-center justify-center transition-colors ${selectedPage || btnDestVal ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-300 bg-white text-gray-400 hover:text-gray-600 hover:border-gray-400'}`}
             >
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                <polyline points="15 3 21 3 21 9"/>
-                <line x1="10" y1="14" x2="21" y2="3"/>
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
               </svg>
             </button>
             {open && (
