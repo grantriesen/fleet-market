@@ -439,10 +439,15 @@ function gvHomeSections(
               class="cta-button rounded-md">
               ${getContent('hero.ctaButton') || 'View Inventory'}
             </a>
+            ${(getContent('hero.secondaryButton') || getContent('hero.secondaryLink')) ? `
+            <a href="/api/preview/${siteId}?page=${getContent('hero.secondaryLink') || 'contact'}"
+              class="bg-transparent border-2 border-white text-white hover:bg-white hover:text-primary font-bold uppercase tracking-wider px-8 py-3 rounded-md transition-colors text-sm">
+              ${getContent('hero.secondaryButton') || 'Contact Us'}
+            </a>` : `
             <a href="/api/preview/${siteId}?page=contact"
               class="bg-transparent border-2 border-white text-white hover:bg-white hover:text-primary font-bold uppercase tracking-wider px-8 py-3 rounded-md transition-colors text-sm">
               Contact Us
-            </a>
+            </a>`}
           </div>
         </div>
       </div>
@@ -522,24 +527,40 @@ function gvHomeSections(
   }
 
   // ── Manufacturers ──
-  if (sectionVisibility.manufacturers !== false && manufacturers.length > 0) {
+  if (sectionVisibility.manufacturers !== false) {
+    // Use real manufacturers if available, otherwise show placeholder slots
+    const mfgList = manufacturers.length > 0 ? manufacturers : [
+      { name: 'Toro', logo_url: '' }, { name: 'John Deere', logo_url: '' },
+      { name: 'Husqvarna', logo_url: '' }, { name: 'Stihl', logo_url: '' },
+      { name: 'Cub Cadet', logo_url: '' }, { name: 'Honda', logo_url: '' },
+    ];
+    // Duplicate list for seamless infinite scroll if enough items
+    const carouselItems = mfgList.length < 4 ? [...mfgList, ...mfgList, ...mfgList] : [...mfgList, ...mfgList];
     html += `
-    <section data-section="manufacturers" class="py-12 md:py-16 bg-muted">
-      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="section-heading text-center mb-8">${getContent('manufacturers.heading') || 'Our Brands'}</h2>
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-          ${manufacturers.slice(0, 6).map(m => `
+    <section data-section="manufacturers" class="py-12 md:py-16 bg-muted overflow-hidden">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <h2 class="section-heading text-center">${getContent('manufacturers.heading') || 'Brands We Carry'}</h2>
+        ${getContent('manufacturers.subheading') ? `<p class="text-center text-muted-foreground mt-2">${getContent('manufacturers.subheading')}</p>` : ''}
+      </div>
+      <div class="relative">
+        <div id="gv-mfg-track" class="flex gap-6 w-max" style="animation: gvScroll 30s linear infinite;">
+          ${carouselItems.map(m => `
             <a href="/api/preview/${siteId}?page=manufacturers"
-              class="bg-card p-6 border-2 border-border hover:border-secondary transition-colors rounded-lg flex flex-col items-center justify-center text-center group">
-              ${m.logo_url
-                ? `<img src="${m.logo_url}" alt="${m.name}" class="max-h-12 w-auto opacity-70 group-hover:opacity-100 transition-opacity mb-2">`
-                : `<div class="w-12 h-12 bg-muted rounded mb-2"></div>`
+              class="flex-shrink-0 bg-card border-2 border-border hover:border-secondary transition-colors rounded-lg flex flex-col items-center justify-center text-center group"
+              style="width:160px;padding:1.5rem 1rem;">
+              ${(m.logo_url || m.logoUrl)
+                ? `<img src="${m.logo_url || m.logoUrl}" alt="${m.name}" class="max-h-12 w-auto opacity-70 group-hover:opacity-100 transition-opacity mb-2" style="max-width:120px;">`
+                : `<div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center mb-2"><span class="text-secondary font-bold text-xs uppercase">${m.name.slice(0,2)}</span></div>`
               }
-              <span class="text-sm font-semibold uppercase tracking-wide text-muted-foreground group-hover:text-foreground transition-colors">${m.name}</span>
+              <span class="text-xs font-bold uppercase tracking-wide text-muted-foreground group-hover:text-foreground transition-colors">${m.name}</span>
             </a>
           `).join('')}
         </div>
       </div>
+      <style>
+        @keyframes gvScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        #gv-mfg-track:hover { animation-play-state: paused; }
+      </style>
     </section>
     `;
   }
