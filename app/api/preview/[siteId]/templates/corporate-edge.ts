@@ -211,18 +211,23 @@ ${body}
 
 // ── Header ──
 function ceHeader(siteId: string, currentPage: string, pages: any[], getContent: Function, weekdayHours: string, colors: any) {
-  const businessName = getContent('business.name') || 'Premier Equipment';
-  const phone = getContent('business.phone') || '(555) 123-4567';
+  const businessName = getContent('businessInfo.businessName') || getContent('business.name') || 'Premier Equipment';
+  const logoImage = getContent('businessInfo.logoImage');
+  const phone = getContent('businessInfo.phone') || getContent('business.phone') || '';
   const initials = businessName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+  // Read weekday hours directly from plain text config fields (fallback to parsed JSON hours)
+  const mondayHours = getContent('hours.monday') || weekdayHours;
 
-  const navLinks = pages.map(p => {
-    const isActive = p.slug === currentPage || (p.slug === 'index' && (currentPage === 'home' || currentPage === 'index'));
-    return `<a href="/api/preview/${siteId}?page=${p.slug}"
-      class="px-4 py-2 text-sm font-medium rounded transition-corporate ${isActive
-        ? 'bg-white/20 text-white'
-        : 'text-white/80 hover:text-white hover:bg-white/10'}"
-    >${p.name || p.title}</a>`;
-  }).join('\n');
+  const navLinks = pages
+    .filter((p: any) => p.is_visible !== false)
+    .map(p => {
+      const isActive = p.slug === currentPage || (p.slug === 'index' && (currentPage === 'home' || currentPage === 'index'));
+      return `<a href="/api/preview/${siteId}?page=${p.slug}"
+        class="px-4 py-2 text-sm font-medium rounded transition-corporate ${isActive
+          ? 'bg-white/20 text-white'
+          : 'text-white/80 hover:text-white hover:bg-white/10'}"
+      >${p.name || p.title}</a>`;
+    }).join('\n');
 
   return `
   <header class="sticky top-0 z-50 shadow-lg" style="background-color: ${colors.primary};">
@@ -230,11 +235,11 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
     <div class="border-b border-white/10" style="background-color: ${colors.primary}; filter: brightness(0.9);">
       <div class="container-corporate py-2">
         <div class="flex justify-between items-center text-sm text-white/80">
-          <span class="hidden sm:inline">Mon–Fri: ${weekdayHours}</span>
-          <a href="tel:${phone}" class="flex items-center gap-2 hover:text-white transition-corporate">
+          ${mondayHours ? `<span class="hidden sm:inline">Mon–Fri: ${mondayHours}</span>` : '<span></span>'}
+          ${phone ? `<a href="tel:${phone}" class="flex items-center gap-2 hover:text-white transition-corporate">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
             ${phone}
-          </a>
+          </a>` : ''}
         </div>
       </div>
     </div>
@@ -243,9 +248,10 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
     <nav class="container-corporate">
       <div class="flex items-center justify-between h-16">
         <a href="/api/preview/${siteId}?page=index" class="flex items-center gap-3">
-          <div class="bg-white rounded p-2">
-            <span class="font-heading font-bold text-lg" style="color: ${colors.primary};">${initials}</span>
-          </div>
+          ${logoImage
+            ? `<img src="${logoImage}" alt="${businessName}" style="max-height:48px;max-width:160px;object-fit:contain;">`
+            : `<div class="bg-white rounded p-2"><span class="font-heading font-bold text-lg" style="color: ${colors.primary};">${initials}</span></div>`
+          }
           <span class="hidden sm:block font-heading font-bold text-white text-lg">${businessName}</span>
         </a>
 
