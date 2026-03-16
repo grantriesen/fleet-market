@@ -417,7 +417,7 @@ function gvHomeSections(
 
   // ── Hero ──
   if (sectionVisibility.hero !== false) {
-    const bgImage = getContent('hero.backgroundImage') || getContent('hero.image');
+    const bgImage = getContent('hero.image') || getContent('hero.backgroundImage');
     html += `
     <section data-section="hero" class="relative overflow-hidden">
       ${bgImage ? `
