@@ -46,6 +46,8 @@ export async function renderGreenValleyPage(
   page: string,
   googleFontsUrl: string,
   supabase?: any
+,
+  baseUrl: string = `/api/preview/${siteId}?page=`
 ): Promise<string> {
   // Load site features (add-ons) from DB
   let enabledFeatures: Set<string> = new Set();
@@ -60,15 +62,15 @@ export async function renderGreenValleyPage(
     }
   }
 
-  const header = gvHeader(getContent, colors, availablePages, siteId, page);
-  const footer = gvFooter(getContent, colors, availablePages, siteId);
+  const header = gvHeader(getContent, colors, availablePages, siteId, page, baseUrl);
+  const footer = gvFooter(getContent, colors, availablePages, siteId, baseUrl);
 
   let body = '';
 
   switch (page) {
     case 'home':
     case 'index':
-      body = gvHomeSections(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice, enabledFeatures);
+      body = gvHomeSections(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice, enabledFeatures, baseUrl);
       break;
     case 'contact':
       body = gvContactPage(getContent, colors, siteId, sectionVisibility);
@@ -229,7 +231,7 @@ function gvHeader(
   availablePages: any[],
   siteId: string,
   currentPage: string
-): string {
+, baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const businessName = getContent('businessInfo.businessName');
   const logoImage = getContent('businessInfo.logoImage');
   const phone = getContent('businessInfo.phone');
@@ -237,7 +239,7 @@ function gvHeader(
   const navLinks = availablePages.map((p: any) => {
     const isActive = p.slug === currentPage || (p.slug === 'index' && (currentPage === 'home' || currentPage === 'index'));
     return `
-      <a href="/api/preview/${siteId}?page=${p.slug}"
+      <a href="${baseUrl}${p.slug}"
         class="hidden md:block text-sm font-semibold uppercase tracking-wide transition-colors ${isActive ? 'text-secondary' : 'text-white/80 hover:text-white'}">
         ${p.name}
       </a>
@@ -247,7 +249,7 @@ function gvHeader(
   const mobileLinks = availablePages.map((p: any) => {
     const isActive = p.slug === currentPage || (p.slug === 'index' && (currentPage === 'home' || currentPage === 'index'));
     return `
-      <a href="/api/preview/${siteId}?page=${p.slug}"
+      <a href="${baseUrl}${p.slug}"
         class="block py-2 text-sm font-semibold uppercase tracking-wide ${isActive ? 'text-secondary' : 'text-white/80'}">
         ${p.name}
       </a>
@@ -260,7 +262,7 @@ function gvHeader(
       <div class="flex items-center justify-between h-16">
 
         <!-- Logo -->
-        <a href="/api/preview/${siteId}?page=home" class="flex items-center gap-3 flex-shrink-0">
+        <a href="${baseUrl}home" class="flex items-center gap-3 flex-shrink-0">
           ${logoImage
             ? `<img src="${logoImage}" alt="${businessName}" class="h-10 w-auto object-contain">`
             : `<div class="w-10 h-10 bg-secondary rounded flex items-center justify-center">
@@ -316,7 +318,7 @@ function gvFooter(
   colors: Colors,
   availablePages: any[],
   siteId: string
-): string {
+, baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const businessName = getContent('businessInfo.businessName');
   const tagline = getContent('footer.tagline') || getContent('businessInfo.tagline');
   const phone = getContent('businessInfo.phone');
@@ -362,7 +364,7 @@ function gvFooter(
           <h4 class="text-sm font-bold uppercase tracking-wide mb-3 text-white/90">Quick Links</h4>
           <div class="space-y-2">
             ${availablePages.map((p: any) => `
-              <a href="/api/preview/${siteId}?page=${p.slug}" class="block text-sm text-white/60 hover:text-secondary transition-colors">${p.name}</a>
+              <a href="${baseUrl}${p.slug}" class="block text-sm text-white/60 hover:text-secondary transition-colors">${p.name}</a>
             `).join('')}
           </div>
         </div>
@@ -411,7 +413,7 @@ function gvHomeSections(
   displayProducts: any[],
   isRealProducts: boolean,
   fmtPrice: FmtPrice,
-  enabledFeatures: Set<string> = new Set()
+  enabledFeatures: Set<string> = new Set(, baseUrl: string = `/api/preview/${siteId}?page=`)
 ): string {
   let html = '';
 
@@ -435,16 +437,16 @@ function gvHomeSections(
             ${getContent('hero.subheading')}
           </p>
           <div class="flex flex-wrap gap-4">
-            <a href="${getContent('hero.ctaLink') || `/api/preview/${siteId}?page=inventory`}"
+            <a href="${getContent('hero.ctaLink') || `${baseUrl}inventory`}"
               class="cta-button rounded-md">
               ${getContent('hero.ctaButton') || 'View Inventory'}
             </a>
             ${(getContent('hero.secondaryButton') || getContent('hero.secondaryLink')) ? `
-            <a href="/api/preview/${siteId}?page=${getContent('hero.secondaryLink') || 'contact'}"
+            <a href="${baseUrl}${getContent('hero.secondaryLink') || 'contact'}"
               class="bg-transparent border-2 border-white text-white hover:bg-white hover:text-primary font-bold uppercase tracking-wider px-8 py-3 rounded-md transition-colors text-sm">
               ${getContent('hero.secondaryButton') || 'Contact Us'}
             </a>` : `
-            <a href="/api/preview/${siteId}?page=contact"
+            <a href="${baseUrl}contact"
               class="bg-transparent border-2 border-white text-white hover:bg-white hover:text-primary font-bold uppercase tracking-wider px-8 py-3 rounded-md transition-colors text-sm">
               Contact Us
             </a>`}
@@ -545,7 +547,7 @@ function gvHomeSections(
       <div class="relative">
         <div id="gv-mfg-track" class="flex gap-6 w-max" style="animation: gvScroll 30s linear infinite;">
           ${carouselItems.map(m => `
-            <a href="/api/preview/${siteId}?page=manufacturers"
+            <a href="${baseUrl}manufacturers"
               class="flex-shrink-0 bg-card border-2 border-border hover:border-secondary transition-colors rounded-lg flex flex-col items-center justify-center text-center group"
               style="width:160px;padding:1.5rem 1rem;">
               ${(m.logo_url || m.logoUrl)
@@ -606,11 +608,11 @@ function gvHomeSections(
           ${getContent('cta.subheading')}
         </p>
         <div class="flex flex-wrap justify-center gap-4">
-          <a href="${getContent('cta.primaryLink') || `/api/preview/${siteId}?page=inventory`}"
+          <a href="${getContent('cta.primaryLink') || `${baseUrl}inventory`}"
             class="bg-primary text-white font-bold uppercase tracking-wider px-8 py-4 rounded-md hover:opacity-90 transition-opacity">
             ${getContent('cta.primaryButton') || 'Browse Inventory'}
           </a>
-          <a href="${getContent('cta.secondaryLink') || `/api/preview/${siteId}?page=contact`}"
+          <a href="${getContent('cta.secondaryLink') || `${baseUrl}contact`}"
             class="bg-transparent border-2 border-white text-white hover:bg-white hover:text-secondary font-bold uppercase tracking-wider px-8 py-4 rounded-md transition-colors">
             ${getContent('cta.secondaryButton') || 'Contact Us'}
           </a>
@@ -633,7 +635,7 @@ function gvContactPage(
   colors: Colors,
   siteId: string,
   vis: Record<string, boolean> = {}
-): string {
+, baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const heading = getContent('contactPage.heading') || 'Get In Touch';
   const subheading = getContent('contactPage.subheading') || 'Have questions? We are here to help.';
   const heroImage = getContent('contactPage.heroImage');
@@ -809,7 +811,7 @@ function gvManufacturersPage(
   manufacturers: any[],
   siteId: string,
   vis: Record<string, boolean> = {}
-): string {
+, baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const heading = getContent('manufacturersPage.heading') || 'Our Partner Manufacturers';
   const subheading = getContent('manufacturersPage.subheading') || 'We partner with industry-leading manufacturers.';
   const heroImage = getContent('manufacturersPage.heroImage');
@@ -836,7 +838,7 @@ function gvManufacturersPage(
               ${m.description ? `<p class="text-sm text-muted-foreground mb-4 leading-relaxed">${m.description}</p>` : ''}
               <div class="flex items-center gap-3 pt-3 border-t border-border">
                 ${m.website_url ? `<a href="${m.website_url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-secondary font-semibold text-sm hover:underline">Visit Website <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>` : ''}
-                <a href="/api/preview/${siteId}?page=inventory" class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline ml-auto">Learn More →</a>
+                <a href="${baseUrl}inventory" class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline ml-auto">Learn More →</a>
               </div>
             </div>
           </div>
@@ -866,7 +868,7 @@ function gvServicePage(
   siteId: string,
   hasServiceFeature: boolean = false,
   vis: Record<string, boolean> = {}
-): string {
+, baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const heading = getContent('servicePage.heading') || 'Expert Service & Repair';
   const subheading = getContent('servicePage.subheading') || 'Keep your equipment running at peak performance.';
   const heroImage = getContent('servicePage.heroImage');
@@ -1263,7 +1265,7 @@ function gvInventoryPageStatic(
           <div class="w-20 h-20 mx-auto mb-6 bg-muted rounded-full flex items-center justify-center"><span class="text-3xl">📦</span></div>
           <h2 class="text-2xl font-bold text-foreground mb-2">No Equipment Listed Yet</h2>
           <p class="text-muted-foreground mb-4">Check back soon — we're adding inventory regularly.</p>
-          <a href="/api/preview/${siteId}?page=contact" class="cta-button rounded-md inline-block">Contact Us for Availability</a>
+          <a href="${baseUrl}contact" class="cta-button rounded-md inline-block">Contact Us for Availability</a>
         </div>
       ` : `
         <div class="flex items-center justify-between mb-6">
@@ -1300,7 +1302,7 @@ function gvInventoryPageStatic(
       <div class="mt-12 bg-muted rounded-lg p-6 md:p-8 text-center">
         <h2 class="text-2xl font-bold text-primary uppercase tracking-tight mb-2">${getContent('inventoryPage.ctaHeading') || "Don't see what you're looking for?"}</h2>
         <p class="text-muted-foreground mb-4">${getContent('inventoryPage.ctaText') || "Contact us and we'll help you find the right equipment for your needs."}</p>
-        <a href="/api/preview/${siteId}?page=${getContent('inventoryPage.ctaLink') || 'contact'}" class="inline-flex items-center gap-2 cta-button rounded-md">${getContent('inventoryPage.ctaButton') || 'Contact Us'}</a>
+        <a href="${baseUrl}${getContent('inventoryPage.ctaLink') || 'contact'}" class="inline-flex items-center gap-2 cta-button rounded-md">${getContent('inventoryPage.ctaButton') || 'Contact Us'}</a>
       </div>
     </div>
   </section>
@@ -1403,7 +1405,7 @@ function gvRentalsPageStatic(
         })()}
         <h2 class="text-2xl font-bold text-foreground mb-2">${getContent('rentalsPage.ctaHeading') || 'Rental Equipment'}</h2>
         <p class="text-muted-foreground mb-6">${getContent('rentalsPage.ctaText') || 'Contact us for current rental availability and rates.'}</p>
-        <a href="/api/preview/${siteId}?page=${getContent('rentalsPage.ctaLink') || 'contact'}" class="cta-button rounded-md inline-flex items-center gap-2">
+        <a href="${baseUrl}${getContent('rentalsPage.ctaLink') || 'contact'}" class="cta-button rounded-md inline-flex items-center gap-2">
           ${getContent('rentalsPage.ctaButton') || 'Contact Us'}
         </a>
       </div>

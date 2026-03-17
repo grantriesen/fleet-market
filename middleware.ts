@@ -33,8 +33,13 @@ export async function middleware(request: NextRequest) {
 
     if (slug) {
       const url = request.nextUrl.clone();
-      // Preserve ?page= and other query params
+      // Map clean paths to ?page= param
+      // e.g. /inventory → /site/slug?page=inventory
+      const cleanPath = pathname === '/' ? 'home' : pathname.replace(/^\//, '').split('/')[0];
       url.pathname = `/site/${slug}`;
+      if (cleanPath && cleanPath !== 'home') {
+        url.searchParams.set('page', cleanPath);
+      }
       return NextResponse.rewrite(url);
     }
   }

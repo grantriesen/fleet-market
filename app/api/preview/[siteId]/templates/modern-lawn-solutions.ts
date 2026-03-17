@@ -139,13 +139,13 @@ export async function renderModernLawnPage(
 
   let body = '';
   switch (currentPage) {
-    case 'home': case 'index': body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase); break;
+    case 'home': case 'index': body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl); break;
     case 'service': body = mlsServicePage(siteId, getContent); break;
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice); break;
     case 'rentals': body = mlsRentalsPage(siteId, getContent); break;
     case 'manufacturers': body = mlsManufacturersPage(siteId, getContent); break;
-    default: body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase); break;
+    default: body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl); break;
   }
 
   return mlsHtmlShell(
@@ -154,9 +154,9 @@ export async function renderModernLawnPage(
     colors,
     siteId,
     currentPage,
-    mlsHeader(siteId, currentPage, pages, getContent, colors) +
+    mlsHeader(siteId, currentPage, pages, getContent, colors, baseUrl) +
     body +
-    mlsFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours)
+    mlsFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl)
   );
 }
 
@@ -253,7 +253,7 @@ function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, pa
 }
 
 // ── Header ──
-function mlsHeader(siteId: string, currentPage: string, pages: any[], getContent: (k: string) => string, colors: any) {
+function mlsHeader(siteId: string, currentPage: string, pages: any[], getContent: (k: string, baseUrl: string = `/api/preview/${siteId}?page=`) => string, colors: any) {
   const businessName = getContent('business.name') || 'Modern Lawn Solutions';
   const phone = getContent('business.phone');
 
@@ -272,13 +272,13 @@ function mlsHeader(siteId: string, currentPage: string, pages: any[], getContent
   return `
   <header style="position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); border-bottom: 1px solid #e5e7eb;">
     <div class="container-mls" style="display: flex; align-items: center; justify-content: space-between; height: 4rem;">
-      <a href="/api/preview/${siteId}?page=home" style="text-decoration: none; font-size: 1.25rem; font-weight: 700; color: ${colors.primary};" class="font-heading">
+      <a href="${baseUrl}home" style="text-decoration: none; font-size: 1.25rem; font-weight: 700; color: ${colors.primary};" class="font-heading">
         ${businessName}
       </a>
       <nav class="mls-desktop-nav" style="display: flex; align-items: center; gap: 1.5rem;">
         ${navItems.map(n => {
           const isActive = currentPage === n.slug || (currentPage === 'index' && n.slug === 'home');
-          return `<a href="/api/preview/${siteId}?page=${n.slug}" style="font-size: 0.875rem; font-weight: 500; text-decoration: none; color: ${isActive ? colors.primary : '#6b7280'}; transition: color 0.2s;" onmouseover="this.style.color='${colors.primary}'" onmouseout="this.style.color='${isActive ? colors.primary : '#6b7280'}'">${n.label}</a>`;
+          return `<a href="${baseUrl}${n.slug}" style="font-size: 0.875rem; font-weight: 500; text-decoration: none; color: ${isActive ? colors.primary : '#6b7280'}; transition: color 0.2s;" onmouseover="this.style.color='${colors.primary}'" onmouseout="this.style.color='${isActive ? colors.primary : '#6b7280'}'">${n.label}</a>`;
         }).join('')}
       </nav>
       <button class="mls-mobile-btn" onclick="document.getElementById('mlsMobileMenu').classList.toggle('mls-mobile-open')" style="display:none;background:none;border:none;cursor:pointer;padding:0.5rem;">
@@ -293,7 +293,7 @@ function mlsHeader(siteId: string, currentPage: string, pages: any[], getContent
     <div id="mlsMobileMenu" style="display:none;padding:0.75rem 1rem;border-top:1px solid #e5e7eb;">
       ${navItems.map(n => {
         const isActive = currentPage === n.slug || (currentPage === 'index' && n.slug === 'home');
-        return `<a href="/api/preview/${siteId}?page=${n.slug}" style="display:block;padding:0.5rem 0;font-size:0.9375rem;font-weight:500;text-decoration:none;color:${isActive ? colors.primary : '#374151'};">${n.label}</a>`;
+        return `<a href="${baseUrl}${n.slug}" style="display:block;padding:0.5rem 0;font-size:0.9375rem;font-weight:500;text-decoration:none;color:${isActive ? colors.primary : '#374151'};">${n.label}</a>`;
       }).join('')}
       ${phone ? `<a href="tel:${phone}" style="display:block;padding:0.75rem 0;font-weight:600;color:${colors.primary};text-decoration:none;">📞 ${phone}</a>` : ''}
     </div>
@@ -305,7 +305,7 @@ function mlsHeader(siteId: string, currentPage: string, pages: any[], getContent
 }
 
 // ── Footer ──
-function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => string, weekday: string, saturday: string, sunday: string) {
+function mlsFooter(siteId: string, pages: any[], getContent: (k: string, baseUrl: string = `/api/preview/${siteId}?page=`) => string, weekday: string, saturday: string, sunday: string) {
   const name = getContent('business.name') || 'Modern Lawn Solutions';
   const phone = getContent('business.phone');
   const email = getContent('business.email');
@@ -335,7 +335,7 @@ function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => stri
         <div>
           <h4 style="font-size: 1rem; font-weight: 600; color: #fff; margin: 0 0 1rem;">Quick Links</h4>
           <nav style="display: flex; flex-direction: column; gap: 0.5rem;">
-            ${pages.map((p: any) => `<a href="/api/preview/${siteId}?page=${p.slug}" style="font-size: 0.875rem; color: #9ca3af; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#9ca3af'">${p.name}</a>`).join('')}
+            ${pages.map((p: any) => `<a href="${baseUrl}${p.slug}" style="font-size: 0.875rem; color: #9ca3af; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#9ca3af'">${p.name}</a>`).join('')}
           </nav>
         </div>
         <!-- Contact Info -->
@@ -370,7 +370,7 @@ function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => stri
 // ══════════════════════════════════════════════════
 //  HOME PAGE
 // ══════════════════════════════════════════════════
-async function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis: Record<string, boolean>, colors: any, fmtPrice: (p: number | null) => string, supabase?: any): Promise<string> {
+async function mlsHome(siteId: string, gc: (k: string, baseUrl: string = `/api/preview/${siteId}?page=`) => string, products: any[], vis: Record<string, boolean>, colors: any, fmtPrice: (p: number | null) => string, supabase?: any): Promise<string> {
   let html = '';
 
   // ── Hero: Split Layout ──
@@ -384,8 +384,8 @@ async function mlsHome(siteId: string, gc: (k: string) => string, products: any[
             <h1 class="font-heading" style="font-size: 3.25rem; font-weight: 700; line-height: 1.1; margin: 0 0 1.5rem; color: #111827;">${gc('hero.heading')}</h1>
             <p style="font-size: 1.125rem; color: #6b7280; margin: 0 0 2rem; line-height: 1.7;">${gc('hero.subheading')}</p>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-              <a href="/api/preview/${siteId}?page=${gc('hero.ctaPrimaryLink') || 'inventory'}" class="btn-primary">${gc('hero.ctaPrimary') || 'Browse Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-              <a href="/api/preview/${siteId}?page=${gc('hero.ctaSecondaryLink') || 'contact'}" class="btn-outline">${gc('hero.ctaSecondary') || 'Contact Us'}</a>
+              <a href="${baseUrl}${gc('hero.ctaPrimaryLink') || 'inventory'}" class="btn-primary">${gc('hero.ctaPrimary') || 'Browse Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+              <a href="${baseUrl}${gc('hero.ctaSecondaryLink') || 'contact'}" class="btn-outline">${gc('hero.ctaSecondary') || 'Contact Us'}</a>
             </div>
           </div>
           <div style="border-radius: 0.75rem; overflow: hidden; height: 500px;">
@@ -419,13 +419,13 @@ async function mlsHome(siteId: string, gc: (k: string) => string, products: any[
               <p style="font-size: 0.875rem; color: #6b7280; margin: 0 0 1rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${p.description || ''}</p>
               <div style="display: flex; align-items: center; justify-content: space-between;">
                 ${p.price ? `<span style="font-size: 1.125rem; font-weight: 700; color: ${colors.primary};">${fmtPrice(p.price)}</span>` : '<span></span>'}
-                <a href="/api/preview/${siteId}?page=inventory" style="font-size: 0.8125rem; font-weight: 600; color: ${colors.primary}; text-decoration: none;">View Details</a>
+                <a href="${baseUrl}inventory" style="font-size: 0.8125rem; font-weight: 600; color: ${colors.primary}; text-decoration: none;">View Details</a>
               </div>
             </div>
           </div>`).join('')}
         </div>
         <div style="text-align: center; margin-top: 2.5rem;">
-          <a href="/api/preview/${siteId}?page=${gc('featured.ctaLink') || 'inventory'}" class="btn-outline">${gc('featured.ctaText') || 'View All Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+          <a href="${baseUrl}${gc('featured.ctaLink') || 'inventory'}" class="btn-outline">${gc('featured.ctaText') || 'View All Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
         </div>
       </div>
     </section>`;
@@ -448,7 +448,7 @@ async function mlsHome(siteId: string, gc: (k: string) => string, products: any[
           </div>`).join('')}
         </div>
         <div style="text-align: center; margin-top: 2.5rem;">
-          <a href="/api/preview/${siteId}?page=manufacturers" class="btn-outline">View All Brands <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+          <a href="${baseUrl}manufacturers" class="btn-outline">View All Brands <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
         </div>
       </div>
     </section>`;
@@ -493,7 +493,7 @@ async function mlsHome(siteId: string, gc: (k: string) => string, products: any[
       <div class="container-mls" style="text-align: center;">
         <h2 class="font-heading" style="font-size: 2rem; font-weight: 700; margin: 0 0 1rem; color: #fff;">${gc('cta.heading')}</h2>
         <p style="font-size: 1.0625rem; color: rgba(255,255,255,0.85); max-width: 600px; margin: 0 auto 2rem; line-height: 1.7;">${gc('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=${gc('cta.button.destination') || gc('cta.ctaLink') || 'contact'}" style="display: inline-block; background: #fff; color: ${colors.primary}; padding: 0.875rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${gc('cta.button.text') || gc('cta.ctaText') || gc('cta.button') || 'Contact Us Today'}</a>
+        <a href="${baseUrl}${gc('cta.button.destination') || gc('cta.ctaLink') || 'contact'}" style="display: inline-block; background: #fff; color: ${colors.primary}; padding: 0.875rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${gc('cta.button.text') || gc('cta.ctaText') || gc('cta.button') || 'Contact Us Today'}</a>
       </div>
     </section>`;
   }

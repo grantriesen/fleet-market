@@ -89,6 +89,7 @@ export function renderCorporateEdgePage(
   vis: Record<string, boolean>,
   content: Record<string, string> = {},
   manufacturers: any[] = [],
+  baseUrl: string = `/api/preview/${siteId}?page=`,
 ) {
   const CE_KEY_ALIASES: Record<string,string> = {
     'business.name':    'businessInfo.businessName',
@@ -140,22 +141,22 @@ export function renderCorporateEdgePage(
 
   let body = '';
   switch (currentPage) {
-    case 'home': case 'index': body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors, manufacturers); break;
+    case 'home': case 'index': body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors, manufacturers, baseUrl); break;
     case 'service': body = ceServicePage(siteId, getContent); break;
     case 'contact': body = ceContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours); break;
     case 'inventory': body = ceInventoryPage(siteId, getContent, products); break;
     case 'rentals': body = ceRentalsPage(siteId, getContent); break;
     case 'manufacturers': body = ceManufacturersPage(siteId, getContent); break;
-    default: body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors, manufacturers); break;
+    default: body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors, manufacturers, baseUrl); break;
   }
 
   return ceHtmlShell(
     getContent('business.name') || 'Premier Equipment',
     fonts,
     colors,
-    ceHeader(siteId, currentPage, pages, getContent, weekdayHours, colors) +
+    ceHeader(siteId, currentPage, pages, getContent, weekdayHours, colors, baseUrl) +
     body +
-    ceFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours, colors, manufacturers)
+    ceFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours, colors, manufacturers, baseUrl)
   );
 }
 
@@ -210,7 +211,7 @@ ${body}
 }
 
 // ── Header ──
-function ceHeader(siteId: string, currentPage: string, pages: any[], getContent: Function, weekdayHours: string, colors: any) {
+function ceHeader(siteId: string, currentPage: string, pages: any[], getContent: Function, weekdayHours: string, colors: any, baseUrl: string = `/api/preview/${siteId}?page=`) {
   const businessName = getContent('businessInfo.businessName') || getContent('business.name') || 'Premier Equipment';
   const logoImage = getContent('businessInfo.logoImage');
   const phone = getContent('businessInfo.phone') || getContent('business.phone') || '';
@@ -222,7 +223,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
     .filter((p: any) => p.is_visible !== false)
     .map(p => {
       const isActive = p.slug === currentPage || (p.slug === 'index' && (currentPage === 'home' || currentPage === 'index'));
-      return `<a href="/api/preview/${siteId}?page=${p.slug}"
+      return `<a href="${baseUrl}${p.slug}"
         class="px-4 py-2 text-sm font-medium rounded transition-corporate ${isActive
           ? 'bg-white/20 text-white'
           : 'text-white/80 hover:text-white hover:bg-white/10'}"
@@ -247,7 +248,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
     <!-- Main nav -->
     <nav class="container-corporate">
       <div class="flex items-center justify-between h-16">
-        <a href="/api/preview/${siteId}?page=index" class="flex items-center gap-3">
+        <a href="${baseUrl}index" class="flex items-center gap-3">
           ${logoImage
             ? `<img src="${logoImage}" alt="${businessName}" style="max-height:48px;max-width:160px;object-fit:contain;">`
             : `<div class="bg-white rounded p-2"><span class="font-heading font-bold text-lg" style="color: ${colors.primary};">${initials}</span></div>`
@@ -260,7 +261,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
         </div>
 
         <div class="hidden lg:block">
-          <a href="/api/preview/${siteId}?page=contact"
+          <a href="${baseUrl}contact"
             class="inline-flex items-center px-5 py-2 rounded text-sm font-semibold text-white transition-corporate hover:brightness-110"
             style="background-color: ${colors.secondary};">
             Get a Quote
@@ -272,7 +273,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
           <a href="tel:${phone}" class="text-white/80 hover:text-white">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
           </a>
-          <a href="/api/preview/${siteId}?page=contact"
+          <a href="${baseUrl}contact"
             class="inline-flex items-center px-4 py-1.5 rounded text-xs font-semibold text-white"
             style="background-color: ${colors.secondary};">Quote</a>
         </div>
@@ -283,7 +284,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
         <div class="flex items-center gap-1 min-w-max">
           ${pages.map(p => {
             const isActive = p.slug === currentPage || (p.slug === 'index' && (currentPage === 'home' || currentPage === 'index'));
-            return `<a href="/api/preview/${siteId}?page=${p.slug}"
+            return `<a href="${baseUrl}${p.slug}"
               class="px-3 py-1.5 text-xs font-medium rounded whitespace-nowrap transition-corporate ${isActive
                 ? 'bg-white/20 text-white'
                 : 'text-white/70 hover:text-white hover:bg-white/10'}"
@@ -296,7 +297,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
 }
 
 // ── Footer ──
-function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHours: string, saturdayHours: string, sundayHours: string, colors: any = {}, manufacturers: any[] = []) {
+function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHours: string, saturdayHours: string, sundayHours: string, colors: any = {}, manufacturers: any[] = [], baseUrl: string = `/api/preview/${siteId}?page=`) {
   const businessName = getContent('businessInfo.businessName') || getContent('business.name') || 'Premier Equipment';
   const logoImage = getContent('businessInfo.logoImage');
   const phone = getContent('businessInfo.phone') || getContent('business.phone') || '';
@@ -324,7 +325,7 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
 
   const quickLinks = pages
     .filter((p: any) => p.is_visible !== false)
-    .map((p: any) => `<li><a href="/api/preview/${siteId}?page=${p.slug}" class="text-white/70 hover:text-white transition-corporate">${p.name || p.title}</a></li>`)
+    .map((p: any) => `<li><a href="${baseUrl}${p.slug}" class="text-white/70 hover:text-white transition-corporate">${p.name || p.title}</a></li>`)
     .join('\n');
 
   const brandList = manufacturers.length > 0
@@ -381,8 +382,8 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
         <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-white/60">
           <p>&copy; ${new Date().getFullYear()} ${businessName}. All rights reserved.</p>
           <div class="flex gap-6">
-            <a href="/api/preview/${siteId}?page=contact" class="hover:text-white transition-corporate">Privacy Policy</a>
-            <a href="/api/preview/${siteId}?page=contact" class="hover:text-white transition-corporate">Terms of Service</a>
+            <a href="${baseUrl}contact" class="hover:text-white transition-corporate">Privacy Policy</a>
+            <a href="${baseUrl}contact" class="hover:text-white transition-corporate">Terms of Service</a>
           </div>
         </div>
       </div>
@@ -391,7 +392,7 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
 }
 
 
-function ceHomeSections(siteId: string, getContent: Function, products: any[], enabledFeatures: Set<string>, vis: Record<string, boolean>, colors: any, manufacturers: any[] = []) {
+function ceHomeSections(siteId: string, getContent: Function, products: any[], enabledFeatures: Set<string>, vis: Record<string, boolean>, colors: any, manufacturers: any[] = [], baseUrl: string = `/api/preview/${siteId}?page=`) {
   let html = '';
 
   // ── Hero ──
@@ -410,12 +411,12 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
             ${getContent('hero.subheading') || getContent('hero.subheadline') || getContent('hero.subtitle') || ''}
           </p>
           <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/api/preview/${siteId}?page=${getContent('hero.button1.destination') || getContent('hero.ctaPrimaryLink') || 'inventory'}"
+            <a href="${baseUrl}${getContent('hero.button1.destination') || getContent('hero.ctaPrimaryLink') || 'inventory'}"
               class="inline-flex items-center justify-center px-8 py-3.5 rounded font-semibold text-lg text-white transition-corporate hover:brightness-110"
               style="background-color: ${colors.secondary};">
               ${getContent('hero.button1.text') || getContent('hero.ctaPrimary') || getContent('hero.primaryCta') || 'Browse Inventory'}
             </a>
-            <a href="/api/preview/${siteId}?page=${getContent('hero.button2.destination') || getContent('hero.ctaSecondaryLink') || 'contact'}"
+            <a href="${baseUrl}${getContent('hero.button2.destination') || getContent('hero.ctaSecondaryLink') || 'contact'}"
               class="inline-flex items-center justify-center px-8 py-3.5 rounded font-semibold text-lg text-white border-2 border-white hover:bg-white transition-corporate"
               style="hover:color: ${colors.primary};">
               ${getContent('hero.button2.text') || getContent('hero.ctaSecondary') || getContent('hero.secondaryCta') || 'Schedule Consultation'}
@@ -502,7 +503,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
             <h2 class="font-heading text-3xl lg:text-4xl font-bold text-gray-900 mb-2">${getContent('featured.heading') || 'Featured Equipment'}</h2>
             <p class="text-gray-500">${getContent('featured.subheading') || 'Explore our selection of premium lawn care equipment'}</p>
           </div>
-          <a href="/api/preview/${siteId}?page=inventory" class="inline-flex items-center gap-2 font-semibold hover:gap-3 transition-all" style="color: ${colors.primary};">
+          <a href="${baseUrl}inventory" class="inline-flex items-center gap-2 font-semibold hover:gap-3 transition-all" style="color: ${colors.primary};">
             View All Inventory
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
           </a>
@@ -531,7 +532,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
                   ${p.sale_price ? `<span class="text-gray-400 line-through text-sm mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
                   <span class="font-heading font-bold text-lg" style="color: ${colors.primary};">$${Number(displayPrice).toLocaleString()}</span>
                 </div>
-                <a href="/api/preview/${siteId}?page=contact" class="text-sm font-semibold hover:underline" style="color: ${colors.primary};">Details →</a>
+                <a href="${baseUrl}contact" class="text-sm font-semibold hover:underline" style="color: ${colors.primary};">Details →</a>
               </div>
             </div>
           </div>`;
@@ -557,7 +558,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           ${mfgList.slice(0, 6).map((m: any) => `
-          <a href="/api/preview/${siteId}?page=manufacturers" class="group bg-white p-6 rounded border border-gray-200 transition-corporate hover:shadow-md hover:border-blue-200 text-center">
+          <a href="${baseUrl}manufacturers" class="group bg-white p-6 rounded border border-gray-200 transition-corporate hover:shadow-md hover:border-blue-200 text-center">
             ${(m.logo_url || m.logoUrl) ? `<img src="${m.logo_url || m.logoUrl}" alt="${m.name}" style="max-height: 48px; width: auto; margin: 0 auto 0.75rem auto; display: block;">` : `<div style="height:48px;display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;"><span class="font-bold text-gray-700 text-sm">${m.name}</span></div>`}
             <p class="font-semibold text-gray-900 text-sm">${m.name}</p>
             <div class="flex items-center justify-center gap-1 mt-1">
@@ -567,7 +568,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
           </a>`).join('')}
         </div>
         <div class="text-center mt-10">
-          <a href="/api/preview/${siteId}?page=manufacturers" class="inline-flex items-center gap-2 font-semibold hover:gap-3 transition-all" style="color: ${colors.primary};">
+          <a href="${baseUrl}manufacturers" class="inline-flex items-center gap-2 font-semibold hover:gap-3 transition-all" style="color: ${colors.primary};">
             View All Manufacturers
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
           </a>
@@ -618,18 +619,18 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
           <h2 class="font-heading text-3xl lg:text-4xl font-bold text-white mb-4">${getContent('cta.heading') || getContent('cta.headline') || 'Ready to Upgrade Your Equipment?'}</h2>
           <p class="text-white/80 text-lg mb-8 leading-relaxed">${getContent('cta.description') || getContent('cta.subheadline') || getContent('cta.subheading') || ''}</p>
           <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/api/preview/${siteId}?page=${getContent('cta.button1.destination') || getContent('cta.ctaLink') || 'contact'}"
+            <a href="${baseUrl}${getContent('cta.button1.destination') || getContent('cta.ctaLink') || 'contact'}"
               class="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded font-semibold text-lg text-white transition-corporate hover:brightness-110"
               style="background-color: ${colors.secondary};">
               ${getContent('cta.button1.text') || getContent('cta.button') || 'Schedule Consultation'}
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
             </a>
             ${(getContent('cta.button2.text') || getContent('cta.secondaryButton')) ? `
-            <a href="/api/preview/${siteId}?page=${getContent('cta.button2.destination') || 'inventory'}"
+            <a href="${baseUrl}${getContent('cta.button2.destination') || 'inventory'}"
               class="inline-flex items-center justify-center px-8 py-3.5 rounded font-semibold text-lg text-white border-2 border-white hover:bg-white transition-corporate">
               ${getContent('cta.button2.text') || getContent('cta.secondaryButton')}
             </a>` : `
-            <a href="/api/preview/${siteId}?page=inventory"
+            <a href="${baseUrl}inventory"
               class="inline-flex items-center justify-center px-8 py-3.5 rounded font-semibold text-lg text-white border-2 border-white hover:bg-white transition-corporate">
               Browse Equipment
             </a>`}
@@ -793,7 +794,7 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[]) 
                 ${p.sale_price ? `<span class="text-gray-400 line-through text-sm mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
                 <span class="font-heading font-bold text-lg text-blue-900">$${Number(displayPrice).toLocaleString()}</span>
               </div>
-              <a href="/api/preview/${siteId}?page=contact" class="text-sm font-semibold text-blue-900 hover:underline">Details →</a>
+              <a href="${baseUrl}contact" class="text-sm font-semibold text-blue-900 hover:underline">Details →</a>
             </div>
           </div>
         </div>`;
@@ -878,7 +879,7 @@ function ceRentalsPage(siteId: string, getContent: Function) {
                 <td class="px-6 py-4 text-center text-gray-600">${item.weekly}</td>
                 <td class="px-6 py-4 text-center text-gray-600">${item.monthly}</td>
                 <td class="px-6 py-4 text-right">
-                  <a href="/api/preview/${siteId}?page=contact" class="inline-flex items-center px-4 py-1.5 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-corporate">Request Rental</a>
+                  <a href="${baseUrl}contact" class="inline-flex items-center px-4 py-1.5 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-corporate">Request Rental</a>
                 </td>
               </tr>`).join('')}
             </tbody>
@@ -955,7 +956,7 @@ function ceManufacturersPage(siteId: string, getContent: Function) {
             </span>
           </div>
           <p class="text-gray-500 text-sm mb-4 line-clamp-2">${m.description}</p>
-          <a href="/api/preview/${siteId}?page=inventory" class="inline-flex items-center gap-2 w-full justify-center px-4 py-2 rounded border border-gray-300 text-sm font-medium text-gray-700 group-hover:bg-blue-900 group-hover:text-white group-hover:border-blue-900 transition-corporate">
+          <a href="${baseUrl}inventory" class="inline-flex items-center gap-2 w-full justify-center px-4 py-2 rounded border border-gray-300 text-sm font-medium text-gray-700 group-hover:bg-blue-900 group-hover:text-white group-hover:border-blue-900 transition-corporate">
             Shop ${m.name}
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
           </a>

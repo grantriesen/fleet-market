@@ -163,38 +163,38 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     return await renderGreenValleyPage(
       getContent, colors, fonts, manufacturers || [], sectionVisibility,
       siteId, site.site_name, displayProducts, isRealProducts, fmtPrice,
-      availablePages, page, googleFontsUrl, supabase
+      availablePages, page, googleFontsUrl, supabase, '/'
     );
   }
   if (templateSlug === 'vibe-dynamics') {
     return await renderVibeDynamicsPage(
       getContent, colors, fonts, manufacturers || [], sectionVisibility,
       siteId, site.site_name, displayProducts, isRealProducts, fmtPrice,
-      availablePages, page, googleFontsUrl, supabase
+      availablePages, page, googleFontsUrl, supabase, '/'
     );
   }
   if (templateSlug === 'corporate-edge') {
     return renderCorporateEdgePage(
       siteId, page, availablePages, displayProducts,
-      config, customizations, enabledFeatures, vis, content, manufacturers || []
+      config, customizations, enabledFeatures, vis, content, manufacturers || [], '/'
     );
   }
   if (templateSlug === 'zenith-lawn') {
     return renderZenithLawnPage(
       siteId, page, availablePages, displayProducts,
-      config, customizations, enabledFeatures, vis, content
+      config, customizations, enabledFeatures, vis, content, '/'
     );
   }
   if (templateSlug === 'modern-lawn-solutions') {
     return await renderModernLawnPage(
       siteId, page, availablePages, displayProducts,
-      config, customizations, enabledFeatures, vis, content, supabase, manufacturers || []
+      config, customizations, enabledFeatures, vis, content, supabase, manufacturers || [], '/'
     );
   }
   if (templateSlug === 'warm-earth-designs') {
     return renderWarmEarthPage(
       siteId, page, availablePages, displayProducts,
-      config, customizations, enabledFeatures, vis, content, manufacturers || []
+      config, customizations, enabledFeatures, vis, content, manufacturers || [], '/'
     );
   }
   throw new Error(`Unknown template: ${templateSlug}`);
@@ -207,6 +207,8 @@ export async function GET(
 ) {
   try {
     const { searchParams } = new URL(request.url);
+    // Support both ?page=inventory and clean /inventory paths
+    // When middleware rewrites /inventory to /site/[slug], the page is in searchParams
     const page = searchParams.get('page') || 'home';
     const supabase = createSupabase();
 

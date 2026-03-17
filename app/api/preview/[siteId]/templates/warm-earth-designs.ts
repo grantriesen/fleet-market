@@ -132,17 +132,17 @@ export function renderWarmEarthPage(
 
   let body = '';
   switch (currentPage) {
-    case 'home': case 'index': body = weHome(siteId, gc, products, manufacturers, vis, C, fmtPrice); break;
+    case 'home': case 'index': body = weHome(siteId, gc, products, manufacturers, vis, C, fmtPrice, baseUrl); break;
     case 'service': body = weServicePage(siteId, gc, C, enabledFeatures.has('service_scheduling')); break;
     case 'contact': body = weContactPage(siteId, gc, C, wkday, sat, sun); break;
     case 'inventory': body = weInventoryPage(siteId, gc, products, C, fmtPrice); break;
     case 'rentals': body = weRentalsPage(siteId, gc, C); break;
     case 'manufacturers': body = weManufacturersPage(siteId, gc, C, manufacturers); break;
-    default: body = weHome(siteId, gc, products, manufacturers, vis, C, fmtPrice); break;
+    default: body = weHome(siteId, gc, products, manufacturers, vis, C, fmtPrice, baseUrl); break;
   }
 
   return weShell(gc('business.name') || 'Heartland Outdoor Equipment', C, siteId, currentPage,
-    weHeader(siteId, currentPage, pages, gc, C) + body + weFooter(siteId, pages, gc, C, wkday, sat, sun)
+    weHeader(siteId, currentPage, pages, gc, C, baseUrl) + body + weFooter(siteId, pages, gc, C, wkday, sat, sun, baseUrl)
   );
 }
 
@@ -207,7 +207,7 @@ function weShell(title: string, C: any, siteId: string, page: string, body: stri
 }
 
 // ── Header ──
-function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string) => string, C: any) {
+function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string, baseUrl: string = `/api/preview/${siteId}?page=`) => string, C: any) {
   const name = gc('business.name') || 'Heartland Outdoor Equipment';
   const phone = gc('business.phone');
   const email = gc('business.email');
@@ -235,7 +235,7 @@ function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string) => 
   <!-- Main Nav -->
   <header style="position:sticky;top:0;z-index:50;background:rgba(254,243,199,0.95);backdrop-filter:blur(8px);border-bottom:2px solid #d4b896;">
     <div class="cw" style="display:flex;align-items:center;justify-content:space-between;height:5rem;">
-      <a href="/api/preview/${siteId}?page=home" style="text-decoration:none;display:flex;align-items:center;gap:0.75rem;">
+      <a href="${baseUrl}home" style="text-decoration:none;display:flex;align-items:center;gap:0.75rem;">
         ${gc('businessInfo.logoImage')
           ? `<img src="${gc('businessInfo.logoImage')}" alt="${name}" style="max-height:48px;max-width:160px;object-fit:contain;">`
           : `<div style="background:${C.secondary};border-radius:1rem;padding:0.5rem;display:flex;align-items:center;justify-content:center;"><span style="font-size:1.5rem;">🌿</span></div>`
@@ -245,10 +245,10 @@ function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string) => 
       <nav class="we-desktop-nav" style="display:flex;align-items:center;gap:0.25rem;">
         ${navItems.map(n => {
           const active = cur === n.slug || (cur === 'index' && n.slug === 'home');
-          return `<a href="/api/preview/${siteId}?page=${n.slug}" style="padding:0.5rem 1rem;border-radius:9999px;font-weight:500;text-decoration:none;font-size:0.9375rem;transition:all 0.2s;${active ? `background:${C.accent};color:${C.bg};` : `color:${C.fg};`}">${n.label}</a>`;
+          return `<a href="${baseUrl}${n.slug}" style="padding:0.5rem 1rem;border-radius:9999px;font-weight:500;text-decoration:none;font-size:0.9375rem;transition:all 0.2s;${active ? `background:${C.accent};color:${C.bg};` : `color:${C.fg};`}">${n.label}</a>`;
         }).join('')}
       </nav>
-      <a class="we-desktop-nav" href="/api/preview/${siteId}?page=contact" class="btn-accent" style="padding:0.625rem 1.5rem;font-size:0.875rem;background:${C.accent};color:${C.bg};border-radius:9999px;text-decoration:none;font-weight:600;">Visit Showroom</a>
+      <a class="we-desktop-nav" href="${baseUrl}contact" class="btn-accent" style="padding:0.625rem 1.5rem;font-size:0.875rem;background:${C.accent};color:${C.bg};border-radius:9999px;text-decoration:none;font-weight:600;">Visit Showroom</a>
       <button class="we-mobile-btn" onclick="document.getElementById('weMobileMenu').classList.toggle('we-mobile-open')" style="display:none;background:none;border:none;cursor:pointer;padding:0.5rem;">
         <svg width="24" height="24" fill="none" stroke="${C.primary}" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
@@ -256,7 +256,7 @@ function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string) => 
     <div id="weMobileMenu" style="display:none;padding:0.75rem 1rem;border-top:2px solid #d4b896;">
       ${navItems.map(n => {
         const active = cur === n.slug || (cur === 'index' && n.slug === 'home');
-        return `<a href="/api/preview/${siteId}?page=${n.slug}" style="display:block;padding:0.5rem 0;font-size:0.9375rem;font-weight:500;text-decoration:none;color:${active ? C.accent : C.fg};">${n.label}</a>`;
+        return `<a href="${baseUrl}${n.slug}" style="display:block;padding:0.5rem 0;font-size:0.9375rem;font-weight:500;text-decoration:none;color:${active ? C.accent : C.fg};">${n.label}</a>`;
       }).join('')}
     </div>
   </header>
@@ -267,7 +267,7 @@ function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string) => 
 }
 
 // ── Footer ──
-function weFooter(siteId: string, pages: any[], gc: (k: string) => string, C: any, wk: string, sat: string, sun: string) {
+function weFooter(siteId: string, pages: any[], gc: (k: string, baseUrl: string = `/api/preview/${siteId}?page=`) => string, C: any, wk: string, sat: string, sun: string) {
   const name = gc('business.name') || 'Heartland Outdoor Equipment';
   const navSlugs = ['home', 'inventory', 'rentals', 'service', 'manufacturers', 'contact'];
   return `
@@ -288,7 +288,7 @@ function weFooter(siteId: string, pages: any[], gc: (k: string) => string, C: an
         <div>
           <h4 class="font-serif" style="font-size:1rem;font-weight:600;margin-bottom:1rem;">Quick Links</h4>
           <nav style="display:flex;flex-direction:column;gap:0.5rem;">
-            ${navSlugs.map(s => `<a href="/api/preview/${siteId}?page=${s}" style="font-size:0.875rem;color:${C.bg};opacity:0.8;text-decoration:none;">${s.charAt(0).toUpperCase() + s.slice(1)}</a>`).join('')}
+            ${navSlugs.map(s => `<a href="${baseUrl}${s}" style="font-size:0.875rem;color:${C.bg};opacity:0.8;text-decoration:none;">${s.charAt(0).toUpperCase() + s.slice(1)}</a>`).join('')}
           </nav>
         </div>
         <div>
@@ -318,7 +318,7 @@ function weFooter(siteId: string, pages: any[], gc: (k: string) => string, C: an
 // ══════════════════════════════════════════════════
 //  HOME
 // ══════════════════════════════════════════════════
-function weHome(siteId: string, gc: (k: string) => string, products: any[], manufacturers: any[], vis: Record<string, boolean>, C: any, fp: (p: number | null) => string): string {
+function weHome(siteId: string, gc: (k: string, baseUrl: string = `/api/preview/${siteId}?page=`) => string, products: any[], manufacturers: any[], vis: Record<string, boolean>, C: any, fp: (p: number | null) => string): string {
   let h = '';
 
   // Hero
@@ -333,8 +333,8 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
             <h1 class="font-serif" style="font-size:3rem;font-weight:700;line-height:1.15;margin:0 0 1.5rem;color:${C.fg};">${gc('hero.heading')}</h1>
             <p style="font-size:1.25rem;color:${C.mutedFg};margin:0 0 2.5rem;line-height:1.7;">${gc('hero.subheading')}</p>
             <div style="display:flex;gap:1rem;flex-wrap:wrap;">
-              <a href="/api/preview/${siteId}?page=${gc('hero.ctaPrimaryLink') || 'inventory'}" class="btn-accent">${gc('hero.ctaPrimary') || 'Shop Equipment'} →</a>
-              <a href="/api/preview/${siteId}?page=${gc('hero.ctaSecondaryLink') || 'rentals'}" class="btn-outline-we">${gc('hero.ctaSecondary') || 'View Rentals'}</a>
+              <a href="${baseUrl}${gc('hero.ctaPrimaryLink') || 'inventory'}" class="btn-accent">${gc('hero.ctaPrimary') || 'Shop Equipment'} →</a>
+              <a href="${baseUrl}${gc('hero.ctaSecondaryLink') || 'rentals'}" class="btn-outline-we">${gc('hero.ctaSecondary') || 'View Rentals'}</a>
             </div>
             <div style="display:flex;gap:1.5rem;margin-top:2rem;font-size:0.875rem;color:${C.mutedFg};">
               <span>🛡 Factory Authorized Dealer</span>
@@ -407,13 +407,13 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
               <p style="font-size:0.875rem;color:${C.mutedFg};margin:0 0 1rem;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.description || ''}</p>
               <div style="display:flex;align-items:center;justify-content:space-between;">
                 ${p.price ? `<span class="font-serif" style="font-size:1.375rem;font-weight:700;color:${C.accent};">${fp(p.price)}</span>` : '<span></span>'}
-                <a href="/api/preview/${siteId}?page=inventory" style="color:${C.primary};font-weight:600;text-decoration:none;font-size:0.875rem;">View Details →</a>
+                <a href="${baseUrl}inventory" style="color:${C.primary};font-weight:600;text-decoration:none;font-size:0.875rem;">View Details →</a>
               </div>
             </div>
           </div>`).join('')}
         </div>
         <div style="text-align:center;margin-top:3rem;">
-          <a href="/api/preview/${siteId}?page=${gc('featured.ctaLink') || 'inventory'}" class="btn-accent">${gc('featured.ctaText') || 'View All Equipment'} →</a>
+          <a href="${baseUrl}${gc('featured.ctaLink') || 'inventory'}" class="btn-accent">${gc('featured.ctaText') || 'View All Equipment'} →</a>
         </div>
       </div>
     </section>`;
@@ -492,7 +492,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
       <div class="cw" style="text-align:center;position:relative;z-index:1;">
         <h2 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 1rem;">${gc('cta.heading')}</h2>
         <p style="font-size:1.125rem;opacity:0.85;max-width:600px;margin:0 auto 2.5rem;">${gc('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=${gc('cta.ctaLink') || 'contact'}" class="btn-accent" style="font-size:1.125rem;padding:1rem 2.5rem;">${gc('cta.ctaText') || gc('cta.button') || 'Visit Us Today'} →</a>
+        <a href="${baseUrl}${gc('cta.ctaLink') || 'contact'}" class="btn-accent" style="font-size:1.125rem;padding:1rem 2.5rem;">${gc('cta.ctaText') || gc('cta.button') || 'Visit Us Today'} →</a>
       </div>
     </section>`;
   }
@@ -607,7 +607,7 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasSch
     <div class="cw">
       ${gc('servicePage.ctaHeading') ? `<h2 class="font-serif" style="font-size:2rem;font-weight:700;margin:0 0 1rem;">${gc('servicePage.ctaHeading')}</h2>` : ''}
       ${gc('servicePage.contentText') ? `<p style="font-size:1.125rem;opacity:0.85;margin:0 0 2rem;">${gc('servicePage.contentText')}</p>` : ''}
-      <a href="/api/preview/${siteId}?page=${gc('servicePage.ctaLink') || 'contact'}" class="btn-accent" style="background:${C.bg};color:${C.secondary};">${gc('servicePage.ctaButton') || 'Contact Us'}</a>
+      <a href="${baseUrl}${gc('servicePage.ctaLink') || 'contact'}" class="btn-accent" style="background:${C.bg};color:${C.secondary};">${gc('servicePage.ctaButton') || 'Contact Us'}</a>
     </div>
   </section>` : ''}`;
 }
@@ -721,7 +721,7 @@ function weRentalsPage(siteId: string, gc: (k: string) => string, C: any): strin
             <div><span style="font-weight:700;color:${C.accent};">$${r.daily}</span><span style="color:${C.mutedFg};">/day</span></div>
             <div><span style="font-weight:700;color:${C.secondary};">$${r.weekly}</span><span style="color:${C.mutedFg};">/week</span></div>
           </div>
-          <a href="/api/preview/${siteId}?page=${gc('rentalsPage.ctaLink') || 'contact'}" class="btn-accent" style="width:100%;justify-content:center;padding:0.625rem 1rem;display:flex;">${gc('rentalsPage.ctaButtonText') || 'Reserve Now'}</a>
+          <a href="${baseUrl}${gc('rentalsPage.ctaLink') || 'contact'}" class="btn-accent" style="width:100%;justify-content:center;padding:0.625rem 1rem;display:flex;">${gc('rentalsPage.ctaButtonText') || 'Reserve Now'}</a>
         </div>`).join('')}
       </div>
     </div>
@@ -778,8 +778,8 @@ function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any, 
       ${gc('manufacturersPage.ctaHeading') ? `<h2 class="font-serif" style="font-size:2rem;font-weight:700;margin:0 0 1rem;">${gc('manufacturersPage.ctaHeading')}</h2>` : ''}
       ${gc('manufacturersPage.ctaText') ? `<p style="font-size:1.125rem;opacity:0.85;margin:0 0 2rem;">${gc('manufacturersPage.ctaText')}</p>` : ''}
       <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
-        ${gc('manufacturersPage.ctaPrimaryText') ? `<a href="/api/preview/${siteId}?page=${gc('manufacturersPage.ctaPrimaryLink') || 'inventory'}" class="btn-accent">${gc('manufacturersPage.ctaPrimaryText')}</a>` : ''}
-        ${gc('manufacturersPage.ctaSecondaryText') ? `<a href="/api/preview/${siteId}?page=${gc('manufacturersPage.ctaSecondaryLink') || 'contact'}" class="btn-outline-we" style="color:${C.bg};border-color:${C.bg};">${gc('manufacturersPage.ctaSecondaryText')}</a>` : ''}
+        ${gc('manufacturersPage.ctaPrimaryText') ? `<a href="${baseUrl}${gc('manufacturersPage.ctaPrimaryLink') || 'inventory'}" class="btn-accent">${gc('manufacturersPage.ctaPrimaryText')}</a>` : ''}
+        ${gc('manufacturersPage.ctaSecondaryText') ? `<a href="${baseUrl}${gc('manufacturersPage.ctaSecondaryLink') || 'contact'}" class="btn-outline-we" style="color:${C.bg};border-color:${C.bg};">${gc('manufacturersPage.ctaSecondaryText')}</a>` : ''}
       </div>
     </div>
   </section>` : ''}`;

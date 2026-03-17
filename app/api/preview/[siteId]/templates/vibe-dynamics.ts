@@ -45,6 +45,8 @@ export async function renderVibeDynamicsPage(
   page: string,
   googleFontsUrl: string,
   supabase?: any
+,
+  baseUrl: string = `/api/preview/${siteId}?page=`
 ): Promise<string> {
   let enabledFeatures: Set<string> = new Set();
   if (supabase) {
@@ -61,15 +63,15 @@ export async function renderVibeDynamicsPage(
   // Visibility map for subpage subsections
   const vis: Record<string, boolean> = {};
 
-  const header = vdHeader(getContent, colors, availablePages, siteId, page);
-  const footer = vdFooter(getContent, colors, availablePages, siteId);
+  const header = vdHeader(getContent, colors, availablePages, siteId, page, baseUrl);
+  const footer = vdFooter(getContent, colors, availablePages, siteId, baseUrl);
 
   let body = '';
 
   switch (page) {
     case 'home':
     case 'index':
-      body = vdHomeSections(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice, enabledFeatures);
+      body = vdHomeSections(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice, enabledFeatures, baseUrl);
       break;
     case 'contact':
       body = vdContactPage(getContent, colors, siteId, vis);
@@ -209,13 +211,13 @@ function vdHtmlShell(colors: Colors, fonts: Fonts, siteName: string, googleFonts
 // HEADER / NAV
 // ============================================
 
-function vdHeader(getContent: GetContent, colors: Colors, pages: any[], siteId: string, currentPage: string): string {
+function vdHeader(getContent: GetContent, colors: Colors, pages: any[], siteId: string, currentPage: string, baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const businessName = getContent('businessInfo.businessName');
   const phone = getContent('businessInfo.phone');
 
   const navLinks = pages.map(p => {
     const isActive = p.slug === currentPage || (p.slug === 'index' && (currentPage === 'home' || currentPage === 'index'));
-    return `<a href="/api/preview/${siteId}?page=${p.slug}"
+    return `<a href="${baseUrl}${p.slug}"
       class="px-4 py-2 rounded-lg font-heading font-bold text-sm transition-all ${isActive ? 'bg-primary text-white' : 'text-gray-800 hover:bg-primary/10 hover:text-primary'}"
     >${p.name}</a>`;
   }).join('\n');
@@ -224,7 +226,7 @@ function vdHeader(getContent: GetContent, colors: Colors, pages: any[], siteId: 
   <header data-section="header" class="sticky top-0 z-50 bg-white/95 backdrop-blur-sm" style="border-bottom: 4px solid var(--color-primary);">
     <div class="max-w-7xl mx-auto px-6">
       <div class="flex items-center justify-between h-20">
-        <a href="/api/preview/${siteId}?page=index" class="flex items-center gap-3">
+        <a href="${baseUrl}index" class="flex items-center gap-3">
           ${getContent('businessInfo.logoImage')
             ? `<img src="${getContent('businessInfo.logoImage')}" alt="${businessName}" style="max-height: 48px; max-width: 160px; object-fit: contain;">`
             : `<div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent));"><span class="text-2xl">🌿</span></div>`
@@ -239,7 +241,7 @@ function vdHeader(getContent: GetContent, colors: Colors, pages: any[], siteId: 
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2A19.86 19.86 0 013.09 5.18 2 2 0 015.11 3h3a2 2 0 012 1.72c.12.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 11.91a16 16 0 006 6l2.27-2.27a2 2 0 012.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0122 16.92z"/></svg>
             ${phone}
           </a>
-          <a href="/api/preview/${siteId}?page=contact" class="btn-gradient text-sm" style="padding: 0.625rem 1.25rem;">Get Quote</a>
+          <a href="${baseUrl}contact" class="btn-gradient text-sm" style="padding: 0.625rem 1.25rem;">Get Quote</a>
         </div>
       </div>
     </div>
@@ -251,7 +253,7 @@ function vdHeader(getContent: GetContent, colors: Colors, pages: any[], siteId: 
 // FOOTER
 // ============================================
 
-function vdFooter(getContent: GetContent, colors: Colors, pages: any[], siteId: string): string {
+function vdFooter(getContent: GetContent, colors: Colors, pages: any[], siteId: string, baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const businessName = getContent('businessInfo.businessName');
   const phone = getContent('businessInfo.phone');
   const email = getContent('businessInfo.email');
@@ -262,7 +264,7 @@ function vdFooter(getContent: GetContent, colors: Colors, pages: any[], siteId: 
   const tagline = getContent('footer.tagline');
 
   const quickLinks = pages.map(p =>
-    `<li><a href="/api/preview/${siteId}?page=${p.slug}" class="text-white/70 hover:text-primary transition-colors font-medium">${p.name}</a></li>`
+    `<li><a href="${baseUrl}${p.slug}" class="text-white/70 hover:text-primary transition-colors font-medium">${p.name}</a></li>`
   ).join('\n');
 
   const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
@@ -331,7 +333,7 @@ function vdHomeSections(
   isRealProducts: boolean,
   fmtPrice: FmtPrice,
   enabledFeatures: Set<string>
-): string {
+, baseUrl: string = `/api/preview/${siteId}?page=`): string {
   let html = '';
 
   // ── Hero ──
@@ -347,8 +349,8 @@ function vdHomeSections(
           <h2 class="text-xl md:text-2xl font-heading font-bold text-white mb-4">${getContent('hero.subtitle') || getContent('hero.subheading') || ''}</h2>
           <p class="text-base md:text-lg text-white/90 mb-8 max-w-lg">${getContent('hero.description') || ''}</p>
           <div class="flex flex-wrap gap-4">
-            <a href="/api/preview/${siteId}?page=${getContent('hero.ctaPrimaryLink') || 'inventory'}" class="btn-gradient text-base md:text-lg px-6 md:px-8 py-3 md:py-4">${getContent('hero.ctaPrimary') || getContent('hero.ctaButton') || 'Shop Equipment'}</a>
-            <a href="/api/preview/${siteId}?page=${getContent('hero.ctaSecondaryLink') || 'rentals'}" class="inline-flex items-center px-6 md:px-8 py-3 md:py-4 rounded-full font-heading font-bold text-base md:text-lg text-white border-3 md:border-4 border-white hover:bg-white hover:text-primary transition-all">${getContent('hero.ctaSecondary') || 'View Rentals'}</a>
+            <a href="${baseUrl}${getContent('hero.ctaPrimaryLink') || 'inventory'}" class="btn-gradient text-base md:text-lg px-6 md:px-8 py-3 md:py-4">${getContent('hero.ctaPrimary') || getContent('hero.ctaButton') || 'Shop Equipment'}</a>
+            <a href="${baseUrl}${getContent('hero.ctaSecondaryLink') || 'rentals'}" class="inline-flex items-center px-6 md:px-8 py-3 md:py-4 rounded-full font-heading font-bold text-base md:text-lg text-white border-3 md:border-4 border-white hover:bg-white hover:text-primary transition-all">${getContent('hero.ctaSecondary') || 'View Rentals'}</a>
           </div>
         </div>
       </div>
@@ -408,7 +410,7 @@ function vdHomeSections(
           }).join('')}
         </div>
         <div class="text-center mt-10">
-          <a href="/api/preview/${siteId}?page=${getContent('featured.ctaLink') || 'inventory'}" class="inline-flex items-center px-8 py-4 rounded-full font-heading font-bold text-lg text-white border-4 border-white hover:bg-white hover:text-primary transition-all">${getContent('featured.ctaText') || 'View All Equipment →'}</a>
+          <a href="${baseUrl}${getContent('featured.ctaLink') || 'inventory'}" class="inline-flex items-center px-8 py-4 rounded-full font-heading font-bold text-lg text-white border-4 border-white hover:bg-white hover:text-primary transition-all">${getContent('featured.ctaText') || 'View All Equipment →'}</a>
         </div>
       </div>
     </section>`;
@@ -517,7 +519,7 @@ function vdHomeSections(
         <h2 class="text-5xl md:text-6xl font-heading font-black text-white mb-6">${getContent('cta.heading') || 'READY TO GET STARTED?'}</h2>
         <p class="text-xl text-white/90 mb-10 max-w-2xl mx-auto">${getContent('cta.subheading') || ''}</p>
         <div class="flex flex-wrap justify-center gap-6">
-          <a href="/api/preview/${siteId}?page=${getContent('cta.ctaPrimaryLink') || 'inventory'}" class="inline-block bg-white font-heading font-black text-xl px-10 py-4 rounded-full transition-all hover:-translate-y-1" style="color: var(--color-primary);">${getContent('cta.primaryText') || getContent('cta.primaryButton') || getContent('cta.button') || 'Browse Equipment'}</a>
+          <a href="${baseUrl}${getContent('cta.ctaPrimaryLink') || 'inventory'}" class="inline-block bg-white font-heading font-black text-xl px-10 py-4 rounded-full transition-all hover:-translate-y-1" style="color: var(--color-primary);">${getContent('cta.primaryText') || getContent('cta.primaryButton') || getContent('cta.button') || 'Browse Equipment'}</a>
           <a href="tel:${getContent('businessInfo.phone')}" class="inline-flex items-center px-10 py-4 rounded-full font-heading font-bold text-lg text-white border-4 border-white hover:bg-white hover:text-primary transition-all">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2A19.86 19.86 0 013.09 5.18 2 2 0 015.11 3h3a2 2 0 012 1.72c.12.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 11.91a16 16 0 006 6l2.27-2.27a2 2 0 012.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0122 16.92z"/></svg>
             ${getContent('cta.secondaryText') || 'Call Now'}
@@ -536,7 +538,7 @@ function vdHomeSections(
 // SUBPAGE: SERVICE
 // ============================================
 
-function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, hasScheduler: boolean, vis: Record<string, boolean>): string {
+function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, hasScheduler: boolean, vis: Record<string, boolean>, baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const serviceHeroImg = getContent('servicePage.heroImage');
   const heroHtml = `
   <section data-section="servicePage" class="relative overflow-hidden py-16 md:py-20" style="${serviceHeroImg ? `background-image: url('${serviceHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));`}">
@@ -556,7 +558,7 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
     <div class="card-bold p-8" style="border-color: ${borderColor};">
       <h3 class="text-2xl font-heading font-black text-gray-900 mb-3">${title}</h3>
       <p class="text-gray-600 mb-6">${desc}</p>
-      <a href="/api/preview/${siteId}?page=${getContent('servicePage.ctaLink') || 'contact'}" class="btn-gradient text-sm">Request Service →</a>
+      <a href="${baseUrl}${getContent('servicePage.ctaLink') || 'contact'}" class="btn-gradient text-sm">Request Service →</a>
     </div>`;
   }).join('');
 
@@ -572,7 +574,7 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
     <div class="max-w-3xl mx-auto px-6">
       <h2 class="text-4xl font-heading font-black text-white mb-4">${getContent('servicePage.ctaHeading') || 'Need Service?'}</h2>
       <p class="text-lg text-white/90 mb-8">${getContent('servicePage.contentText') || 'Contact us to schedule a repair or maintenance appointment.'}</p>
-      <a href="/api/preview/${siteId}?page=${getContent('servicePage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-primary);">${getContent('servicePage.ctaButton') || 'Get In Touch'}</a>
+      <a href="${baseUrl}${getContent('servicePage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-primary);">${getContent('servicePage.ctaButton') || 'Get In Touch'}</a>
     </div>
   </section>`;
 
@@ -636,7 +638,7 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
 // SUBPAGE: CONTACT
 // ============================================
 
-function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, vis: Record<string, boolean>): string {
+function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, vis: Record<string, boolean>, baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const contactHeroImg = getContent('contactPage.heroImage');
   const heroHtml = `
   <section data-section="contactPage" class="relative overflow-hidden py-16 md:py-20" style="${contactHeroImg ? `background-image: url('${contactHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-accent));`}">
@@ -718,7 +720,7 @@ function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, v
 // SUBPAGE: MANUFACTURERS
 // ============================================
 
-function vdManufacturersPage(getContent: GetContent, colors: Colors, manufacturers: any[], siteId: string, vis: Record<string, boolean>): string {
+function vdManufacturersPage(getContent: GetContent, colors: Colors, manufacturers: any[], siteId: string, vis: Record<string, boolean>, baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const mfgHeroImg = getContent('manufacturersPage.heroImage');
   const heroHtml = `
   <section data-section="manufacturersPage" class="relative overflow-hidden py-16 md:py-20" style="${mfgHeroImg ? `background-image: url('${mfgHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-accent));`}">
@@ -755,7 +757,7 @@ function vdManufacturersPage(getContent: GetContent, colors: Colors, manufacture
     <div class="max-w-3xl mx-auto px-6">
       ${mfgCtaHeading ? `<h2 class="text-4xl font-heading font-black text-white mb-4">${mfgCtaHeading}</h2>` : ''}
       ${mfgCtaText ? `<p class="text-lg text-white/90 mb-8">${mfgCtaText}</p>` : ''}
-      <a href="/api/preview/${siteId}?page=${getContent('manufacturersPage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-primary);">${mfgCtaBtn}</a>
+      <a href="${baseUrl}${getContent('manufacturersPage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-primary);">${mfgCtaBtn}</a>
     </div>
   </section>` : '';
 
@@ -894,7 +896,7 @@ async function vdRentalsPage(
     <div class="max-w-3xl mx-auto px-6">
       <h2 class="text-4xl font-heading font-black text-white mb-4">${getContent('rentalsPage.ctaHeading') || 'Ready to Rent?'}</h2>
       <p class="text-lg text-white/90 mb-8">${getContent('rentalsPage.pricingNote') || 'Contact us for availability and pricing on any rental equipment.'}</p>
-      <a href="/api/preview/${siteId}?page=${getContent('rentalsPage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-secondary);">${getContent('rentalsPage.ctaText') || 'Get a Quote'}</a>
+      <a href="${baseUrl}${getContent('rentalsPage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-secondary);">${getContent('rentalsPage.ctaText') || 'Get a Quote'}</a>
     </div>
   </section>`;
 

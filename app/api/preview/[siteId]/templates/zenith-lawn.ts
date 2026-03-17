@@ -55,6 +55,7 @@ export function renderZenithLawnPage(
   enabledFeatures: Set<string>,
   vis: Record<string, boolean>,
   content: Record<string, string> = {},
+  baseUrl: string = `/api/preview/${siteId}?page=`,
 ) {
   const ZL_KEY_ALIASES: Record<string, string> = {
     'business.name':    'businessInfo.businessName',
@@ -108,19 +109,19 @@ export function renderZenithLawnPage(
 
   let body = '';
   switch (currentPage) {
-    case 'home': case 'index': body = zlHome(siteId, getContent, products, vis, colors); break;
+    case 'home': case 'index': body = zlHome(siteId, getContent, products, vis, colors, baseUrl); break;
     case 'service': body = zlService(siteId, getContent); break;
     case 'contact': body = zlContact(siteId, getContent, hoursLine); break;
     case 'inventory': body = zlInventory(siteId, getContent, products); break;
     case 'rentals': body = zlRentals(siteId, getContent); break;
     case 'manufacturers': body = zlManufacturers(siteId, getContent); break;
-    default: body = zlHome(siteId, getContent, products, vis, colors); break;
+    default: body = zlHome(siteId, getContent, products, vis, colors, baseUrl); break;
   }
 
   return zlShell(
     getContent('businessInfo.businessName') || getContent('business.name') || 'Zenith Equipment',
     fonts, colors,
-    zlHeader(siteId, currentPage, pages, getContent) + body + zlFooter(siteId, pages, getContent, hoursLine)
+    zlHeader(siteId, currentPage, pages, getContent, baseUrl) + body + zlFooter(siteId, pages, getContent, hoursLine, baseUrl)
   );
 }
 
@@ -160,29 +161,29 @@ function zlShell(title: string, fonts: any, colors: any, body: string) {
 }
 
 // ── Header ──
-function zlHeader(siteId: string, currentPage: string, pages: any[], getContent: Function) {
+function zlHeader(siteId: string, currentPage: string, pages: any[], getContent: Function, baseUrl: string = `/api/preview/${siteId}?page=`) {
   const name = getContent('businessInfo.businessName') || getContent('business.name') || 'Zenith Equipment';
   const links = pages.map(p => {
     const active = p.slug === currentPage || (p.slug === 'index' && (currentPage === 'home' || currentPage === 'index'));
-    return `<a href="/api/preview/${siteId}?page=${p.slug}" class="text-sm transition-slow ${active ? 'text-neutral-900' : 'text-neutral-400 hover:text-neutral-900'}">${p.name}</a>`;
+    return `<a href="${baseUrl}${p.slug}" class="text-sm transition-slow ${active ? 'text-neutral-900' : 'text-neutral-400 hover:text-neutral-900'}">${p.name}</a>`;
   }).join('\n');
 
   return `
   <header class="fixed top-0 left-0 right-0 z-50 border-b border-neutral-200" style="background: rgba(250,250,250,0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
     <nav class="container-narrow">
       <div class="flex items-center justify-between h-16 md:h-20">
-        <a href="/api/preview/${siteId}?page=index" class="text-lg md:text-xl font-medium tracking-tight text-neutral-900">${name}</a>
+        <a href="${baseUrl}index" class="text-lg md:text-xl font-medium tracking-tight text-neutral-900">${name}</a>
         <div class="hidden md:flex items-center gap-8">${links}</div>
         <!-- Mobile: scrollable row below -->
         <div class="md:hidden">
-          <a href="/api/preview/${siteId}?page=contact" class="text-sm text-neutral-400 hover:text-neutral-900 transition-slow">Contact</a>
+          <a href="${baseUrl}contact" class="text-sm text-neutral-400 hover:text-neutral-900 transition-slow">Contact</a>
         </div>
       </div>
       <div class="md:hidden overflow-x-auto pb-3 -mx-6 px-6">
         <div class="flex items-center gap-6 min-w-max">
           ${pages.map(p => {
             const active = p.slug === currentPage || (p.slug === 'index' && (currentPage === 'home' || currentPage === 'index'));
-            return `<a href="/api/preview/${siteId}?page=${p.slug}" class="text-xs whitespace-nowrap transition-slow ${active ? 'text-neutral-900' : 'text-neutral-400 hover:text-neutral-900'}">${p.name}</a>`;
+            return `<a href="${baseUrl}${p.slug}" class="text-xs whitespace-nowrap transition-slow ${active ? 'text-neutral-900' : 'text-neutral-400 hover:text-neutral-900'}">${p.name}</a>`;
           }).join('\n')}
         </div>
       </div>
@@ -192,7 +193,7 @@ function zlHeader(siteId: string, currentPage: string, pages: any[], getContent:
 }
 
 // ── Footer ──
-function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine: string) {
+function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine: string, baseUrl: string = `/api/preview/${siteId}?page=`) {
   const name = getContent('businessInfo.businessName') || getContent('business.name') || 'Zenith Equipment';
   const tagline = getContent('footer.tagline') || getContent('businessInfo.tagline') || '';
   return `
@@ -207,7 +208,7 @@ function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine:
           <h4 class="text-sm font-medium mb-4">Navigation</h4>
           <div class="flex flex-col gap-3">
             ${pages.filter(p => p.slug !== 'index').map(p =>
-              `<a href="/api/preview/${siteId}?page=${p.slug}" class="text-sm text-neutral-500 transition-slow hover:text-neutral-900">${p.name}</a>`
+              `<a href="${baseUrl}${p.slug}" class="text-sm text-neutral-500 transition-slow hover:text-neutral-900">${p.name}</a>`
             ).join('\n')}
           </div>
         </div>
@@ -228,7 +229,7 @@ function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine:
 }
 
 // ── Home ──
-function zlHome(siteId: string, getContent: Function, products: any[], vis: Record<string, boolean>, colors: any) {
+function zlHome(siteId: string, getContent: Function, products: any[], vis: Record<string, boolean>, colors: any, baseUrl: string = `/api/preview/${siteId}?page=`) {
   let html = '';
 
   // Hero
@@ -247,7 +248,7 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
             ${getContent('hero.subheading') || getContent('hero.subtitle') || ''}
           </p>
           <div class="animate-fade-in" style="animation-delay:0.2s;">
-            <a href="/api/preview/${siteId}?page=inventory"
+            <a href="${baseUrl}inventory"
               class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90"
               style="background-color: ${colors.accent};">
               ${getContent('hero.ctaPrimary') || 'View Inventory'}
@@ -266,7 +267,7 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
       <div class="container-narrow">
         <div class="flex items-end justify-between mb-12">
           <h2 class="text-3xl md:text-4xl font-light tracking-tight">Featured</h2>
-          <a href="/api/preview/${siteId}?page=inventory" class="text-sm text-neutral-500 hover:text-neutral-900 transition-slow">View all</a>
+          <a href="${baseUrl}inventory" class="text-sm text-neutral-500 hover:text-neutral-900 transition-slow">View all</a>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           ${products.slice(0, 4).map((p: any) => zlProductCard(siteId, p)).join('')}
@@ -321,7 +322,7 @@ function zlProductCard(siteId: string, p: any) {
   const productName = p.name || p.title || '';
   const price = p.sale_price || p.price;
   return `
-  <a href="/api/preview/${siteId}?page=contact" class="group block">
+  <a href="${baseUrl}contact" class="group block">
     <div class="aspect-[4/3] overflow-hidden bg-neutral-100 mb-4">
       ${hasImage
         ? `<img src="${imgUrl}" alt="${productName}" class="w-full h-full object-cover transition-slow group-hover:scale-105 group-hover:opacity-90"/>`
@@ -540,7 +541,7 @@ function zlRentals(siteId: string, getContent: Function) {
         <p>• Long-term rates available for rentals exceeding 30 days</p>
       </div>
       <div class="mt-16">
-        <a href="/api/preview/${siteId}?page=contact" class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90 bg-green-500">Reserve Equipment</a>
+        <a href="${baseUrl}contact" class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90 bg-green-500">Reserve Equipment</a>
       </div>
     </div>
   </section>`;
@@ -569,7 +570,7 @@ function zlManufacturers(siteId: string, getContent: Function) {
       </div>
       <div class="border-t border-neutral-200">
         ${brands.map((b, i) => `
-        <a href="/api/preview/${siteId}?page=inventory" class="block py-8 group ${i < brands.length - 1 ? 'border-b border-neutral-200' : ''}">
+        <a href="${baseUrl}inventory" class="block py-8 group ${i < brands.length - 1 ? 'border-b border-neutral-200' : ''}">
           <div class="flex items-center justify-between gap-8">
             <div class="flex items-center gap-6">
               <img src="${logos[b.name] || ''}" alt="${b.name}" style="height: 40px; width: auto;">
