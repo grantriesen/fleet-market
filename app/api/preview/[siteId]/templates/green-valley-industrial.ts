@@ -45,9 +45,9 @@ export async function renderGreenValleyPage(
   availablePages: any[],
   page: string,
   googleFontsUrl: string,
-  supabase?: any
-,
-  baseUrl: string = `/api/preview/${siteId}?page=`): Promise<string> {
+  supabase?: any,
+  baseUrl: string = `/api/preview/${siteId}?page=`
+): Promise<string> {
   // Load site features (add-ons) from DB
   let enabledFeatures: Set<string> = new Set();
   if (supabase) {
@@ -229,9 +229,9 @@ function gvHeader(
   colors: Colors,
   availablePages: any[],
   siteId: string,
-  currentPage: string
-,
-  baseUrl: string = `/api/preview/${siteId}?page=`): string {
+  currentPage: string,
+  baseUrl: string = `/api/preview/${siteId}?page=`
+): string {
   const businessName = getContent('businessInfo.businessName');
   const logoImage = getContent('businessInfo.logoImage');
   const phone = getContent('businessInfo.phone');
@@ -317,9 +317,9 @@ function gvFooter(
   getContent: GetContent,
   colors: Colors,
   availablePages: any[],
-  siteId: string
-,
-  baseUrl: string = `/api/preview/${siteId}?page=`): string {
+  siteId: string,
+  baseUrl: string = `/api/preview/${siteId}?page=`
+): string {
   const businessName = getContent('businessInfo.businessName');
   const tagline = getContent('footer.tagline') || getContent('businessInfo.tagline');
   const phone = getContent('businessInfo.phone');
@@ -414,9 +414,9 @@ function gvHomeSections(
   displayProducts: any[],
   isRealProducts: boolean,
   fmtPrice: FmtPrice,
-  enabledFeatures: Set<string> = new Set()
-,
-  baseUrl: string = `/api/preview/${siteId}?page=`): string {
+  enabledFeatures: Set<string> = new Set(),
+  baseUrl: string = `/api/preview/${siteId}?page=`
+): string {
   let html = '';
 
   // ── Hero ──

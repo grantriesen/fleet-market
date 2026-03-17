@@ -44,9 +44,9 @@ export async function renderVibeDynamicsPage(
   availablePages: any[],
   page: string,
   googleFontsUrl: string,
-  supabase?: any
-,
-  baseUrl: string = `/api/preview/${siteId}?page=`): Promise<string> {
+  supabase?: any,
+  baseUrl: string = `/api/preview/${siteId}?page=`
+): Promise<string> {
   let enabledFeatures: Set<string> = new Set();
   if (supabase) {
     const { data: features } = await supabase
@@ -211,7 +211,8 @@ function vdHtmlShell(colors: Colors, fonts: Fonts, siteName: string, googleFonts
 // ============================================
 
 function vdHeader(getContent: GetContent, colors: Colors, pages: any[], siteId: string, currentPage: string,
-  baseUrl: string = `/api/preview/${siteId}?page=`): string {
+  baseUrl: string = `/api/preview/${siteId}?page=`
+): string {
   const businessName = getContent('businessInfo.businessName');
   const phone = getContent('businessInfo.phone');
 
@@ -254,7 +255,8 @@ function vdHeader(getContent: GetContent, colors: Colors, pages: any[], siteId: 
 // ============================================
 
 function vdFooter(getContent: GetContent, colors: Colors, pages: any[], siteId: string,
-  baseUrl: string = `/api/preview/${siteId}?page=`): string {
+  baseUrl: string = `/api/preview/${siteId}?page=`
+): string {
   const businessName = getContent('businessInfo.businessName');
   const phone = getContent('businessInfo.phone');
   const email = getContent('businessInfo.email');
@@ -333,9 +335,9 @@ function vdHomeSections(
   displayProducts: any[],
   isRealProducts: boolean,
   fmtPrice: FmtPrice,
-  enabledFeatures: Set<string>
-,
-  baseUrl: string = `/api/preview/${siteId}?page=`): string {
+  enabledFeatures: Set<string>,
+  baseUrl: string = `/api/preview/${siteId}?page=`
+): string {
   let html = '';
 
   // ── Hero ──
