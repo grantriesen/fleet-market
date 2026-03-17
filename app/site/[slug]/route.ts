@@ -199,7 +199,19 @@ export async function GET(
       }
     }
 
-    const html = await loadAndRender(site, page, supabase);
+    let html: string;
+    try {
+      html = await loadAndRender(site, page, supabase);
+    } catch (renderError: any) {
+      console.error('Render error details:', {
+        message: renderError?.message,
+        stack: renderError?.stack,
+        template: site?.template?.slug,
+        page,
+        siteSlug: params.slug,
+      });
+      throw renderError;
+    }
 
     return new NextResponse(html, {
       headers: {
