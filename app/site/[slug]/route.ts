@@ -98,6 +98,17 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     .eq('site_id', siteId).eq('featured', true).eq('status', 'available')
     .order('display_order').limit(8);
 
+  const colors = {
+    primary: customizations.colors?.primary || config.colors?.primary?.default || '#2D5016',
+    secondary: customizations.colors?.secondary || config.colors?.secondary?.default || '#F97316',
+    accent: customizations.colors?.accent || config.colors?.accent?.default || '#059669',
+  };
+
+  const fonts = {
+    heading: customizations.fonts?.heading || config.fonts?.heading?.default || 'Inter',
+    body: customizations.fonts?.body || config.fonts?.body?.default || 'Inter',
+  };
+
   // Build pages list from template config (matching preview route)
   const availablePages = (config.pages || []).filter((p: any) => {
     const isVisible = pageVisibility[p.slug] !== false;
@@ -106,19 +117,35 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     return site.subscription_tier !== 'basic';
   });
 
-  const colors = {
-    primary: customizations.colors?.primary || config.colors?.primary?.default || '#2D5016',
-    secondary: customizations.colors?.secondary || config.colors?.secondary?.default || '#F97316',
-    accent: customizations.colors?.accent || config.colors?.accent?.default || '#059669',
-  };
+  const fontFamilies = new Set([fonts.heading, fonts.body]);
+  const googleFontsUrl = Array.from(fontFamilies)
+    .map((f: any) => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700;800;900`)
+    .join('&');
 
-  const displayProducts = (featuredItems && featuredItems.length > 0)
-    ? featuredItems.slice(0, 4)
+  const isRealProducts = (featuredItems?.length || 0) > 0;
+  const displayProducts = isRealProducts
+    ? featuredItems!.slice(0, 4)
     : [1, 2, 3, 4].map(i => ({
         id: `placeholder-${i}`, title: `Featured Product ${i}`,
         description: 'Professional-grade equipment', price: null, sale_price: null,
         primary_image: null, category: 'Equipment', condition: 'new', slug: null,
       }));
+
+  const fmtPrice = (price: number | null) => {
+    if (price === null || price === undefined) return 'Call for Price';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(price);
+  };
+
+  // getContent helper (matching preview route)
+  const getContent = (key: string) => {
+    if (content[key]) return content[key];
+    const parts = key.split('.');
+    if (parts.length === 2) {
+      const [section, field] = parts;
+      return config.sections?.[section]?.[field]?.default || '';
+    }
+    return '';
+  };
 
   // Load enabled features
   const enabledFeatures = new Set<string>();
@@ -131,24 +158,44 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   const vis: Record<string, boolean> = {};
   Object.entries(sectionVisibility).forEach(([k, v]) => { vis[k] = v as boolean; });
 
-  // Render by template
-  if (templateSlug === 'modern-lawn-solutions') {
-    return await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, manufacturers || []);
-  }
-  if (templateSlug === 'warm-earth-designs') {
-    return renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || []);
-  }
+  // ── Route to correct template — matching preview route signatures exactly ──
   if (templateSlug === 'green-valley-industrial') {
-    return renderGreenValleyPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || []);
+    return await renderGreenValleyPage(
+      getContent, colors, fonts, manufacturers || [], sectionVisibility,
+      siteId, site.site_name, displayProducts, isRealProducts, fmtPrice,
+      availablePages, page, googleFontsUrl, supabase
+    );
   }
   if (templateSlug === 'vibe-dynamics') {
-    return renderVibeDynamicsPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || []);
+    return await renderVibeDynamicsPage(
+      getContent, colors, fonts, manufacturers || [], sectionVisibility,
+      siteId, site.site_name, displayProducts, isRealProducts, fmtPrice,
+      availablePages, page, googleFontsUrl, supabase
+    );
   }
   if (templateSlug === 'corporate-edge') {
-    return renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || []);
+    return renderCorporateEdgePage(
+      siteId, page, availablePages, displayProducts,
+      config, customizations, enabledFeatures, vis, content, manufacturers || []
+    );
   }
   if (templateSlug === 'zenith-lawn') {
-    return renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || []);
+    return renderZenithLawnPage(
+      siteId, page, availablePages, displayProducts,
+      config, customizations, enabledFeatures, vis, content
+    );
+  }
+  if (templateSlug === 'modern-lawn-solutions') {
+    return await renderModernLawnPage(
+      siteId, page, availablePages, displayProducts,
+      config, customizations, enabledFeatures, vis, content, supabase, manufacturers || []
+    );
+  }
+  if (templateSlug === 'warm-earth-designs') {
+    return renderWarmEarthPage(
+      siteId, page, availablePages, displayProducts,
+      config, customizations, enabledFeatures, vis, content, manufacturers || []
+    );
   }
   throw new Error(`Unknown template: ${templateSlug}`);
 }
