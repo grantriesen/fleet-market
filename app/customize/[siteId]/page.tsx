@@ -60,6 +60,14 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
   // Page visibility
   const [pageVisibility, setPageVisibility] = useState<Record<string, boolean>>({});
 
+  // Publish / Deploy state
+  const [showDeployPanel, setShowDeployPanel] = useState(false);
+  const [published, setPublished] = useState(false);
+  const [siteSlug, setSiteSlug] = useState('');
+  const [customDomain, setCustomDomain] = useState('');
+  const [sitePassword, setSitePassword] = useState('');
+  const [publishing, setPublishing] = useState(false);
+
   useEffect(() => {
     loadSiteData();
   }, []);
@@ -84,7 +92,11 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
         .select(`
           id,
           site_name,
+          slug,
           subscription_tier,
+          published,
+          custom_domain,
+          site_password,
           onboarding_tour_completed,
           template:templates (
             name,
@@ -101,6 +113,10 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
         setTemplateSlug(site.template.slug);
         setTemplateConfig(site.template.config_json);
         setSubscriptionTier(site.subscription_tier || 'basic');
+        setPublished(site.published || false);
+        setSiteSlug(site.slug || '');
+        setCustomDomain(site.custom_domain || '');
+        setSitePassword(site.site_password || '');
         
         // Initialize section visibility from template sections
         const sections = site.template.config_json.sections || {};
@@ -904,6 +920,49 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
     }
   }, [tourActive, tourSteps.length, loading]);
 
+  const handlePublish = async () => {
+    setPublishing(true);
+    try {
+      const deployedUrl = customDomain
+        ? `https://${customDomain}`
+        : `https://${siteSlug}.fleetmarket.us`;
+
+      const { error } = await supabase
+        .from('sites')
+        .update({
+          published: true,
+          deployed_url: deployedUrl,
+          deployment_status: 'live',
+          last_deployed_at: new Date().toISOString(),
+          custom_domain: customDomain || null,
+          site_password: sitePassword || null,
+        })
+        .eq('id', params.siteId);
+
+      if (error) throw error;
+      setPublished(true);
+      setShowDeployPanel(false);
+      setToast({ message: '🚀 Site is now live!', type: 'success' });
+    } catch (e: any) {
+      setToast({ message: `Failed to publish: ${e.message}`, type: 'error' });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleUnpublish = async () => {
+    try {
+      await supabase
+        .from('sites')
+        .update({ published: false, deployment_status: 'draft' })
+        .eq('id', params.siteId);
+      setPublished(false);
+      setToast({ message: 'Site unpublished.', type: 'success' });
+    } catch (e: any) {
+      setToast({ message: `Failed to unpublish: ${e.message}`, type: 'error' });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -923,6 +982,84 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
 
   return (
     <div className="flex flex-col h-screen">
+      {/* Deploy / Publish Panel */}
+      {showDeployPanel && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowDeployPanel(false)} />
+          <div className="relative bg-white w-full max-w-md h-full shadow-2xl flex flex-col overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h2 className="text-lg font-bold">Go Live</h2>
+              <button onClick={() => setShowDeployPanel(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="flex-1 px-6 py-6 space-y-6">
+
+              {/* Status */}
+              <div className={`flex items-center gap-3 p-4 rounded-lg ${published ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}`}>
+                <span className={`w-3 h-3 rounded-full flex-shrink-0 ${published ? 'bg-green-500' : 'bg-gray-400'}`} />
+                <div>
+                  <p className="font-semibold text-sm">{published ? 'Live' : 'Draft'}</p>
+                  {published && (
+                    <a
+                      href={`https://${siteSlug}.fleetmarket.us`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      {siteSlug}.fleetmarket.us ↗
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Custom Domain */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Custom Domain <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input
+                  type="text"
+                  value={customDomain}
+                  onChange={(e) => setCustomDomain(e.target.value)}
+                  placeholder="www.yourdealer.com"
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                />
+                <p className="text-xs text-gray-400 mt-1">Point your domain's CNAME to <code className="bg-gray-100 px-1 rounded">cname.vercel-dns.com</code></p>
+              </div>
+
+              {/* Password Protection */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Password Protection <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input
+                  type="text"
+                  value={sitePassword}
+                  onChange={(e) => setSitePassword(e.target.value)}
+                  placeholder="Leave blank for public access"
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                />
+                <p className="text-xs text-gray-400 mt-1">Visitors will need this password to view the site.</p>
+              </div>
+
+              {/* Publish / Unpublish */}
+              <div className="pt-2 space-y-3">
+                <button
+                  onClick={handlePublish}
+                  disabled={publishing}
+                  className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white py-3 rounded-lg font-semibold"
+                >
+                  {publishing ? 'Publishing...' : published ? 'Update & Republish' : '🚀 Publish Site'}
+                </button>
+                {published && (
+                  <button
+                    onClick={handleUnpublish}
+                    className="w-full border border-red-200 text-red-600 hover:bg-red-50 py-2.5 rounded-lg text-sm font-medium"
+                  >
+                    Unpublish
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Guided Tour Overlay */}
       <GuidedTourOverlay
         active={tourActive}
@@ -1006,8 +1143,16 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
               {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
-          <button className="bg-orange-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-orange-600">
-            Deploy
+          <button
+            onClick={() => setShowDeployPanel(true)}
+            className={`px-6 py-2 rounded-lg font-semibold flex items-center gap-2 ${
+              published
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-orange-500 hover:bg-orange-600 text-white'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${published ? 'bg-green-300' : 'bg-orange-300'}`} />
+            {published ? 'Live' : 'Go Live'}
           </button>
         </div>
       </header>
