@@ -86,7 +86,8 @@ export async function renderModernLawnPage(
   vis: Record<string, boolean>,
   content?: Record<string, string>,
   supabase?: any,
-) {
+,
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   // Content resolution: passed content (from route) > customizations > config > demo overrides
   const MLS_KEY_ALIASES: Record<string,string> = {
     'business.name':    'businessInfo.businessName',
@@ -253,7 +254,8 @@ function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, pa
 }
 
 // ── Header ──
-function mlsHeader(siteId: string, currentPage: string, pages: any[], getContent: (k: string, baseUrl: string = `/api/preview/${siteId}?page=`) => string, colors: any) {
+function mlsHeader(siteId: string, currentPage: string, pages: any[], getContent: (k: string) => string, colors: any,
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   const businessName = getContent('business.name') || 'Modern Lawn Solutions';
   const phone = getContent('business.phone');
 
@@ -305,7 +307,8 @@ function mlsHeader(siteId: string, currentPage: string, pages: any[], getContent
 }
 
 // ── Footer ──
-function mlsFooter(siteId: string, pages: any[], getContent: (k: string, baseUrl: string = `/api/preview/${siteId}?page=`) => string, weekday: string, saturday: string, sunday: string) {
+function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => string, weekday: string, saturday: string, sunday: string,
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   const name = getContent('business.name') || 'Modern Lawn Solutions';
   const phone = getContent('business.phone');
   const email = getContent('business.email');
@@ -370,7 +373,8 @@ function mlsFooter(siteId: string, pages: any[], getContent: (k: string, baseUrl
 // ══════════════════════════════════════════════════
 //  HOME PAGE
 // ══════════════════════════════════════════════════
-async function mlsHome(siteId: string, gc: (k: string, baseUrl: string = `/api/preview/${siteId}?page=`) => string, products: any[], vis: Record<string, boolean>, colors: any, fmtPrice: (p: number | null) => string, supabase?: any): Promise<string> {
+async function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis: Record<string, boolean>, colors: any, fmtPrice: (p: number | null) => string, supabase?: any,
+  baseUrl: string = `/api/preview/${siteId}?page=`): Promise<string> {
   let html = '';
 
   // ── Hero: Split Layout ──

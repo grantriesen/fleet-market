@@ -47,8 +47,7 @@ export async function renderGreenValleyPage(
   googleFontsUrl: string,
   supabase?: any
 ,
-  baseUrl: string = `/api/preview/${siteId}?page=`
-): Promise<string> {
+  baseUrl: string = `/api/preview/${siteId}?page=`): Promise<string> {
   // Load site features (add-ons) from DB
   let enabledFeatures: Set<string> = new Set();
   if (supabase) {
@@ -231,7 +230,8 @@ function gvHeader(
   availablePages: any[],
   siteId: string,
   currentPage: string
-, baseUrl: string = `/api/preview/${siteId}?page=`): string {
+,
+  baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const businessName = getContent('businessInfo.businessName');
   const logoImage = getContent('businessInfo.logoImage');
   const phone = getContent('businessInfo.phone');
@@ -318,7 +318,8 @@ function gvFooter(
   colors: Colors,
   availablePages: any[],
   siteId: string
-, baseUrl: string = `/api/preview/${siteId}?page=`): string {
+,
+  baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const businessName = getContent('businessInfo.businessName');
   const tagline = getContent('footer.tagline') || getContent('businessInfo.tagline');
   const phone = getContent('businessInfo.phone');
@@ -413,8 +414,9 @@ function gvHomeSections(
   displayProducts: any[],
   isRealProducts: boolean,
   fmtPrice: FmtPrice,
-  enabledFeatures: Set<string> = new Set(, baseUrl: string = `/api/preview/${siteId}?page=`)
-): string {
+  enabledFeatures: Set<string> = new Set()
+,
+  baseUrl: string = `/api/preview/${siteId}?page=`): string {
   let html = '';
 
   // ── Hero ──
@@ -635,7 +637,7 @@ function gvContactPage(
   colors: Colors,
   siteId: string,
   vis: Record<string, boolean> = {}
-, baseUrl: string = `/api/preview/${siteId}?page=`): string {
+): string {
   const heading = getContent('contactPage.heading') || 'Get In Touch';
   const subheading = getContent('contactPage.subheading') || 'Have questions? We are here to help.';
   const heroImage = getContent('contactPage.heroImage');
@@ -811,7 +813,7 @@ function gvManufacturersPage(
   manufacturers: any[],
   siteId: string,
   vis: Record<string, boolean> = {}
-, baseUrl: string = `/api/preview/${siteId}?page=`): string {
+): string {
   const heading = getContent('manufacturersPage.heading') || 'Our Partner Manufacturers';
   const subheading = getContent('manufacturersPage.subheading') || 'We partner with industry-leading manufacturers.';
   const heroImage = getContent('manufacturersPage.heroImage');
@@ -868,7 +870,7 @@ function gvServicePage(
   siteId: string,
   hasServiceFeature: boolean = false,
   vis: Record<string, boolean> = {}
-, baseUrl: string = `/api/preview/${siteId}?page=`): string {
+): string {
   const heading = getContent('servicePage.heading') || 'Expert Service & Repair';
   const subheading = getContent('servicePage.subheading') || 'Keep your equipment running at peak performance.';
   const heroImage = getContent('servicePage.heroImage');

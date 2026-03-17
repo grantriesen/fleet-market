@@ -92,7 +92,8 @@ export function renderWarmEarthPage(
   config: any, customizations: any, enabledFeatures: Set<string>,
   vis: Record<string, boolean>, content?: Record<string, string>,
   manufacturers: any[] = [],
-) {
+,
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   const WE_KEY_ALIASES: Record<string,string> = {
     'business.name':    'businessInfo.businessName',
     'business.phone':   'businessInfo.phone',
@@ -207,7 +208,8 @@ function weShell(title: string, C: any, siteId: string, page: string, body: stri
 }
 
 // ── Header ──
-function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string, baseUrl: string = `/api/preview/${siteId}?page=`) => string, C: any) {
+function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string) => string, C: any,
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   const name = gc('business.name') || 'Heartland Outdoor Equipment';
   const phone = gc('business.phone');
   const email = gc('business.email');
@@ -267,7 +269,8 @@ function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string, bas
 }
 
 // ── Footer ──
-function weFooter(siteId: string, pages: any[], gc: (k: string, baseUrl: string = `/api/preview/${siteId}?page=`) => string, C: any, wk: string, sat: string, sun: string) {
+function weFooter(siteId: string, pages: any[], gc: (k: string) => string, C: any, wk: string, sat: string, sun: string,
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   const name = gc('business.name') || 'Heartland Outdoor Equipment';
   const navSlugs = ['home', 'inventory', 'rentals', 'service', 'manufacturers', 'contact'];
   return `
@@ -318,7 +321,8 @@ function weFooter(siteId: string, pages: any[], gc: (k: string, baseUrl: string 
 // ══════════════════════════════════════════════════
 //  HOME
 // ══════════════════════════════════════════════════
-function weHome(siteId: string, gc: (k: string, baseUrl: string = `/api/preview/${siteId}?page=`) => string, products: any[], manufacturers: any[], vis: Record<string, boolean>, C: any, fp: (p: number | null) => string): string {
+function weHome(siteId: string, gc: (k: string) => string, products: any[], manufacturers: any[], vis: Record<string, boolean>, C: any, fp: (p: number | null) => string,
+  baseUrl: string = `/api/preview/${siteId}?page=`): string {
   let h = '';
 
   // Hero

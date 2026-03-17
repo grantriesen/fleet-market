@@ -55,8 +55,8 @@ export function renderZenithLawnPage(
   enabledFeatures: Set<string>,
   vis: Record<string, boolean>,
   content: Record<string, string> = {},
-  baseUrl: string = `/api/preview/${siteId}?page=`,
-) {
+,
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   const ZL_KEY_ALIASES: Record<string, string> = {
     'business.name':    'businessInfo.businessName',
     'business.phone':   'businessInfo.phone',
@@ -161,7 +161,8 @@ function zlShell(title: string, fonts: any, colors: any, body: string) {
 }
 
 // ── Header ──
-function zlHeader(siteId: string, currentPage: string, pages: any[], getContent: Function, baseUrl: string = `/api/preview/${siteId}?page=`) {
+function zlHeader(siteId: string, currentPage: string, pages: any[], getContent: Function,
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   const name = getContent('businessInfo.businessName') || getContent('business.name') || 'Zenith Equipment';
   const links = pages.map(p => {
     const active = p.slug === currentPage || (p.slug === 'index' && (currentPage === 'home' || currentPage === 'index'));
@@ -193,7 +194,8 @@ function zlHeader(siteId: string, currentPage: string, pages: any[], getContent:
 }
 
 // ── Footer ──
-function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine: string, baseUrl: string = `/api/preview/${siteId}?page=`) {
+function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine: string,
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   const name = getContent('businessInfo.businessName') || getContent('business.name') || 'Zenith Equipment';
   const tagline = getContent('footer.tagline') || getContent('businessInfo.tagline') || '';
   return `
@@ -229,7 +231,8 @@ function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine:
 }
 
 // ── Home ──
-function zlHome(siteId: string, getContent: Function, products: any[], vis: Record<string, boolean>, colors: any, baseUrl: string = `/api/preview/${siteId}?page=`) {
+function zlHome(siteId: string, getContent: Function, products: any[], vis: Record<string, boolean>, colors: any,
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   let html = '';
 
   // Hero

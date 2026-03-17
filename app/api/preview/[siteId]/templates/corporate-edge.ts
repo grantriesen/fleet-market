@@ -89,8 +89,8 @@ export function renderCorporateEdgePage(
   vis: Record<string, boolean>,
   content: Record<string, string> = {},
   manufacturers: any[] = [],
-  baseUrl: string = `/api/preview/${siteId}?page=`,
-) {
+,
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   const CE_KEY_ALIASES: Record<string,string> = {
     'business.name':    'businessInfo.businessName',
     'business.phone':   'businessInfo.phone',
@@ -211,7 +211,8 @@ ${body}
 }
 
 // ── Header ──
-function ceHeader(siteId: string, currentPage: string, pages: any[], getContent: Function, weekdayHours: string, colors: any, baseUrl: string = `/api/preview/${siteId}?page=`) {
+function ceHeader(siteId: string, currentPage: string, pages: any[], getContent: Function, weekdayHours: string, colors: any,
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   const businessName = getContent('businessInfo.businessName') || getContent('business.name') || 'Premier Equipment';
   const logoImage = getContent('businessInfo.logoImage');
   const phone = getContent('businessInfo.phone') || getContent('business.phone') || '';
@@ -297,7 +298,8 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
 }
 
 // ── Footer ──
-function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHours: string, saturdayHours: string, sundayHours: string, colors: any = {}, manufacturers: any[] = [], baseUrl: string = `/api/preview/${siteId}?page=`) {
+function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHours: string, saturdayHours: string, sundayHours: string, colors: any = {}, manufacturers: any[] = [],
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   const businessName = getContent('businessInfo.businessName') || getContent('business.name') || 'Premier Equipment';
   const logoImage = getContent('businessInfo.logoImage');
   const phone = getContent('businessInfo.phone') || getContent('business.phone') || '';
@@ -392,7 +394,8 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
 }
 
 
-function ceHomeSections(siteId: string, getContent: Function, products: any[], enabledFeatures: Set<string>, vis: Record<string, boolean>, colors: any, manufacturers: any[] = [], baseUrl: string = `/api/preview/${siteId}?page=`) {
+function ceHomeSections(siteId: string, getContent: Function, products: any[], enabledFeatures: Set<string>, vis: Record<string, boolean>, colors: any, manufacturers: any[] = [],
+  baseUrl: string = `/api/preview/${siteId}?page=`) {
   let html = '';
 
   // ── Hero ──

@@ -46,8 +46,7 @@ export async function renderVibeDynamicsPage(
   googleFontsUrl: string,
   supabase?: any
 ,
-  baseUrl: string = `/api/preview/${siteId}?page=`
-): Promise<string> {
+  baseUrl: string = `/api/preview/${siteId}?page=`): Promise<string> {
   let enabledFeatures: Set<string> = new Set();
   if (supabase) {
     const { data: features } = await supabase
@@ -211,7 +210,8 @@ function vdHtmlShell(colors: Colors, fonts: Fonts, siteName: string, googleFonts
 // HEADER / NAV
 // ============================================
 
-function vdHeader(getContent: GetContent, colors: Colors, pages: any[], siteId: string, currentPage: string, baseUrl: string = `/api/preview/${siteId}?page=`): string {
+function vdHeader(getContent: GetContent, colors: Colors, pages: any[], siteId: string, currentPage: string,
+  baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const businessName = getContent('businessInfo.businessName');
   const phone = getContent('businessInfo.phone');
 
@@ -253,7 +253,8 @@ function vdHeader(getContent: GetContent, colors: Colors, pages: any[], siteId: 
 // FOOTER
 // ============================================
 
-function vdFooter(getContent: GetContent, colors: Colors, pages: any[], siteId: string, baseUrl: string = `/api/preview/${siteId}?page=`): string {
+function vdFooter(getContent: GetContent, colors: Colors, pages: any[], siteId: string,
+  baseUrl: string = `/api/preview/${siteId}?page=`): string {
   const businessName = getContent('businessInfo.businessName');
   const phone = getContent('businessInfo.phone');
   const email = getContent('businessInfo.email');
@@ -333,7 +334,8 @@ function vdHomeSections(
   isRealProducts: boolean,
   fmtPrice: FmtPrice,
   enabledFeatures: Set<string>
-, baseUrl: string = `/api/preview/${siteId}?page=`): string {
+,
+  baseUrl: string = `/api/preview/${siteId}?page=`): string {
   let html = '';
 
   // ── Hero ──
@@ -538,7 +540,7 @@ function vdHomeSections(
 // SUBPAGE: SERVICE
 // ============================================
 
-function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, hasScheduler: boolean, vis: Record<string, boolean>, baseUrl: string = `/api/preview/${siteId}?page=`): string {
+function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, hasScheduler: boolean, vis: Record<string, boolean>): string {
   const serviceHeroImg = getContent('servicePage.heroImage');
   const heroHtml = `
   <section data-section="servicePage" class="relative overflow-hidden py-16 md:py-20" style="${serviceHeroImg ? `background-image: url('${serviceHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));`}">
@@ -638,7 +640,7 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
 // SUBPAGE: CONTACT
 // ============================================
 
-function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, vis: Record<string, boolean>, baseUrl: string = `/api/preview/${siteId}?page=`): string {
+function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, vis: Record<string, boolean>): string {
   const contactHeroImg = getContent('contactPage.heroImage');
   const heroHtml = `
   <section data-section="contactPage" class="relative overflow-hidden py-16 md:py-20" style="${contactHeroImg ? `background-image: url('${contactHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-accent));`}">
@@ -720,7 +722,7 @@ function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, v
 // SUBPAGE: MANUFACTURERS
 // ============================================
 
-function vdManufacturersPage(getContent: GetContent, colors: Colors, manufacturers: any[], siteId: string, vis: Record<string, boolean>, baseUrl: string = `/api/preview/${siteId}?page=`): string {
+function vdManufacturersPage(getContent: GetContent, colors: Colors, manufacturers: any[], siteId: string, vis: Record<string, boolean>): string {
   const mfgHeroImg = getContent('manufacturersPage.heroImage');
   const heroHtml = `
   <section data-section="manufacturersPage" class="relative overflow-hidden py-16 md:py-20" style="${mfgHeroImg ? `background-image: url('${mfgHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-accent));`}">
