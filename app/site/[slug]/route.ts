@@ -98,15 +98,13 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     .eq('site_id', siteId).eq('featured', true).eq('status', 'available')
     .order('display_order').limit(8);
 
-  // Build pages list
-  const { data: pagesData } = await supabase
-    .from('site_pages')
-    .select('slug, name, is_visible, display_order')
-    .eq('site_id', siteId)
-    .eq('is_visible', true)
-    .order('display_order');
-
-  const availablePages = pagesData || [];
+  // Build pages list from template config (matching preview route)
+  const availablePages = (config.pages || []).filter((p: any) => {
+    const isVisible = pageVisibility[p.slug] !== false;
+    if (!isVisible) return false;
+    if (!p.premium) return true;
+    return site.subscription_tier !== 'basic';
+  });
 
   const colors = {
     primary: customizations.colors?.primary || config.colors?.primary?.default || '#2D5016',
