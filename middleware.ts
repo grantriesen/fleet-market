@@ -1,7 +1,44 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// ── Domains that belong to the Fleet Market app itself ──
+const APP_DOMAINS = [
+  'fleetmarket.us',
+  'www.fleetmarket.us',
+  'localhost:3000',
+  'localhost',
+];
+
+function isAppDomain(hostname: string): boolean {
+  return APP_DOMAINS.some(d => hostname === d || hostname.endsWith('.vercel.app'));
+}
+
 export async function middleware(request: NextRequest) {
+  const hostname = request.headers.get('host') || '';
+  const pathname = request.nextUrl.pathname;
+
+  // ── Subdomain / custom domain routing ──
+  // Runs before auth — if this is a dealer site, rewrite and return immediately.
+  if (!isAppDomain(hostname)) {
+    // Could be a subdomain (riesen-rally.fleetmarket.us) or custom domain (www.riesenrally.com)
+    let slug: string | null = null;
+
+    // Check if it's a *.fleetmarket.us subdomain
+    if (hostname.endsWith('.fleetmarket.us')) {
+      slug = hostname.replace('.fleetmarket.us', '');
+    } else {
+      // Custom domain — slug will be resolved by the site route via custom_domain lookup
+      slug = hostname;
+    }
+
+    if (slug) {
+      const url = request.nextUrl.clone();
+      // Preserve ?page= and other query params
+      url.pathname = `/site/${slug}`;
+      return NextResponse.rewrite(url);
+    }
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -55,8 +92,6 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { session } } = await supabase.auth.getSession()
-
-  const pathname = request.nextUrl.pathname
 
   // Get all supabase-related cookies for debugging
   const allCookies = request.cookies.getAll()
@@ -119,5 +154,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/customize/:path*', '/deploy/:path*', '/auth/:path*', '/onboarding/:path*'],
+  matcher: [
+    // App routes that need auth
+    '/dashboard/:path*',
+    '/customize/:path*',
+    '/deploy/:path*',
+    '/auth/:path*',
+    '/onboarding/:path*',
+    // Catch all requests so hostname routing works for subdomains/custom domains
+    '/((?!_next/static|_next/image|favicon.ico|images/|api/).*)',
+  ],
 }

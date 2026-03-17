@@ -210,16 +210,25 @@ export async function GET(
     const page = searchParams.get('page') || 'home';
     const supabase = createSupabase();
 
-    // Load site by slug, include published/custom_domain/password
-    const { data: site } = await supabase
+    // Load site by slug OR custom domain
+    // When middleware rewrites a custom domain, params.slug = the full hostname
+    const isCustomDomain = params.slug.includes('.');
+    
+    let siteQuery = supabase
       .from('sites')
       .select(`
         id, site_name, slug, subscription_tier,
         published, custom_domain, site_password,
         template:templates ( name, slug, config_json )
-      `)
-      .eq('slug', params.slug)
-      .single();
+      `);
+
+    if (isCustomDomain) {
+      siteQuery = siteQuery.eq('custom_domain', params.slug);
+    } else {
+      siteQuery = siteQuery.eq('slug', params.slug);
+    }
+
+    const { data: site } = await siteQuery.single();
 
     if (!site) {
       return new NextResponse('Site not found', { status: 404 });
