@@ -188,7 +188,7 @@ function buildConfirmationEmail(firstName: string, companyName: string): string 
                     <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;font-weight:800;font-size:16px;line-height:40px;text-align:center;">1</div>
                   </td>
                   <td style="padding-left:12px;">
-                    <p style="margin:0 0 2px;font-size:15px;font-weight:700;color:#0f172a;">March 18 — Dashboard Access Email</p>
+                    <p style="margin:0 0 2px;font-size:15px;font-weight:700;color:#0f172a;">March 23 — Dashboard Access Email</p>
                     <p style="margin:0;font-size:14px;color:#64748b;line-height:1.5;">
                       You'll receive an email with your login credentials and a link to the Fleet Market dashboard.
                     </p>
@@ -241,7 +241,7 @@ function buildConfirmationEmail(firstName: string, companyName: string): string 
                         <td style="padding-left:12px;">
                           <p style="margin:0 0 4px;font-size:15px;font-weight:700;color:#1e40af;">Mark Your Calendar</p>
                           <p style="margin:0;font-size:14px;color:#3b82f6;line-height:1.5;">
-                            <strong>March 18</strong> — Dashboard access &amp; add-on selection<br>
+                            <strong>March 23</strong> — Dashboard access &amp; add-on selection<br>
                             <strong>March 23</strong> — All beta sites go live<br>
                             <strong>May 1</strong> — First billing begins (not a day sooner)
                           </p>
@@ -256,7 +256,7 @@ function buildConfirmationEmail(firstName: string, companyName: string): string 
               <hr style="border:none;border-top:1px solid #e2e8f0;margin:28px 0 24px;">
 
               <p style="margin:0;font-size:15px;color:#64748b;text-align:center;line-height:1.6;">
-                We're excited to have you on board. Keep an eye on your inbox — your dashboard access is coming March 18!
+                We're excited to have you on board. Keep an eye on your inbox — your dashboard access is coming March 23!
               </p>
             </td>
           </tr>
