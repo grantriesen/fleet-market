@@ -61,6 +61,36 @@ function createSupabase() {
   );
 }
 
+// ── Inject Fleet Market analytics tracking script ──
+function injectTrackingScript(html: string, siteId: string): string {
+  const script = `
+<script>
+  (function() {
+    try {
+      var sessionId = sessionStorage.getItem('fm_sid');
+      if (!sessionId) {
+        sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        sessionStorage.setItem('fm_sid', sessionId);
+      }
+      fetch('/api/track-pageview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          siteId: '${siteId}',
+          page: window.location.pathname,
+          referrer: document.referrer || null,
+          sessionId: sessionId
+        })
+      }).catch(function() {});
+    } catch(e) {}
+  })();
+</script>`;
+
+  return html.includes('</body>')
+    ? html.replace('</body>', script + '\n</body>')
+    : html + script;
+}
+
 async function loadAndRender(site: any, page: string, supabase: any): Promise<string> {
   const siteId = site.id;
   const template = site.template;
@@ -270,6 +300,9 @@ export async function GET(
       });
       throw renderError;
     }
+
+    // Inject analytics tracking script into every dealer page
+    html = injectTrackingScript(html, site.id);
 
     return new NextResponse(html, {
       headers: {
