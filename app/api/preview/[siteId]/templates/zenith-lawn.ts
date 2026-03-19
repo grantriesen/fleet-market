@@ -110,11 +110,11 @@ export function renderZenithLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = zlHome(siteId, getContent, products, vis, colors, baseUrl); break;
-    case 'service': body = zlService(siteId, getContent); break;
-    case 'contact': body = zlContact(siteId, getContent, hoursLine); break;
-    case 'inventory': body = zlInventory(siteId, getContent, products); break;
-    case 'rentals': body = zlRentals(siteId, getContent); break;
-    case 'manufacturers': body = zlManufacturers(siteId, getContent); break;
+    case 'service': body = zlService(siteId, getContent, baseUrl); break;
+    case 'contact': body = zlContact(siteId, getContent, hoursLine, baseUrl); break;
+    case 'inventory': body = zlInventory(siteId, getContent, products, baseUrl); break;
+    case 'rentals': body = zlRentals(siteId, getContent, baseUrl); break;
+    case 'manufacturers': body = zlManufacturers(siteId, getContent, baseUrl); break;
     default: body = zlHome(siteId, getContent, products, vis, colors, baseUrl); break;
   }
 
@@ -162,7 +162,7 @@ function zlShell(title: string, fonts: any, colors: any, body: string) {
 
 // ── Header ──
 function zlHeader(siteId: string, currentPage: string, pages: any[], getContent: Function,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ) {
   const name = getContent('businessInfo.businessName') || getContent('business.name') || 'Zenith Equipment';
   const links = pages.map(p => {
@@ -196,7 +196,7 @@ function zlHeader(siteId: string, currentPage: string, pages: any[], getContent:
 
 // ── Footer ──
 function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine: string,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ) {
   const name = getContent('businessInfo.businessName') || getContent('business.name') || 'Zenith Equipment';
   const tagline = getContent('footer.tagline') || getContent('businessInfo.tagline') || '';
@@ -234,7 +234,7 @@ function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine:
 
 // ── Home ──
 function zlHome(siteId: string, getContent: Function, products: any[], vis: Record<string, boolean>, colors: any,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ) {
   let html = '';
 
@@ -348,7 +348,9 @@ function zlProductCard(siteId: string, p: any) {
 }
 
 // ── Service ──
-function zlService(siteId: string, getContent: Function) {
+function zlService(siteId: string, getContent: Function,
+  baseUrl: string = ''
+) {
   const formHeading = getContent('servicePage.formHeading') || 'Request Service';
 
   // Build service cards from config fields
@@ -405,7 +407,9 @@ function zlService(siteId: string, getContent: Function) {
 }
 
 // ── Contact ──
-function zlContact(siteId: string, getContent: Function, hoursLine: string) {
+function zlContact(siteId: string, getContent: Function, hoursLine: string,
+  baseUrl: string = ''
+) {
   const formHeading = getContent('contactPage.formHeading') || 'Send a Message';
   const locationHeading = getContent('contactPage.locationHeading') || 'Information';
   const contentHeading = getContent('contactPage.contentHeading') || '';
@@ -449,7 +453,9 @@ function zlContact(siteId: string, getContent: Function, hoursLine: string) {
 }
 
 // ── Inventory ──
-function zlInventory(siteId: string, getContent: Function, products: any[]) {
+function zlInventory(siteId: string, getContent: Function, products: any[],
+  baseUrl: string = ''
+) {
   const categories = [...new Set(products.map((p: any) => p.category).filter(Boolean))];
   const brands = [...new Set(products.map((p: any) => p.brand).filter(Boolean))];
 
@@ -507,7 +513,9 @@ function zlInventory(siteId: string, getContent: Function, products: any[]) {
 }
 
 // ── Rentals ──
-function zlRentals(siteId: string, getContent: Function) {
+function zlRentals(siteId: string, getContent: Function,
+  baseUrl: string = ''
+) {
   const pricingNote = getContent('rentalsPage.pricingNote') || '';
   const rentals = [
     { name: 'Walk-Behind Mowers', daily: 45, weekly: 180, monthly: 550 },
@@ -554,7 +562,9 @@ function zlRentals(siteId: string, getContent: Function) {
 }
 
 // ── Manufacturers ──
-function zlManufacturers(siteId: string, getContent: Function) {
+function zlManufacturers(siteId: string, getContent: Function,
+  baseUrl: string = ''
+) {
   const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Stihl': '/images/logos/Stihl.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Honda': '/images/logos/Honda.png' };
   const brands = [
     { name: 'John Deere', desc: 'Industry leader in agricultural and turf equipment since 1837.' },

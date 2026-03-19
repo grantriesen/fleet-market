@@ -46,7 +46,7 @@ export async function renderGreenValleyPage(
   page: string,
   googleFontsUrl: string,
   supabase?: any,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ): Promise<string> {
   // Load site features (add-ons) from DB
   let enabledFeatures: Set<string> = new Set();
@@ -72,19 +72,19 @@ export async function renderGreenValleyPage(
       body = gvHomeSections(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice, enabledFeatures, baseUrl);
       break;
     case 'contact':
-      body = gvContactPage(getContent, colors, siteId, sectionVisibility);
+      body = gvContactPage(getContent, colors, siteId, sectionVisibility, baseUrl);
       break;
     case 'manufacturers':
-      body = gvManufacturersPage(getContent, colors, manufacturers, siteId, sectionVisibility);
+      body = gvManufacturersPage(getContent, colors, manufacturers, siteId, sectionVisibility, baseUrl);
       break;
     case 'service':
-      body = gvServicePage(getContent, colors, siteId, enabledFeatures.has('service_scheduling'), sectionVisibility);
+      body = gvServicePage(getContent, colors, siteId, enabledFeatures.has('service_scheduling'), sectionVisibility, baseUrl);
       break;
     case 'inventory':
-      body = await gvInventoryPage(getContent, colors, siteId, supabase, displayProducts, isRealProducts, fmtPrice, sectionVisibility);
+      body = await gvInventoryPage(getContent, colors, siteId, supabase, displayProducts, isRealProducts, fmtPrice, sectionVisibility, baseUrl);
       break;
     case 'rentals':
-      body = await gvRentalsPage(getContent, colors, siteId, supabase, enabledFeatures.has('rental_scheduling'), sectionVisibility);
+      body = await gvRentalsPage(getContent, colors, siteId, supabase, enabledFeatures.has('rental_scheduling'), sectionVisibility, baseUrl);
       break;
     default:
       body = gvHomeSections(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice, enabledFeatures);
@@ -230,7 +230,7 @@ function gvHeader(
   availablePages: any[],
   siteId: string,
   currentPage: string,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ): string {
   const businessName = getContent('businessInfo.businessName');
   const logoImage = getContent('businessInfo.logoImage');
@@ -318,7 +318,7 @@ function gvFooter(
   colors: Colors,
   availablePages: any[],
   siteId: string,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ): string {
   const businessName = getContent('businessInfo.businessName');
   const tagline = getContent('footer.tagline') || getContent('businessInfo.tagline');
@@ -415,7 +415,7 @@ function gvHomeSections(
   isRealProducts: boolean,
   fmtPrice: FmtPrice,
   enabledFeatures: Set<string> = new Set(),
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ): string {
   let html = '';
 
@@ -636,7 +636,8 @@ function gvContactPage(
   getContent: GetContent,
   colors: Colors,
   siteId: string,
-  vis: Record<string, boolean> = {}
+  vis: Record<string, boolean> = {},
+  baseUrl: string = ''
 ): string {
   const heading = getContent('contactPage.heading') || 'Get In Touch';
   const subheading = getContent('contactPage.subheading') || 'Have questions? We are here to help.';
@@ -812,7 +813,8 @@ function gvManufacturersPage(
   colors: Colors,
   manufacturers: any[],
   siteId: string,
-  vis: Record<string, boolean> = {}
+  vis: Record<string, boolean> = {},
+  baseUrl: string = ''
 ): string {
   const heading = getContent('manufacturersPage.heading') || 'Our Partner Manufacturers';
   const subheading = getContent('manufacturersPage.subheading') || 'We partner with industry-leading manufacturers.';
@@ -869,7 +871,8 @@ function gvServicePage(
   colors: Colors,
   siteId: string,
   hasServiceFeature: boolean = false,
-  vis: Record<string, boolean> = {}
+  vis: Record<string, boolean> = {},
+  baseUrl: string = ''
 ): string {
   const heading = getContent('servicePage.heading') || 'Expert Service & Repair';
   const subheading = getContent('servicePage.subheading') || 'Keep your equipment running at peak performance.';
@@ -1206,7 +1209,8 @@ function gvInventoryPageStatic(
   displayProducts: any[],
   isRealProducts: boolean,
   fmtPrice: FmtPrice,
-  vis: Record<string, boolean> = {}
+  vis: Record<string, boolean> = {},
+  baseUrl: string = ''
 ): string {
   const heading = getContent('inventoryPage.heading') || 'Equipment Inventory';
   const subheading = getContent('inventoryPage.subheading') || 'Browse our complete selection of equipment.';
@@ -1342,7 +1346,8 @@ async function gvInventoryPage(
   displayProducts: any[],
   isRealProducts: boolean,
   fmtPrice: FmtPrice,
-  vis: Record<string, boolean> = {}
+  vis: Record<string, boolean> = {},
+  baseUrl: string = ''
 ): Promise<string> {
   let inventory = displayProducts;
   if (supabase) {
@@ -1368,7 +1373,8 @@ function gvRentalsPageStatic(
   getContent: GetContent,
   colors: Colors,
   siteId: string,
-  vis: Record<string, boolean> = {}
+  vis: Record<string, boolean> = {},
+  baseUrl: string = ''
 ): string {
   const heading = getContent('rentalsPage.heading') || 'Equipment Rentals';
   const subheading = getContent('rentalsPage.subheading') || 'Professional-grade equipment for daily, weekly, or monthly rental.';
@@ -1496,7 +1502,8 @@ async function gvRentalsPage(
   siteId: string,
   supabase: any,
   hasRentalFeature: boolean,
-  vis: Record<string, boolean> = {}
+  vis: Record<string, boolean> = {},
+  baseUrl: string = ''
 ): Promise<string> {
   if (!supabase || !hasRentalFeature) return gvRentalsPageStatic(getContent, colors, siteId, vis);
 

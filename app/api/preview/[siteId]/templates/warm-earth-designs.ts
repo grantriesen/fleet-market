@@ -134,11 +134,11 @@ export function renderWarmEarthPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = weHome(siteId, gc, products, manufacturers, vis, C, fmtPrice, baseUrl); break;
-    case 'service': body = weServicePage(siteId, gc, C, enabledFeatures.has('service_scheduling')); break;
-    case 'contact': body = weContactPage(siteId, gc, C, wkday, sat, sun); break;
-    case 'inventory': body = weInventoryPage(siteId, gc, products, C, fmtPrice); break;
-    case 'rentals': body = weRentalsPage(siteId, gc, C); break;
-    case 'manufacturers': body = weManufacturersPage(siteId, gc, C, manufacturers); break;
+    case 'service': body = weServicePage(siteId, gc, C, enabledFeatures.has('service_scheduling'), baseUrl); break;
+    case 'contact': body = weContactPage(siteId, gc, C, wkday, sat, sun, baseUrl); break;
+    case 'inventory': body = weInventoryPage(siteId, gc, products, C, fmtPrice, baseUrl); break;
+    case 'rentals': body = weRentalsPage(siteId, gc, C, baseUrl); break;
+    case 'manufacturers': body = weManufacturersPage(siteId, gc, C, manufacturers, baseUrl); break;
     default: body = weHome(siteId, gc, products, manufacturers, vis, C, fmtPrice, baseUrl); break;
   }
 
@@ -209,7 +209,7 @@ function weShell(title: string, C: any, siteId: string, page: string, body: stri
 
 // ── Header ──
 function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string) => string, C: any,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ) {
   const name = gc('business.name') || 'Heartland Outdoor Equipment';
   const phone = gc('business.phone');
@@ -271,7 +271,7 @@ function weHeader(siteId: string, cur: string, pages: any[], gc: (k: string) => 
 
 // ── Footer ──
 function weFooter(siteId: string, pages: any[], gc: (k: string) => string, C: any, wk: string, sat: string, sun: string,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ) {
   const name = gc('business.name') || 'Heartland Outdoor Equipment';
   const navSlugs = ['home', 'inventory', 'rentals', 'service', 'manufacturers', 'contact'];
@@ -324,7 +324,7 @@ function weFooter(siteId: string, pages: any[], gc: (k: string) => string, C: an
 //  HOME
 // ══════════════════════════════════════════════════
 function weHome(siteId: string, gc: (k: string) => string, products: any[], manufacturers: any[], vis: Record<string, boolean>, C: any, fp: (p: number | null) => string,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ): string {
   let h = '';
 
@@ -508,7 +508,9 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
 }
 
 // ═══════ INVENTORY ═══════
-function weInventoryPage(siteId: string, gc: (k: string) => string, products: any[], C: any, fp: (p: number|null) => string): string {
+function weInventoryPage(siteId: string, gc: (k: string) => string, products: any[], C: any, fp: (p: number|null) => string,
+  baseUrl: string = ''
+): string {
   const cats = [...new Set(products.map((p: any) => p.category).filter(Boolean))];
   return `
   ${(() => {
@@ -548,7 +550,9 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
 }
 
 // ═══════ SERVICE ═══════
-function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasScheduler: boolean = false): string {
+function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasScheduler: boolean = false,
+  baseUrl: string = ''
+): string {
   let items: any[] = [];
   // Build from config fields, fall back to JSON items, then defaults
   const s1t = gc('servicePage.service1Title'); const s1d = gc('servicePage.service1Description');
@@ -620,7 +624,9 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasSch
 }
 
 // ═══════ CONTACT ═══════
-function weContactPage(siteId: string, gc: (k: string) => string, C: any, wk: string, sat: string, sun: string): string {
+function weContactPage(siteId: string, gc: (k: string) => string, C: any, wk: string, sat: string, sun: string,
+  baseUrl: string = ''
+): string {
   return `
   ${(() => {
     const cImg = gc('contactPage.heroImage');
@@ -683,7 +689,9 @@ function weContactPage(siteId: string, gc: (k: string) => string, C: any, wk: st
 }
 
 // ═══════ RENTALS ═══════
-function weRentalsPage(siteId: string, gc: (k: string) => string, C: any): string {
+function weRentalsPage(siteId: string, gc: (k: string) => string, C: any,
+  baseUrl: string = ''
+): string {
   let rentals: any[] = [];
   try { rentals = JSON.parse(gc('rentals.items') || '[]'); } catch {}
   if (!rentals.length) rentals = [
@@ -736,7 +744,9 @@ function weRentalsPage(siteId: string, gc: (k: string) => string, C: any): strin
 }
 
 // ═══════ MANUFACTURERS ═══════
-function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any, manufacturers: any[] = []): string {
+function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any, manufacturers: any[] = [],
+  baseUrl: string = ''
+): string {
   const brands = manufacturers.length > 0 ? manufacturers : [
     { name: 'Toro', description: 'Count on it. Professional equipment trusted by landscapers worldwide.' },
     { name: 'John Deere', description: 'Nothing runs like a Deere. Leader in agricultural and outdoor equipment.' },

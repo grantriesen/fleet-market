@@ -142,11 +142,11 @@ export function renderCorporateEdgePage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors, manufacturers, baseUrl); break;
-    case 'service': body = ceServicePage(siteId, getContent); break;
-    case 'contact': body = ceContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours); break;
-    case 'inventory': body = ceInventoryPage(siteId, getContent, products); break;
-    case 'rentals': body = ceRentalsPage(siteId, getContent); break;
-    case 'manufacturers': body = ceManufacturersPage(siteId, getContent); break;
+    case 'service': body = ceServicePage(siteId, getContent, baseUrl); break;
+    case 'contact': body = ceContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
+    case 'inventory': body = ceInventoryPage(siteId, getContent, products, baseUrl); break;
+    case 'rentals': body = ceRentalsPage(siteId, getContent, baseUrl); break;
+    case 'manufacturers': body = ceManufacturersPage(siteId, getContent, baseUrl); break;
     default: body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors, manufacturers, baseUrl); break;
   }
 
@@ -212,7 +212,7 @@ ${body}
 
 // ── Header ──
 function ceHeader(siteId: string, currentPage: string, pages: any[], getContent: Function, weekdayHours: string, colors: any,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ) {
   const businessName = getContent('businessInfo.businessName') || getContent('business.name') || 'Premier Equipment';
   const logoImage = getContent('businessInfo.logoImage');
@@ -300,7 +300,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
 
 // ── Footer ──
 function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHours: string, saturdayHours: string, sundayHours: string, colors: any = {}, manufacturers: any[] = [],
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ) {
   const businessName = getContent('businessInfo.businessName') || getContent('business.name') || 'Premier Equipment';
   const logoImage = getContent('businessInfo.logoImage');
@@ -397,7 +397,7 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
 
 
 function ceHomeSections(siteId: string, getContent: Function, products: any[], enabledFeatures: Set<string>, vis: Record<string, boolean>, colors: any, manufacturers: any[] = [],
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ) {
   let html = '';
 
@@ -650,7 +650,9 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
 }
 
 // ── Service Page ──
-function ceServicePage(siteId: string, getContent: Function) {
+function ceServicePage(siteId: string, getContent: Function,
+  baseUrl: string = ''
+) {
   let services: any[] = [];
   // Build from config fields first, then fall back to JSON items
   const ces1t = getContent('servicePage.service1Title'); const ces1d = getContent('servicePage.service1Text') || getContent('servicePage.service1Description');
@@ -695,7 +697,9 @@ function ceServicePage(siteId: string, getContent: Function) {
 }
 
 // ── Contact Page ──
-function ceContactPage(siteId: string, getContent: Function, weekdayHours: string, saturdayHours: string, sundayHours: string) {
+function ceContactPage(siteId: string, getContent: Function, weekdayHours: string, saturdayHours: string, sundayHours: string,
+  baseUrl: string = ''
+) {
   const phone = getContent('business.phone') || '';
   const email = getContent('business.email') || '';
   const address = getContent('business.address') || '';
@@ -752,7 +756,9 @@ function ceContactPage(siteId: string, getContent: Function, weekdayHours: strin
 }
 
 // ── Inventory Page ──
-function ceInventoryPage(siteId: string, getContent: Function, products: any[]) {
+function ceInventoryPage(siteId: string, getContent: Function, products: any[],
+  baseUrl: string = ''
+) {
   const categories = ['All', ...new Set(products.map((p: any) => p.category).filter(Boolean))];
 
   return `
@@ -828,7 +834,9 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[]) 
 }
 
 // ── Rentals Page ──
-function ceRentalsPage(siteId: string, getContent: Function) {
+function ceRentalsPage(siteId: string, getContent: Function,
+  baseUrl: string = ''
+) {
   const rentalCategories = [
     {
       name: 'Mowers',
@@ -930,7 +938,9 @@ function ceRentalsPage(siteId: string, getContent: Function) {
 }
 
 // ── Manufacturers Page ──
-function ceManufacturersPage(siteId: string, getContent: Function) {
+function ceManufacturersPage(siteId: string, getContent: Function,
+  baseUrl: string = ''
+) {
   const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Exmark': '/images/logos/exmark.png', 'Stihl': '/images/logos/Stihl.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Kubota': '/images/logos/kubota.jpg', 'Scag': '/images/logos/Scag.png', 'Echo': '/images/logos/Echo.png' };
   const manufacturers = [
     { name: 'John Deere', description: 'World-leading manufacturer of agricultural and turf equipment.' },

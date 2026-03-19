@@ -86,7 +86,7 @@ export async function renderModernLawnPage(
   vis: Record<string, boolean>,
   content?: Record<string, string>,
   supabase?: any,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ) {
   // Content resolution: passed content (from route) > customizations > config > demo overrides
   const MLS_KEY_ALIASES: Record<string,string> = {
@@ -141,11 +141,11 @@ export async function renderModernLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl); break;
-    case 'service': body = mlsServicePage(siteId, getContent); break;
-    case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours); break;
-    case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice); break;
-    case 'rentals': body = mlsRentalsPage(siteId, getContent); break;
-    case 'manufacturers': body = mlsManufacturersPage(siteId, getContent); break;
+    case 'service': body = mlsServicePage(siteId, getContent, baseUrl); break;
+    case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
+    case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice, baseUrl); break;
+    case 'rentals': body = mlsRentalsPage(siteId, getContent, baseUrl); break;
+    case 'manufacturers': body = mlsManufacturersPage(siteId, getContent, baseUrl); break;
     default: body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl); break;
   }
 
@@ -255,7 +255,7 @@ function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, pa
 
 // ── Header ──
 function mlsHeader(siteId: string, currentPage: string, pages: any[], getContent: (k: string) => string, colors: any,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ) {
   const businessName = getContent('business.name') || 'Modern Lawn Solutions';
   const phone = getContent('business.phone');
@@ -309,7 +309,7 @@ function mlsHeader(siteId: string, currentPage: string, pages: any[], getContent
 
 // ── Footer ──
 function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => string, weekday: string, saturday: string, sunday: string,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ) {
   const name = getContent('business.name') || 'Modern Lawn Solutions';
   const phone = getContent('business.phone');
@@ -376,7 +376,7 @@ function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => stri
 //  HOME PAGE
 // ══════════════════════════════════════════════════
 async function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis: Record<string, boolean>, colors: any, fmtPrice: (p: number | null) => string, supabase?: any,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ): Promise<string> {
   let html = '';
 
@@ -511,7 +511,9 @@ async function mlsHome(siteId: string, gc: (k: string) => string, products: any[
 // ══════════════════════════════════════════════════
 //  INVENTORY PAGE
 // ══════════════════════════════════════════════════
-function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: any[], fmtPrice: (p: number | null) => string): string {
+function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: any[], fmtPrice: (p: number | null) => string,
+  baseUrl: string = ''
+): string {
   const categories = [...new Set(products.map((p: any) => p.category).filter(Boolean))];
 
   return `
@@ -582,7 +584,9 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
 // ══════════════════════════════════════════════════
 //  SERVICE PAGE
 // ══════════════════════════════════════════════════
-function mlsServicePage(siteId: string, gc: (k: string) => string): string {
+function mlsServicePage(siteId: string, gc: (k: string) => string,
+  baseUrl: string = ''
+): string {
   let serviceItems: any[] = [];
   const ms1t = gc('servicePage.service1Title'); const ms1d = gc('servicePage.service1Text') || gc('servicePage.service1Description');
   const ms2t = gc('servicePage.service2Title'); const ms2d = gc('servicePage.service2Text') || gc('servicePage.service2Description');
@@ -659,7 +663,9 @@ function mlsServicePage(siteId: string, gc: (k: string) => string): string {
 // ══════════════════════════════════════════════════
 //  CONTACT PAGE
 // ══════════════════════════════════════════════════
-function mlsContactPage(siteId: string, gc: (k: string) => string, weekday: string, saturday: string, sunday: string): string {
+function mlsContactPage(siteId: string, gc: (k: string) => string, weekday: string, saturday: string, sunday: string,
+  baseUrl: string = ''
+): string {
   return `
   ${(() => {
     const _img = gc('contactPage.heroImage');
@@ -695,7 +701,9 @@ function mlsContactPage(siteId: string, gc: (k: string) => string, weekday: stri
 // ══════════════════════════════════════════════════
 //  RENTALS PAGE
 // ══════════════════════════════════════════════════
-function mlsRentalsPage(siteId: string, gc: (k: string) => string): string {
+function mlsRentalsPage(siteId: string, gc: (k: string) => string,
+  baseUrl: string = ''
+): string {
   let rentals: any[] = [];
   try { rentals = JSON.parse(gc('rentals.items') || '[]'); } catch {}
   if (rentals.length === 0) {
@@ -761,7 +769,9 @@ function mlsRentalsPage(siteId: string, gc: (k: string) => string): string {
 // ══════════════════════════════════════════════════
 //  MANUFACTURERS PAGE
 // ══════════════════════════════════════════════════
-function mlsManufacturersPage(siteId: string, gc: (k: string) => string): string {
+function mlsManufacturersPage(siteId: string, gc: (k: string) => string,
+  baseUrl: string = ''
+): string {
   const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'Exmark': '/images/logos/exmark.png', 'ECHO': '/images/logos/Echo.png', 'Honda': '/images/logos/Honda.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Kubota': '/images/logos/kubota.jpg' };
   const brands = [
     { name: 'Toro', tagline: 'Count on it' },

@@ -45,7 +45,7 @@ export async function renderVibeDynamicsPage(
   page: string,
   googleFontsUrl: string,
   supabase?: any,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ): Promise<string> {
   let enabledFeatures: Set<string> = new Set();
   if (supabase) {
@@ -73,19 +73,19 @@ export async function renderVibeDynamicsPage(
       body = vdHomeSections(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice, enabledFeatures, baseUrl);
       break;
     case 'contact':
-      body = vdContactPage(getContent, colors, siteId, vis);
+      body = vdContactPage(getContent, colors, siteId, vis, baseUrl);
       break;
     case 'manufacturers':
-      body = vdManufacturersPage(getContent, colors, manufacturers, siteId, vis);
+      body = vdManufacturersPage(getContent, colors, manufacturers, siteId, vis, baseUrl);
       break;
     case 'service':
-      body = vdServicePage(getContent, colors, siteId, enabledFeatures.has('service_scheduling'), vis);
+      body = vdServicePage(getContent, colors, siteId, enabledFeatures.has('service_scheduling'), vis, baseUrl);
       break;
     case 'inventory':
-      body = await vdInventoryPage(getContent, colors, siteId, supabase, displayProducts, isRealProducts, fmtPrice, vis);
+      body = await vdInventoryPage(getContent, colors, siteId, supabase, displayProducts, isRealProducts, fmtPrice, vis, baseUrl);
       break;
     case 'rentals':
-      body = await vdRentalsPage(getContent, colors, siteId, supabase, enabledFeatures.has('rental_scheduling'), vis);
+      body = await vdRentalsPage(getContent, colors, siteId, supabase, enabledFeatures.has('rental_scheduling'), vis, baseUrl);
       break;
     default:
       body = vdHomeSections(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice, enabledFeatures);
@@ -211,7 +211,7 @@ function vdHtmlShell(colors: Colors, fonts: Fonts, siteName: string, googleFonts
 // ============================================
 
 function vdHeader(getContent: GetContent, colors: Colors, pages: any[], siteId: string, currentPage: string,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ): string {
   const businessName = getContent('businessInfo.businessName');
   const phone = getContent('businessInfo.phone');
@@ -255,7 +255,7 @@ function vdHeader(getContent: GetContent, colors: Colors, pages: any[], siteId: 
 // ============================================
 
 function vdFooter(getContent: GetContent, colors: Colors, pages: any[], siteId: string,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ): string {
   const businessName = getContent('businessInfo.businessName');
   const phone = getContent('businessInfo.phone');
@@ -336,7 +336,7 @@ function vdHomeSections(
   isRealProducts: boolean,
   fmtPrice: FmtPrice,
   enabledFeatures: Set<string>,
-  baseUrl: string = `/api/preview/${siteId}?page=`
+  baseUrl: string = ''
 ): string {
   let html = '';
 
@@ -542,7 +542,9 @@ function vdHomeSections(
 // SUBPAGE: SERVICE
 // ============================================
 
-function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, hasScheduler: boolean, vis: Record<string, boolean>): string {
+function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, hasScheduler: boolean, vis: Record<string, boolean>,
+  baseUrl: string = ''
+): string {
   const serviceHeroImg = getContent('servicePage.heroImage');
   const heroHtml = `
   <section data-section="servicePage" class="relative overflow-hidden py-16 md:py-20" style="${serviceHeroImg ? `background-image: url('${serviceHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));`}">
@@ -642,7 +644,9 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
 // SUBPAGE: CONTACT
 // ============================================
 
-function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, vis: Record<string, boolean>): string {
+function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, vis: Record<string, boolean>,
+  baseUrl: string = ''
+): string {
   const contactHeroImg = getContent('contactPage.heroImage');
   const heroHtml = `
   <section data-section="contactPage" class="relative overflow-hidden py-16 md:py-20" style="${contactHeroImg ? `background-image: url('${contactHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-accent));`}">
@@ -724,7 +728,9 @@ function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, v
 // SUBPAGE: MANUFACTURERS
 // ============================================
 
-function vdManufacturersPage(getContent: GetContent, colors: Colors, manufacturers: any[], siteId: string, vis: Record<string, boolean>): string {
+function vdManufacturersPage(getContent: GetContent, colors: Colors, manufacturers: any[], siteId: string, vis: Record<string, boolean>,
+  baseUrl: string = ''
+): string {
   const mfgHeroImg = getContent('manufacturersPage.heroImage');
   const heroHtml = `
   <section data-section="manufacturersPage" class="relative overflow-hidden py-16 md:py-20" style="${mfgHeroImg ? `background-image: url('${mfgHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-accent));`}">
@@ -781,7 +787,8 @@ async function vdInventoryPage(
   displayProducts: any[],
   isRealProducts: boolean,
   fmtPrice: FmtPrice,
-  vis: Record<string, boolean>
+  vis: Record<string, boolean>,
+  baseUrl: string = ''
 ): Promise<string> {
   // Try to load real products
   let products = displayProducts;
@@ -856,7 +863,8 @@ async function vdRentalsPage(
   siteId: string,
   supabase: any,
   hasRentalScheduling: boolean,
-  vis: Record<string, boolean>
+  vis: Record<string, boolean>,
+  baseUrl: string = ''
 ): Promise<string> {
   const rentalsHeroImg = getContent('rentalsPage.heroImage');
   const heroHtml = `
