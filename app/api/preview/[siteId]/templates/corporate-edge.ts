@@ -194,6 +194,37 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string) {
       }
     }
   }
+
+
+  // ── Fleet Market Form Submission ──
+  function fmSubmitForm(form, siteId, formType, extraFn) {
+    var btn = form.querySelector('button[type="submit"]');
+    var orig = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = 'Submitting...'; }
+    var nameEl = form.querySelector('input[type="text"]');
+    var emailEl = form.querySelector('input[type="email"]');
+    var phoneEl = form.querySelector('input[type="tel"]');
+    var msgEl = form.querySelector('textarea');
+    var data = {
+      site_id: siteId, form_type: formType,
+      name: nameEl ? nameEl.value : null,
+      email: emailEl ? emailEl.value : null,
+      phone: phoneEl ? phoneEl.value : null,
+      message: msgEl ? msgEl.value : null,
+      extra_data: extraFn ? extraFn(form) : null,
+    };
+    fetch('/api/submit-form', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
+    }).then(function(r){return r.json();}).then(function(res){
+      if (res.success) {
+        var suc = form.parentElement ? form.parentElement.querySelector('[data-fm-success]') : null;
+        if (suc) { form.style.display='none'; suc.style.display='block'; }
+        else { form.reset(); if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';} }
+      } else {
+        if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.');
+      }
+    }).catch(function(){ if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.'); });
+  }
   </script>
   <style>
     body { font-family: '${fonts.body}', sans-serif; background: #f8fafc; color: #1e293b; }
@@ -832,34 +863,6 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[],
   }
   
 // ── Fleet Market Form Submission ──
-function fmSubmitForm(form, siteId, formType, extraFn) {
-  var btn = form.querySelector('button[type="submit"]');
-  var orig = btn ? btn.innerHTML : '';
-  if (btn) { btn.disabled = true; btn.innerHTML = 'Submitting...'; }
-  var nameEl = form.querySelector('input[type="text"]');
-  var emailEl = form.querySelector('input[type="email"]');
-  var phoneEl = form.querySelector('input[type="tel"]');
-  var msgEl = form.querySelector('textarea');
-  var data = {
-    site_id: siteId, form_type: formType,
-    name: nameEl ? nameEl.value : null,
-    email: emailEl ? emailEl.value : null,
-    phone: phoneEl ? phoneEl.value : null,
-    message: msgEl ? msgEl.value : null,
-    extra_data: extraFn ? extraFn(form) : null,
-  };
-  fetch('/api/submit-form', {
-    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
-  }).then(function(r){return r.json();}).then(function(res){
-    if (res.success) {
-      var suc = form.parentElement ? form.parentElement.querySelector('[data-fm-success]') : null;
-      if (suc) { form.style.display='none'; suc.style.display='block'; }
-      else { form.reset(); if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';} }
-    } else {
-      if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.');
-    }
-  }).catch(function(){ if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.'); });
-}
 
 </script>`;
 }

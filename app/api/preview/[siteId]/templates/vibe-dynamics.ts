@@ -136,38 +136,37 @@ function vdHtmlShell(colors: Colors, fonts: Fonts, siteName: string, googleFonts
         },
       },
     }
-  
-// ── Fleet Market Form Submission ──
-function fmSubmitForm(form, siteId, formType, extraFn) {
-  var btn = form.querySelector('button[type="submit"]');
-  var orig = btn ? btn.innerHTML : '';
-  if (btn) { btn.disabled = true; btn.innerHTML = 'Submitting...'; }
-  var nameEl = form.querySelector('input[type="text"]');
-  var emailEl = form.querySelector('input[type="email"]');
-  var phoneEl = form.querySelector('input[type="tel"]');
-  var msgEl = form.querySelector('textarea');
-  var data = {
-    site_id: siteId, form_type: formType,
-    name: nameEl ? nameEl.value : null,
-    email: emailEl ? emailEl.value : null,
-    phone: phoneEl ? phoneEl.value : null,
-    message: msgEl ? msgEl.value : null,
-    extra_data: extraFn ? extraFn(form) : null,
-  };
-  fetch('/api/submit-form', {
-    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
-  }).then(function(r){return r.json();}).then(function(res){
-    if (res.success) {
-      var suc = form.parentElement ? form.parentElement.querySelector('[data-fm-success]') : null;
-      if (suc) { form.style.display='none'; suc.style.display='block'; }
-      else { form.reset(); if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';} }
-    } else {
-      if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.');
-    }
-  }).catch(function(){ if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.'); });
-}
 
-<\/script>
+  // ── Fleet Market Form Submission ──
+  function fmSubmitForm(form, siteId, formType, extraFn) {
+    var btn = form.querySelector('button[type="submit"]');
+    var orig = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = 'Submitting...'; }
+    var nameEl = form.querySelector('input[type="text"]');
+    var emailEl = form.querySelector('input[type="email"]');
+    var phoneEl = form.querySelector('input[type="tel"]');
+    var msgEl = form.querySelector('textarea');
+    var data = {
+      site_id: siteId, form_type: formType,
+      name: nameEl ? nameEl.value : null,
+      email: emailEl ? emailEl.value : null,
+      phone: phoneEl ? phoneEl.value : null,
+      message: msgEl ? msgEl.value : null,
+      extra_data: extraFn ? extraFn(form) : null,
+    };
+    fetch('/api/submit-form', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
+    }).then(function(r){return r.json();}).then(function(res){
+      if (res.success) {
+        var suc = form.parentElement ? form.parentElement.querySelector('[data-fm-success]') : null;
+        if (suc) { form.style.display='none'; suc.style.display='block'; }
+        else { form.reset(); if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';} }
+      } else {
+        if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.');
+      }
+    }).catch(function(){ if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.'); });
+  }
+  <\/script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?${googleFontsUrl}&display=swap" rel="stylesheet">
@@ -622,7 +621,7 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
       <div class="card-bold p-8">
         <h2 class="text-3xl font-heading font-black text-gray-900 mb-2">${getContent('servicePage.formHeading') || 'Request Service'}</h2>
         <p class="text-gray-500 mb-8">${getContent('servicePage.formSubheading') || 'Fill out the form below and our service team will be in touch within one business day.'}</p>
-        <form class="space-y-4" onsubmit="event.preventDefault(); var fn=this.querySelector('input[type=text]'); var eq=this.querySelectorAll('input[type=text]')[2]; fmSubmitForm(this, '${siteId}', 'service', function(f){var inputs=f.querySelectorAll('input[type=text]'); return {first_name: inputs[0]?inputs[0].value:'', last_name: inputs[1]?inputs[1].value:'', equipment: inputs[2]?inputs[2].value:''};});">
+        <form class="space-y-4" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var inputs=f.querySelectorAll('input[type=text]');return {first_name:inputs[0]?inputs[0].value:'',last_name:inputs[1]?inputs[1].value:'',equipment:inputs[2]?inputs[2].value:''};});">
           <div class="grid md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-bold text-gray-800 mb-1">First Name *</label>
