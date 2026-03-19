@@ -714,7 +714,7 @@ function ceContactPage(siteId: string, getContent: Function, weekdayHours: strin
         <div class="lg:col-span-2">
           <div class="border border-gray-200 rounded bg-white p-8">
             <h2 class="font-heading text-2xl font-bold text-gray-900 mb-6">Send Us a Message</h2>
-            <form class="space-y-6" onsubmit="event.preventDefault();">
+            <form class="space-y-6" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'contact', null);">
               <div class="grid md:grid-cols-2 gap-6">
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="John" required></div>
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="Smith" required></div>
@@ -830,7 +830,38 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[],
     });
     document.getElementById('ce-count').textContent = count;
   }
-  </script>`;
+  
+// ── Fleet Market Form Submission ──
+function fmSubmitForm(form, siteId, formType, extraFn) {
+  var btn = form.querySelector('button[type="submit"]');
+  var orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Submitting...'; }
+  var nameEl = form.querySelector('input[type="text"]');
+  var emailEl = form.querySelector('input[type="email"]');
+  var phoneEl = form.querySelector('input[type="tel"]');
+  var msgEl = form.querySelector('textarea');
+  var data = {
+    site_id: siteId, form_type: formType,
+    name: nameEl ? nameEl.value : null,
+    email: emailEl ? emailEl.value : null,
+    phone: phoneEl ? phoneEl.value : null,
+    message: msgEl ? msgEl.value : null,
+    extra_data: extraFn ? extraFn(form) : null,
+  };
+  fetch('/api/submit-form', {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
+  }).then(function(r){return r.json();}).then(function(res){
+    if (res.success) {
+      var suc = form.parentElement ? form.parentElement.querySelector('[data-fm-success]') : null;
+      if (suc) { form.style.display='none'; suc.style.display='block'; }
+      else { form.reset(); if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';} }
+    } else {
+      if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.');
+    }
+  }).catch(function(){ if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.'); });
+}
+
+</script>`;
 }
 
 // ── Rentals Page ──
@@ -1027,7 +1058,7 @@ function ceFormSection(siteId: string, heading: string, description: string) {
         <p class="text-gray-500">${description}</p>
       </div>
       <div class="border border-gray-200 rounded bg-white p-8">
-        <form class="space-y-6" onsubmit="event.preventDefault();">
+        <form class="space-y-6" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var s=f.querySelector('select');return s?{equipment_type:s.value}:null;}); ">
           <div class="grid md:grid-cols-2 gap-6">
             <div><label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>
             <div><label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>

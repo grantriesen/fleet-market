@@ -578,7 +578,38 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
       search?.addEventListener('input', filter);
       catFilter?.addEventListener('change', filter);
     })();
-  <\/script>`;
+  
+// ── Fleet Market Form Submission ──
+function fmSubmitForm(form, siteId, formType, extraFn) {
+  var btn = form.querySelector('button[type="submit"]');
+  var orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Submitting...'; }
+  var nameEl = form.querySelector('input[type="text"]');
+  var emailEl = form.querySelector('input[type="email"]');
+  var phoneEl = form.querySelector('input[type="tel"]');
+  var msgEl = form.querySelector('textarea');
+  var data = {
+    site_id: siteId, form_type: formType,
+    name: nameEl ? nameEl.value : null,
+    email: emailEl ? emailEl.value : null,
+    phone: phoneEl ? phoneEl.value : null,
+    message: msgEl ? msgEl.value : null,
+    extra_data: extraFn ? extraFn(form) : null,
+  };
+  fetch('/api/submit-form', {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
+  }).then(function(r){return r.json();}).then(function(res){
+    if (res.success) {
+      var suc = form.parentElement ? form.parentElement.querySelector('[data-fm-success]') : null;
+      if (suc) { form.style.display='none'; suc.style.display='block'; }
+      else { form.reset(); if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';} }
+    } else {
+      if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.');
+    }
+  }).catch(function(){ if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.'); });
+}
+
+<\/script>`;
 }
 
 // ══════════════════════════════════════════════════
@@ -634,7 +665,7 @@ function mlsServicePage(siteId: string, gc: (k: string) => string,
       <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
         <div class="card-mls" style="padding: 2rem;">
           <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">Request Service</h3>
-          <form onsubmit="event.preventDefault(); this.reset(); alert('Service request submitted!');">
+          <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var s=f.querySelector('select');return s?{equipment_type:s.value}:null;}); ">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
               <div><label class="form-label">Name *</label><input class="form-input" required placeholder="Your name"></div>
               <div><label class="form-label">Email *</label><input class="form-input" type="email" required placeholder="your@email.com"></div>
@@ -679,7 +710,7 @@ function mlsContactPage(siteId: string, gc: (k: string) => string, weekday: stri
       <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
         <div class="card-mls" style="padding: 2rem;">
           <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">${gc('contactPage.formHeading') || 'Send Us a Message'}</h3>
-          <form onsubmit="event.preventDefault(); this.reset(); alert('Message sent! We\\'ll be in touch.');">
+          <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'contact', null);">>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
               <div><label class="form-label">Name *</label><input class="form-input" required placeholder="Your name"></div>
               <div><label class="form-label">Email *</label><input class="form-input" type="email" required placeholder="your@email.com"></div>

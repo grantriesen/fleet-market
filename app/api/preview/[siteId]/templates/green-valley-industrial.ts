@@ -789,10 +789,11 @@ function gvContactPage(
         fd.forEach(function(v, k) { data[k] = v; });
         var btn = cform.querySelector('button[type=submit]');
         btn.textContent = 'Sending...'; btn.disabled = true;
-        fetch(cform.action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+        var payload = { site_id: '${siteId}', form_type: 'contact', name: data.name, email: data.email, phone: data.phone, message: data.message };
+        fetch('/api/submit-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
         .then(function(r) { return r.json(); })
         .then(function(res) {
-          if (res.error) { alert('Error: ' + res.error); btn.textContent = 'Send Message'; btn.disabled = false; }
+          if (!res.success) { alert('Something went wrong. Please try again.'); btn.textContent = 'Send Message'; btn.disabled = false; }
           else { cform.innerHTML = '<div class="text-center py-8"><div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg></div><h3 class="text-2xl font-bold mb-2">Message Sent!</h3><p class="text-muted-foreground">We will get back to you within 1 business day.</p></div>'; }
         })
         .catch(function() { alert('Something went wrong.'); btn.textContent = 'Send Message'; btn.disabled = false; });
@@ -1184,10 +1185,12 @@ function gvServicePage(
         fd.forEach(function(v, k) { data[k] = v; });
         var btn = sbform.querySelector('button[type=submit]');
         btn.textContent = 'Submitting...'; btn.disabled = true;
-        fetch(sbform.action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+        var sel = sbform.querySelector('select'); var eqType = sel ? sel.value : null;
+        var payload = { site_id: '${siteId}', form_type: 'service', name: data.name, email: data.email, phone: data.phone, message: data.message || data.description, extra_data: eqType ? {equipment_type: eqType} : null };
+        fetch('/api/submit-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
         .then(function(r) { return r.json(); })
         .then(function(res) {
-          if (res.error) { alert('Error: ' + res.error); btn.textContent = 'Submit Service Request'; btn.disabled = false; }
+          if (!res.success) { alert('Something went wrong. Please try again.'); btn.textContent = 'Submit Service Request'; btn.disabled = false; }
           else { sbform.innerHTML = '<div class="text-center py-8"><div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg></div><h3 class="text-2xl font-bold mb-2">Service Request Submitted!</h3><p class="text-muted-foreground">We will contact you within 1 business day.</p></div>'; }
         })
         .catch(function() { alert('Something went wrong.'); btn.textContent = 'Submit Service Request'; btn.disabled = false; });
@@ -1482,10 +1485,11 @@ function gvRentalsPageStatic(
         fd.forEach(function(v, k) { data[k] = v; });
         var btn = rform.querySelector('button[type=submit]');
         btn.textContent = 'Submitting...'; btn.disabled = true;
-        fetch(rform.action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+        var payload = { site_id: '${siteId}', form_type: 'rental', name: data.name, email: data.email, phone: data.phone, message: data.message || data.notes, extra_data: data.equipment ? {equipment: data.equipment} : null };
+        fetch('/api/submit-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
         .then(function(r) { return r.json(); })
         .then(function(res) {
-          if (res.error) { alert('Error: ' + res.error); btn.textContent = 'Request Rental Quote'; btn.disabled = false; }
+          if (!res.success) { alert('Something went wrong. Please try again.'); btn.textContent = 'Request Rental Quote'; btn.disabled = false; }
           else { rform.innerHTML = '<div class="text-center py-8"><div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg></div><h3 class="text-2xl font-bold mb-2">Quote Request Sent!</h3><p class="text-muted-foreground">We will get back to you within 1 business day with availability and pricing.</p></div>'; }
         })
         .catch(function() { alert('Something went wrong.'); btn.textContent = 'Request Rental Quote'; btn.disabled = false; });

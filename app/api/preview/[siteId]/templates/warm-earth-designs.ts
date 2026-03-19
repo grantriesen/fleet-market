@@ -546,7 +546,38 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
       </div>
     </div>
   </section>
-  <script>(function(){var s=document.getElementById('we-search'),c=document.getElementById('we-cat'),cards=document.querySelectorAll('[data-cat]');function f(){var q=(s?s.value:'').toLowerCase(),cat=c?c.value:'';cards.forEach(function(el){var mq=!q||el.getAttribute('data-name').includes(q),mc=!cat||el.getAttribute('data-cat')===cat;el.style.display=mq&&mc?'':'none';});}s&&s.addEventListener('input',f);c&&c.addEventListener('change',f);})();<\/script>`;
+  <script>(function(){var s=document.getElementById('we-search'),c=document.getElementById('we-cat'),cards=document.querySelectorAll('[data-cat]');function f(){var q=(s?s.value:'').toLowerCase(),cat=c?c.value:'';cards.forEach(function(el){var mq=!q||el.getAttribute('data-name').includes(q),mc=!cat||el.getAttribute('data-cat')===cat;el.style.display=mq&&mc?'':'none';});}s&&s.addEventListener('input',f);c&&c.addEventListener('change',f);})();
+// ── Fleet Market Form Submission ──
+function fmSubmitForm(form, siteId, formType, extraFn) {
+  var btn = form.querySelector('button[type="submit"]');
+  var orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Submitting...'; }
+  var nameEl = form.querySelector('input[type="text"]');
+  var emailEl = form.querySelector('input[type="email"]');
+  var phoneEl = form.querySelector('input[type="tel"]');
+  var msgEl = form.querySelector('textarea');
+  var data = {
+    site_id: siteId, form_type: formType,
+    name: nameEl ? nameEl.value : null,
+    email: emailEl ? emailEl.value : null,
+    phone: phoneEl ? phoneEl.value : null,
+    message: msgEl ? msgEl.value : null,
+    extra_data: extraFn ? extraFn(form) : null,
+  };
+  fetch('/api/submit-form', {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
+  }).then(function(r){return r.json();}).then(function(res){
+    if (res.success) {
+      var suc = form.parentElement ? form.parentElement.querySelector('[data-fm-success]') : null;
+      if (suc) { form.style.display='none'; suc.style.display='block'; }
+      else { form.reset(); if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';} }
+    } else {
+      if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.');
+    }
+  }).catch(function(){ if(btn){btn.disabled=false;btn.innerHTML=orig;} alert('Something went wrong. Please try again.'); });
+}
+
+<\/script>`;
 }
 
 // ═══════ SERVICE ═══════
@@ -600,7 +631,7 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasSch
       <div class="card-we" style="padding:2.5rem;">
         <h3 class="font-serif" style="font-size:1.5rem;font-weight:600;text-align:center;margin:0 0 0.5rem;color:${C.fg};">${gc('servicePage.formHeading') || 'Request Service'}</h3>
         <p style="text-align:center;color:${C.mutedFg};margin:0 0 2rem;">${gc('servicePage.formSubheading') || "Fill out the form below and we'll get back to you within one business day."}</p>
-        <form onsubmit="event.preventDefault();this.querySelector('button').textContent='Request Submitted ✓';this.querySelector('button').disabled=true;" style="display:flex;flex-direction:column;gap:1rem;">
+        <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', null);" style="display:flex;flex-direction:column;gap:1rem;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div><label class="label-we">Your Name</label><input class="form-we" required placeholder="John Smith"></div>
             <div><label class="label-we">Phone</label><input class="form-we" type="tel" required placeholder="(555) 123-4567"></div>
@@ -670,7 +701,7 @@ function weContactPage(siteId: string, gc: (k: string) => string, C: any, wk: st
         <div>
           <div class="card-we" style="padding:2rem;">
             <h3 class="font-serif" style="font-size:1.25rem;font-weight:600;margin:0 0 1.5rem;color:${C.fg};">${gc('contactPage.formHeading') || 'Send a Message'}</h3>
-            <form onsubmit="event.preventDefault();this.reset();alert('Message sent!');" style="display:flex;flex-direction:column;gap:1rem;">
+            <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'contact', null);" style="display:flex;flex-direction:column;gap:1rem;">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
                 <div><label class="label-we">Your Name</label><input class="form-we" required placeholder="John Smith"></div>
                 <div><label class="label-we">Phone</label><input class="form-we" type="tel" placeholder="(555) 123-4567"></div>
