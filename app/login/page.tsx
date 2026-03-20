@@ -9,7 +9,6 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
   
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,47 +20,19 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (mode === 'signup') {
-        // Sign up
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
 
-        if (error) throw error;
+      if (data.user) {
+        const { data: sites } = await supabase
+          .from('sites')
+          .select('id')
+          .eq('user_id', data.user.id)
+          .limit(1);
 
-        if (data.user) {
-          console.log('✅ User created:', data.user.id);
-          // Redirect to onboarding
-          router.push('/onboarding');
-        }
-      } else {
-        // Login
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) throw error;
-
-        if (data.user) {
-          console.log('✅ User logged in:', data.user.id);
-          // Check if they have a site
-          const { data: sites } = await supabase
-            .from('sites')
-            .select('id')
-            .eq('user_id', data.user.id)
-            .limit(1);
-
-          if (sites && sites.length > 0) {
-            router.push('/dashboard');
-          } else {
-            router.push('/onboarding');
-          }
-        }
+        router.push(sites && sites.length > 0 ? '/dashboard' : '/onboarding');
       }
     } catch (error: any) {
-      console.error('Authentication error:', error);
       setError(error.message || 'Authentication failed');
     } finally {
       setLoading(false);
@@ -83,15 +54,8 @@ export default function LoginPage() {
           <div className="mb-5">
             <img src="/fmlogo3.jpg" alt="Fleet Market" className="h-14 mx-auto" />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-1">
-            {mode === 'login' ? 'Welcome Back' : 'Create Your Account'}
-          </h1>
-          <p className="text-gray-400 text-sm">
-            {mode === 'login' 
-              ? 'Sign in to manage your dealership' 
-              : 'Get your dealership online today'
-            }
-          </p>
+          <h1 className="text-2xl font-bold text-white mb-1">Welcome Back</h1>
+          <p className="text-gray-400 text-sm">Sign in to manage your dealership</p>
         </div>
 
         {/* Form */}
@@ -104,87 +68,54 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-1.5">
-                Email
-              </label>
+              <label className="block text-sm font-semibold text-gray-300 mb-1.5">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="you@example.com"
+                  type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  required placeholder="you@example.com"
                   className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent outline-none transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-1.5">
-                Password
-              </label>
+              <label className="block text-sm font-semibold text-gray-300 mb-1.5">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                 <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
+                  type="password" value={password} onChange={e => setPassword(e.target.value)}
+                  required placeholder="••••••••" minLength={6}
                   className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent outline-none transition-all"
-                  minLength={6}
                 />
               </div>
-              {mode === 'signup' && (
-                <p className="mt-2 text-xs text-gray-500">
-                  Password must be at least 6 characters
-                </p>
-              )}
             </div>
 
             <button
-              type="submit"
-              disabled={loading}
+              type="submit" disabled={loading}
               className="w-full py-3 bg-[#E8472F] text-white rounded-lg font-semibold hover:bg-[#D13A24] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  {mode === 'login' ? 'Signing in...' : 'Creating account...'}
-                </>
-              ) : (
-                mode === 'login' ? 'Sign In' : 'Create Account'
-              )}
+              {loading
+                ? <><Loader2 className="w-5 h-5 animate-spin" /> Signing in...</>
+                : 'Sign In'}
             </button>
           </form>
 
-          {/* Toggle Mode */}
+          {/* Sign up CTA — routes to pricing */}
           <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setMode(mode === 'login' ? 'signup' : 'login');
-                setError('');
-              }}
-              className="text-sm text-gray-400 hover:text-gray-200 transition-colors"
-            >
-              {mode === 'login' ? (
-                <>
-                  Don&apos;t have an account?{' '}
-                  <span className="text-[#E8472F] font-semibold hover:text-[#D13A24]">Sign up</span>
-                </>
-              ) : (
-                <>
-                  Already have an account?{' '}
-                  <span className="text-[#E8472F] font-semibold hover:text-[#D13A24]">Sign in</span>
-                </>
-              )}
-            </button>
+            <p className="text-sm text-gray-400">
+              Don&apos;t have an account?{' '}
+              <button
+                type="button"
+                onClick={() => router.push('/pricing')}
+                className="text-[#E8472F] font-semibold hover:text-[#D13A24] transition-colors"
+              >
+                Sign up
+              </button>
+            </p>
           </div>
         </div>
 
-        {/* Footer */}
         <p className="text-center text-xs text-gray-600 mt-8">
           By continuing, you agree to our Terms of Service and Privacy Policy
         </p>

@@ -16,10 +16,10 @@ import {
   Users,
   Eye,
   Activity,
-  Crown
+  Crown,
+  User
 } from 'lucide-react';
 import { hasFeature, getPlanById, SubscriptionTier } from '@/lib/pricing-config';
-import UpgradeModal from '@/components/UpgradeModal';
 import FeatureUpgradeModal from '@/components/FeatureUpgradeModal';
 
 interface DashboardStats {
@@ -28,6 +28,7 @@ interface DashboardStats {
   pendingService: number;
   totalLeads: number;
   siteViews: number;
+  uniqueVisitors: number;
 }
 
 interface Site {
@@ -36,6 +37,13 @@ interface Site {
   slug: string;
   subscription_tier: string;
   created_at: string;
+}
+
+interface ActivityItem {
+  id: string;
+  type: 'page_view' | 'service_request' | 'lead';
+  description: string;
+  time: string;
 }
 
 export default function DashboardPage() {
@@ -49,9 +57,10 @@ export default function DashboardPage() {
     activeRentals: 0,
     pendingService: 0,
     totalLeads: 0,
-    siteViews: 0
+    siteViews: 0,
+    uniqueVisitors: 0
   });
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [showFeatureModal, setShowFeatureModal] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<'inventory' | 'service' | 'rentals' | null>(null);
 
@@ -81,6 +90,7 @@ export default function DashboardPage() {
 
       setSite(userSite);
       await loadStats(userSite.id);
+      await loadRecentActivity(userSite.id);
       
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -108,15 +118,119 @@ export default function DashboardPage() {
         .eq('site_id', siteId)
         .eq('status', 'pending');
 
+      // Page views in last 30 days
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { count: viewsCount } = await supabase
+        .from('page_views')
+        .select('*', { count: 'exact', head: true })
+        .eq('site_id', siteId)
+        .gte('created_at', thirtyDaysAgo);
+
+      // Unique visitors (distinct ip_hash) in last 30 days
+      const { data: viewsData } = await supabase
+        .from('page_views')
+        .select('ip_hash')
+        .eq('site_id', siteId)
+        .gte('created_at', thirtyDaysAgo);
+      const uniqueIps = new Set((viewsData || []).map(v => v.ip_hash));
+
+      // Total leads
+      const { count: leadsCount } = await supabase
+        .from('lead_captures')
+        .select('*', { count: 'exact', head: true })
+        .eq('site_id', siteId);
+
       setStats({
         totalInventory: inventoryCount || 0,
         activeRentals: rentalsCount || 0,
         pendingService: serviceCount || 0,
-        totalLeads: 0,
-        siteViews: 0
+        totalLeads: leadsCount || 0,
+        siteViews: viewsCount || 0,
+        uniqueVisitors: uniqueIps.size
       });
     } catch (error) {
       console.error('Error loading stats:', error);
+    }
+  }
+
+  function timeAgo(dateStr: string) {
+    const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  }
+
+  async function loadRecentActivity(siteId: string) {
+    try {
+      const activities: ActivityItem[] = [];
+
+      // Recent page views (grouped by session, last 5)
+      const { data: recentViews } = await supabase
+        .from('page_views')
+        .select('id, page, created_at, ip_hash')
+        .eq('site_id', siteId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      // Deduplicate by ip_hash to show unique visitors
+      const seenIps = new Set<string>();
+      (recentViews || []).forEach(v => {
+        if (!seenIps.has(v.ip_hash) && activities.length < 3) {
+          seenIps.add(v.ip_hash);
+          activities.push({
+            id: v.id,
+            type: 'page_view',
+            description: `New visitor viewed ${v.page === 'index' ? 'homepage' : v.page}`,
+            time: timeAgo(v.created_at)
+          });
+        }
+      });
+
+      // Recent service requests
+      const { data: recentService } = await supabase
+        .from('service_requests')
+        .select('id, customer_name, service_type, created_at')
+        .eq('site_id', siteId)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      (recentService || []).forEach(s => {
+        activities.push({
+          id: s.id,
+          type: 'service_request',
+          description: `Service request from ${s.customer_name}`,
+          time: timeAgo(s.created_at)
+        });
+      });
+
+      // Recent leads
+      const { data: recentLeads } = await supabase
+        .from('lead_captures')
+        .select('id, name, customer_name, created_at')
+        .eq('site_id', siteId)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      (recentLeads || []).forEach(l => {
+        activities.push({
+          id: l.id,
+          type: 'lead',
+          description: `New lead: ${l.name || l.customer_name || 'Contact form submission'}`,
+          time: timeAgo(l.created_at)
+        });
+      });
+
+      // Sort all by most recent and take top 5
+      activities.sort((a, b) => {
+        // timeAgo strings aren't sortable, so we'll just keep insertion order
+        // which is already roughly by recency per source
+        return 0;
+      });
+
+      setRecentActivity(activities.slice(0, 5));
+    } catch (error) {
+      console.error('Error loading recent activity:', error);
     }
   }
 
@@ -132,12 +246,34 @@ export default function DashboardPage() {
     return null;
   }
 
-  const statCards = [
-    { label: 'Site Views', value: stats.siteViews, icon: Eye, color: 'from-blue-500 to-blue-600', change: '+12%' },
-    { label: 'Total Inventory', value: stats.totalInventory, icon: Package, color: 'from-orange-500 to-orange-600', change: '+8%' },
-    { label: 'Active Rentals', value: stats.activeRentals, icon: Wrench, color: 'from-purple-500 to-purple-600', change: '+23%' },
-    { label: 'Service Requests', value: stats.pendingService, icon: Calendar, color: 'from-red-500 to-red-600', change: '+5%' }
+  const tier = site.subscription_tier as SubscriptionTier;
+
+  // Always-visible analytics cards (4 total so we always fill the grid)
+  const analyticsCards = [
+    { label: 'Site Views', value: stats.siteViews, icon: Eye, bg: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
+    { label: 'Unique Visitors', value: stats.uniqueVisitors, icon: Users, bg: 'linear-gradient(135deg, #6366f1, #4f46e5)' },
+    { label: 'Total Leads', value: stats.totalLeads, icon: Mail, bg: 'linear-gradient(135deg, #14b8a6, #0d9488)' },
+    { label: 'Pages / Visitor', value: stats.uniqueVisitors > 0 ? parseFloat((stats.siteViews / stats.uniqueVisitors).toFixed(1)) : 0, icon: BarChart3, bg: 'linear-gradient(135deg, #22c55e, #16a34a)' },
   ];
+
+  // Premium feature cards — only shown if user has the feature
+  const premiumCards = [
+    { label: 'Total Inventory', value: stats.totalInventory, icon: Package, bg: 'linear-gradient(135deg, #f97316, #ea580c)', feature: 'inventory' as const },
+    { label: 'Active Rentals', value: stats.activeRentals, icon: Wrench, bg: 'linear-gradient(135deg, #a855f7, #9333ea)', feature: 'rentals' as const },
+    { label: 'Service Requests', value: stats.pendingService, icon: Calendar, bg: 'linear-gradient(135deg, #ef4444, #dc2626)', feature: 'service' as const },
+  ];
+
+  const activePremiumCards = premiumCards.filter(card => hasFeature(tier, card.feature));
+
+  // Build final 4 cards: Site Views first, then premium features, then fill with analytics
+  const statCards = [analyticsCards[0]]; // Always show Site Views
+  activePremiumCards.forEach(card => statCards.push(card));
+  // Fill remaining slots with analytics cards (skip Site Views which is already added)
+  let analyticsIndex = 1;
+  while (statCards.length < 4 && analyticsIndex < analyticsCards.length) {
+    statCards.push(analyticsCards[analyticsIndex]);
+    analyticsIndex++;
+  }
 
   const quickActions = [
     { title: 'Analytics', description: 'View detailed analytics', icon: BarChart3, href: '/dashboard/analytics', color: 'bg-blue-500', feature: null },
@@ -190,6 +326,13 @@ export default function DashboardPage() {
                 <ExternalLink className="w-4 h-4" />
                 View Site
               </a>
+              <button
+                onClick={() => router.push('/account')}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                <User className="w-4 h-4" />
+                Account
+              </button>
             </div>
           </div>
         </div>
@@ -209,12 +352,9 @@ export default function DashboardPage() {
             return (
               <div key={stat.label} className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-4">
-                  <div className={`p-3 rounded-lg bg-gradient-to-br ${stat.color}`}>
+                  <div className="p-3 rounded-lg" style={{ background: stat.bg }}>
                     <Icon className="w-6 h-6 text-white" />
                   </div>
-                  <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                    {stat.change}
-                  </span>
                 </div>
                 <div className="text-2xl font-bold text-slate-800 mb-1">{stat.value}</div>
                 <div className="text-sm text-slate-500">{stat.label}</div>
@@ -280,39 +420,35 @@ export default function DashboardPage() {
             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-slate-800">Recent Activity</h2>
-                <button className="text-sm text-[#E8472F] font-semibold hover:text-[#D13A24]">
-                  View All
-                </button>
               </div>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 transition-colors">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Activity className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800">New service request received</p>
-                    <p className="text-xs text-slate-500">2 minutes ago</p>
-                  </div>
+              {recentActivity.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Activity className="w-10 h-10 text-slate-300 mb-3" />
+                  <p className="text-sm text-slate-500">Activity will appear here as customers interact with your site.</p>
                 </div>
-                <div className="flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 transition-colors">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Wrench className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800">Rental booking confirmed</p>
-                    <p className="text-xs text-slate-500">1 hour ago</p>
-                  </div>
+              ) : (
+                <div className="space-y-4">
+                  {recentActivity.map((item) => {
+                    const iconConfig = {
+                      page_view: { icon: Eye, bgColor: '#dbeafe', iconColor: '#2563eb' },
+                      service_request: { icon: Wrench, bgColor: '#fef3c7', iconColor: '#d97706' },
+                      lead: { icon: Users, bgColor: '#d1fae5', iconColor: '#059669' },
+                    }[item.type];
+                    const ItemIcon = iconConfig.icon;
+                    return (
+                      <div key={item.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 transition-colors">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: iconConfig.bgColor }}>
+                          <ItemIcon className="w-5 h-5" style={{ color: iconConfig.iconColor }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800">{item.description}</p>
+                          <p className="text-xs text-slate-500">{item.time}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 transition-colors">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Users className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800">New lead captured</p>
-                    <p className="text-xs text-slate-500">3 hours ago</p>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -343,42 +479,9 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Quick Stats */}
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 shadow-lg text-white">
-              <h3 className="text-lg font-bold mb-4">This Month</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm opacity-90">Revenue</span>
-                  <span className="text-xl font-bold">$0</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm opacity-90">New Customers</span>
-                  <span className="text-xl font-bold">0</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm opacity-90">Conversion</span>
-                  <span className="text-xl font-bold">0%</span>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowUpgradeModal(true)}
-                className="w-full mt-4 px-4 py-2 bg-white text-blue-700 font-semibold rounded-lg hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
-              >
-                <Crown className="w-4 h-4" />
-                Upgrade Plan
-              </button>
-            </div>
           </div>
         </div>
       </div>
-
-      {/* Upgrade Modal */}
-      <UpgradeModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        currentTier={site.subscription_tier as SubscriptionTier}
-        onUpgrade={handleUpgrade}
-      />
 
       {/* Feature-Specific Upgrade Modal */}
       {selectedFeature && (
