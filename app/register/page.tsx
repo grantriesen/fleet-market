@@ -3,69 +3,62 @@
 import { Suspense, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, Mail, Lock, User, ArrowRight, CheckCircle } from 'lucide-react';
+import { Loader2, Mail, Lock, User, ArrowRight, CheckCircle, Package, Wrench, Truck } from 'lucide-react';
 
-const PLAN_INFO: Record<string, { name: string; price: string; description: string }> = {
-  base: { name: 'Base Package', price: '$200/mo', description: 'Professional dealer website with templates, forms & lead capture' },
-  plus1: { name: 'Base + 1 Add-on', price: '$300/mo', description: 'Base package plus your choice of Inventory, Service, or Rentals' },
-  full: { name: 'Full Suite', price: '$430/mo', description: 'Everything included — Inventory, Service scheduling & Rental booking' },
+const ADDON_LABELS: Record<string, { label: string; Icon: any }> = {
+  inventory: { label: 'Inventory Management', Icon: Package },
+  service:   { label: 'Service Scheduling',   Icon: Wrench  },
+  rentals:   { label: 'Rental Management',    Icon: Truck   },
 };
 
+function getAddonPrice(count: number) {
+  if (count === 0) return 0;
+  if (count === 1) return 130;
+  if (count === 2) return 240;
+  return 280;
+}
+
 function RegisterContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const supabase = createClient();
-  const selectedPlan = searchParams.get('plan');
-  const planDetails = selectedPlan ? PLAN_INFO[selectedPlan] : null;
-  
-  const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const router    = useRouter();
+  const params    = useSearchParams();
+  const supabase  = createClient();
+
+  const addonsParam    = params.get('addons') || '';
+  const selectedAddons = addonsParam ? addonsParam.split(',').filter(Boolean) : [];
+  const addonPrice     = getAddonPrice(selectedAddons.length);
+  const total          = 230 + addonPrice;
+
+  const [fullName,         setFullName]         = useState('');
+  const [email,            setEmail]            = useState('');
+  const [password,         setPassword]         = useState('');
+  const [confirmPassword,  setConfirmPassword]  = useState('');
+  const [loading,          setLoading]          = useState(false);
+  const [error,            setError]            = useState('');
+  const [success,          setSuccess]          = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+
+    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
+    if (password.length < 6)          { setError('Password must be at least 6 characters'); return; }
+
     setLoading(true);
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            full_name: fullName,
-          }
-        }
+        options: { data: { full_name: fullName } },
       });
-
-      if (error) throw error;
+      if (signUpError) throw signUpError;
 
       if (data.user) {
-        console.log('✅ User created:', data.user.id);
         setSuccess(true);
-        setTimeout(() => {
-          router.push(selectedPlan ? `/onboarding?plan=${selectedPlan}` : '/onboarding');
-        }, 1500);
+        const addonParam = selectedAddons.length > 0 ? `?addons=${selectedAddons.join(',')}` : '';
+        setTimeout(() => router.push(`/onboarding${addonParam}`), 1200);
       }
-    } catch (error: any) {
-      console.error('Registration error:', error);
-      setError(error.message || 'Failed to create account');
+    } catch (err: any) {
+      setError(err.message || 'Failed to create account');
     } finally {
       setLoading(false);
     }
@@ -74,16 +67,12 @@ function RegisterContent() {
   if (success) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="w-full max-w-md text-center">
-          <div className="bg-slate-800 rounded-lg border-2 border-[#E8472F] p-12">
-            <div className="w-20 h-20 bg-[#E8472F] rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-10 h-10 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-4">Account Created!</h2>
-            <p className="text-gray-400">
-              Redirecting you to set up your website...
-            </p>
+        <div className="bg-slate-800 rounded-lg border-2 border-[#E8472F] p-12 text-center max-w-md w-full">
+          <div className="w-20 h-20 bg-[#E8472F] rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-white" />
           </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Account Created!</h2>
+          <p className="text-gray-400">Taking you to your site setup...</p>
         </div>
       </div>
     );
@@ -91,149 +80,118 @@ function RegisterContent() {
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          {/* Left Side - Branding & Benefits */}
-          <div className="hidden lg:block">
-            <div className="mb-8">
-              <img src="/fmlogo3.jpg" alt="Fleet Market" className="h-12 mb-6" onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }} />
-              <span className="text-2xl font-bold text-white uppercase tracking-tight hidden">
-                <span className="text-[#E8472F]">Fleet</span>Market
-              </span>
+      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+
+        {/* ── Left: Branding + plan summary ── */}
+        <div className="hidden lg:block">
+          <img src="/fmlogo3.jpg" alt="Fleet Market" className="h-12 mb-8"
+            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+
+          <h1 className="text-4xl font-bold text-white mb-4">
+            One more step — create your account
+          </h1>
+          <p className="text-lg text-gray-300 mb-8">
+            Your plan is locked in. Create an account, pick your template, and you'll be live in minutes.
+          </p>
+
+          {/* Plan summary card */}
+          <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 mb-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Your Plan</p>
+
+            <div className="flex justify-between items-center mb-3 pb-3 border-b border-slate-700">
+              <span className="text-white font-medium">Fleet Market Base</span>
+              <span className="text-white font-bold">$230/mo</span>
             </div>
 
-            <h1 className="text-4xl font-bold text-white mb-6">
-              Start Building Your Professional Website Today
-            </h1>
-            
-            <p className="text-xl text-gray-300 mb-8">
-              Get your dealership online with a professional website and powerful management tools
-            </p>
-
-            <div className="space-y-4">
-              {[
-                'Professional templates designed for equipment dealers',
-                'Complete inventory and rental management',
-                'Built-in service scheduling and lead capture',
-                'Real-time analytics and reporting',
-                'Set up in as little as 15 minutes'
-              ].map((benefit, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-[#E8472F]/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <div className="w-2 h-2 rounded-full bg-[#E8472F]"></div>
-                  </div>
-                  <span className="text-gray-300">{benefit}</span>
+            {selectedAddons.length > 0 && (
+              <>
+                {selectedAddons.map(key => {
+                  const info = ADDON_LABELS[key];
+                  if (!info) return null;
+                  return (
+                    <div key={key} className="flex items-center gap-2 mb-2">
+                      <info.Icon className="w-4 h-4 text-[#E8472F]" />
+                      <span className="text-gray-300 text-sm">{info.label}</span>
+                    </div>
+                  );
+                })}
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-700">
+                  <span className="text-gray-400 text-sm">
+                    {selectedAddons.length === 1 ? 'Add-on' : `${selectedAddons.length}-add-on bundle`}
+                  </span>
+                  <span className="text-[#E8472F] font-bold">+${addonPrice}/mo</span>
                 </div>
-              ))}
-            </div>
+              </>
+            )}
 
-            <div className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-slate-700">
-              {[
-                { value: '15 min', label: 'Setup Time' },
-                { value: '6', label: 'Pro Templates' },
-                { value: '24/7', label: 'Your Site Works' }
-              ].map((stat) => (
-                <div key={stat.label}>
-                  <div className="text-2xl font-bold text-[#E8472F] mb-1">{stat.value}</div>
-                  <div className="text-xs text-gray-400">{stat.label}</div>
-                </div>
-              ))}
+            <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-600">
+              <span className="text-white font-bold">Total</span>
+              <span className="text-white font-bold text-xl">${total}/mo</span>
             </div>
           </div>
 
-          {/* Right Side - Registration Form */}
-          <div className="bg-slate-800 rounded-lg border-2 border-slate-700 p-8 lg:p-12">
-            {planDetails && (
-              <div className="mb-6 p-4 bg-[#E8472F]/10 border border-[#E8472F]/30 rounded-lg">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[#E8472F] font-bold text-sm uppercase tracking-wide">Selected Plan</span>
-                  <span className="text-white font-bold">{planDetails.price}</span>
-                </div>
-                <div className="text-white font-semibold">{planDetails.name}</div>
-                <div className="text-gray-400 text-sm mt-1">{planDetails.description}</div>
-                <button
-                  onClick={() => router.push('/#pricing')}
-                  className="text-[#E8472F] text-xs font-medium mt-2 hover:underline"
-                >
-                  Change plan
-                </button>
+          <button onClick={() => router.push('/pricing')}
+            className="text-[#E8472F] text-sm font-medium hover:underline">
+            ← Change plan
+          </button>
+        </div>
+
+        {/* ── Right: Form ── */}
+        <div className="bg-slate-800 rounded-lg border-2 border-slate-700 p-8 lg:p-12">
+          <div className="mb-8">
+            <p className="text-xs font-semibold text-[#E8472F] uppercase tracking-wider mb-1">Step 1 of 3</p>
+            <h2 className="text-3xl font-bold text-white mb-1">Create Your Account</h2>
+            <p className="text-gray-400 text-sm">You'll pick your template and complete payment next.</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/40 rounded text-red-400 text-sm">
+                {error}
               </div>
             )}
 
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-white mb-2">Create Your Account</h2>
-              <p className="text-gray-400">
-                {planDetails ? `Sign up to get started with ${planDetails.name}` : 'Get started with your account in seconds'}
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
-                <div className="p-4 bg-red-500/10 border border-red-500/50 rounded text-red-400 text-sm">
-                  {error}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">Full Name</label>
+            {[
+              { label: 'Full Name',        value: fullName,        set: setFullName,        type: 'text',     icon: User,  placeholder: 'John Smith'        },
+              { label: 'Email Address',    value: email,           set: setEmail,           type: 'email',    icon: Mail,  placeholder: 'you@company.com'   },
+              { label: 'Password',         value: password,        set: setPassword,        type: 'password', icon: Lock,  placeholder: '••••••••'          },
+              { label: 'Confirm Password', value: confirmPassword, set: setConfirmPassword, type: 'password', icon: Lock,  placeholder: '••••••••'          },
+            ].map(({ label, value, set, type, icon: Icon, placeholder }) => (
+              <div key={label}>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">{label}</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required placeholder="John Smith" className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent transition-all" />
+                  <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input
+                    type={type} value={value} onChange={e => set(e.target.value)}
+                    required placeholder={placeholder} minLength={type === 'password' ? 6 : undefined}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent transition-all"
+                  />
                 </div>
               </div>
+            ))}
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">Email Address</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@company.com" className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent transition-all" />
-                </div>
-              </div>
+            <button type="submit" disabled={loading}
+              className="w-full py-4 bg-[#E8472F] text-white font-bold rounded hover:bg-[#D13A24] disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg">
+              {loading
+                ? <><Loader2 className="w-5 h-5 animate-spin" /> Creating account...</>
+                : <>Create Account <ArrowRight className="w-5 h-5" /></>}
+            </button>
+          </form>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent transition-all" minLength={6} />
-                </div>
-                <p className="mt-2 text-xs text-gray-500">Must be at least 6 characters</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">Confirm Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required placeholder="••••••••" className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-700 rounded text-white placeholder-gray-500 focus:ring-2 focus:ring-[#E8472F] focus:border-transparent transition-all" minLength={6} />
-                </div>
-              </div>
-
-              <button type="submit" disabled={loading} className="w-full py-4 bg-[#E8472F] text-white font-bold rounded hover:bg-[#D13A24] disabled:bg-gray-700 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg">
-                {loading ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Creating account...</>
-                ) : (
-                  <>Create Account <ArrowRight className="w-5 h-5" /></>
-                )}
-              </button>
-            </form>
-
-            <div className="mt-8 text-center">
-              <p className="text-sm text-gray-400">
-                Already have an account?{' '}
-                <button onClick={() => router.push('/login')} className="text-[#E8472F] font-semibold hover:text-[#D13A24] transition-colors">Sign in</button>
-              </p>
-            </div>
-
-            <p className="text-center text-xs text-gray-500 mt-6">
-              By creating an account, you agree to our{' '}
-              <a href="#" className="text-[#E8472F] hover:underline">Terms of Service</a>
-              {' '}and{' '}
+          <div className="mt-6 text-center space-y-3">
+            <p className="text-sm text-gray-400">
+              Already have an account?{' '}
+              <button onClick={() => router.push('/login')}
+                className="text-[#E8472F] font-semibold hover:underline">Sign in</button>
+            </p>
+            <p className="text-xs text-gray-500">
+              By creating an account you agree to our{' '}
+              <a href="#" className="text-[#E8472F] hover:underline">Terms</a> and{' '}
               <a href="#" className="text-[#E8472F] hover:underline">Privacy Policy</a>
             </p>
           </div>
         </div>
+
       </div>
     </div>
   );
@@ -241,7 +199,11 @@ function RegisterContent() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    }>
       <RegisterContent />
     </Suspense>
   );
