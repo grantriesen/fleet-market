@@ -4,25 +4,39 @@ import { createServerClient } from '@supabase/ssr';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-// Maps addon keys to Stripe price IDs
-const ADDON_PRICES: Record<string, string> = {
-  inventory: process.env.STRIPE_PRICE_ADDON_INVENTORY!,
-  service:   process.env.STRIPE_PRICE_ADDON_SERVICE!,
-  rentals:   process.env.STRIPE_PRICE_ADDON_RENTALS!,
+// Monthly price IDs
+const MONTHLY: Record<string, string> = {
+  base:            process.env.STRIPE_PRICE_BASE!,
+  addon_inventory: process.env.STRIPE_PRICE_ADDON_INVENTORY!,
+  addon_service:   process.env.STRIPE_PRICE_ADDON_SERVICE!,
+  addon_rentals:   process.env.STRIPE_PRICE_ADDON_RENTALS!,
+  bundle_2:        process.env.STRIPE_PRICE_BUNDLE_2!,
+  bundle_3:        process.env.STRIPE_PRICE_BUNDLE_3!,
 };
 
-const BUNDLE_PRICES: Record<number, string> = {
-  2: process.env.STRIPE_PRICE_BUNDLE_2!,
-  3: process.env.STRIPE_PRICE_BUNDLE_3!,
+// Annual price IDs
+const ANNUAL: Record<string, string> = {
+  base:            process.env.STRIPE_PRICE_BASE_ANNUAL!,
+  addon_inventory: process.env.STRIPE_PRICE_ADDON_INVENTORY_ANNUAL!,
+  addon_service:   process.env.STRIPE_PRICE_ADDON_SERVICE_ANNUAL!,
+  addon_rentals:   process.env.STRIPE_PRICE_ADDON_RENTALS_ANNUAL!,
+  bundle_2:        process.env.STRIPE_PRICE_BUNDLE_2_ANNUAL!,
+  bundle_3:        process.env.STRIPE_PRICE_BUNDLE_3_ANNUAL!,
 };
 
 export async function POST(request: NextRequest) {
   try {
-    const { site_id, addons = [] }: { site_id: string; addons: string[] } = await request.json();
+    const {
+      site_id,
+      addons = [],
+      billing = 'monthly', // 'monthly' | 'annual'
+    }: { site_id: string; addons: string[]; billing?: string } = await request.json();
 
     if (!site_id) {
       return NextResponse.json({ error: 'Missing site_id' }, { status: 400 });
     }
+
+    const prices = billing === 'annual' ? ANNUAL : MONTHLY;
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,17 +57,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Site not found' }, { status: 404 });
     }
 
-    // Build line items — base is always included
+    // Base is always included
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
-      { price: process.env.STRIPE_PRICE_BASE!, quantity: 1 },
+      { price: prices.base, quantity: 1 },
     ];
 
-    // Use bundle price if 2 or 3 add-ons selected, otherwise price individually
+    // Use bundle price for 2-3 add-ons, individual price for 1
     const addonCount = addons.length;
-    if (addonCount >= 2 && BUNDLE_PRICES[addonCount]) {
-      lineItems.push({ price: BUNDLE_PRICES[addonCount], quantity: 1 });
+    if (addonCount === 3) {
+      lineItems.push({ price: prices.bundle_3, quantity: 1 });
+    } else if (addonCount === 2) {
+      lineItems.push({ price: prices.bundle_2, quantity: 1 });
     } else if (addonCount === 1) {
-      lineItems.push({ price: ADDON_PRICES[addons[0]], quantity: 1 });
+      const addonKey = `addon_${addons[0]}`;
+      lineItems.push({ price: prices[addonKey], quantity: 1 });
     }
 
     const origin = request.headers.get('origin') || 'https://app.fleetmarket.us';
@@ -62,20 +79,21 @@ export async function POST(request: NextRequest) {
       mode: 'subscription',
       line_items: lineItems,
       success_url: `${origin}/dashboard?subscribed=true`,
-      cancel_url: `${origin}/pricing?cancelled=true`,
+      cancel_url:  `${origin}/pricing?cancelled=true`,
       metadata: {
         site_id,
-        addons: JSON.stringify(addons),
+        addons:  JSON.stringify(addons),
+        billing,
       },
       subscription_data: {
         metadata: {
           site_id,
-          addons: JSON.stringify(addons),
+          addons:  JSON.stringify(addons),
+          billing,
         },
       },
     };
 
-    // Re-use existing Stripe customer if available
     if (site.stripe_customer_id) {
       sessionParams.customer = site.stripe_customer_id;
     }
