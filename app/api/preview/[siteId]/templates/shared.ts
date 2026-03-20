@@ -315,7 +315,7 @@ export function serviceFormHtml(
   selectClass: string = '',
   labelClass: string = 'block text-sm font-medium text-gray-700 mb-1'
 ): string {
-  return enabledFeatures.has('service')
+  return enabledFeatures.has('service_scheduling') || enabledFeatures.has('service')
     ? fullServiceFormHtml(siteId, inputClass, buttonClass, selectClass, labelClass)
     : basicServiceFormHtml(siteId, inputClass, buttonClass, labelClass);
 }
