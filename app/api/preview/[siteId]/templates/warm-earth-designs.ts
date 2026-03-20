@@ -5,7 +5,7 @@
 //         wood texture overlays, organic/rustic aesthetic.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { sharedPreviewScript } from './shared';
+import { sharedPreviewScript, serviceFormHtml } from './shared';
 import { serviceBookingSection } from './product-modal';
 
 // Helper: render emoji OR circular image
@@ -603,16 +603,14 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasSch
       <div class="card-we" style="padding:2.5rem;">
         <h3 class="font-serif" style="font-size:1.5rem;font-weight:600;text-align:center;margin:0 0 0.5rem;color:${C.fg};">${gc('servicePage.formHeading') || 'Request Service'}</h3>
         <p style="text-align:center;color:${C.mutedFg};margin:0 0 2rem;">${gc('servicePage.formSubheading') || "Fill out the form below and we'll get back to you within one business day."}</p>
-        <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', null);" style="display:flex;flex-direction:column;gap:1rem;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-            <div><label class="label-we">Your Name</label><input class="form-we" required placeholder="John Smith"></div>
-            <div><label class="label-we">Phone</label><input class="form-we" type="tel" required placeholder="(555) 123-4567"></div>
-          </div>
-          <div><label class="label-we">Email</label><input class="form-we" type="email" required placeholder="john@example.com"></div>
-          <div><label class="label-we">Equipment Type</label><input class="form-we" required placeholder="e.g., John Deere 1025R Tractor"></div>
-          <div><label class="label-we">Describe the Issue</label><textarea class="form-we" rows="5" required placeholder="Tell us what's going on..."></textarea></div>
-          <button type="submit" class="btn-accent" style="width:100%;justify-content:center;">${gc('servicePage.ctaButton') || 'Submit Request'}</button>
-        </form>
+        ${serviceFormHtml(
+          siteId,
+          hasScheduler ? new Set(['service']) : new Set(),
+          'form-we',
+          'btn-accent',
+          'form-we',
+          'label-we'
+        )}
       </div>
     </div>
   </section>`}

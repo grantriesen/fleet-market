@@ -1,3 +1,5 @@
+import { serviceFormHtml } from './shared';
+
 // ─── Corporate Edge ── Standalone Template ───────────────────────────────
 // Design: Deep navy primary, red CTA, green accent. Sharp corners.
 //         Roboto headings (600), Open Sans body. Clean professional cards,
@@ -142,7 +144,7 @@ export function renderCorporateEdgePage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors, manufacturers, baseUrl); break;
-    case 'service': body = ceServicePage(siteId, getContent, baseUrl); break;
+    case 'service': body = ceServicePage(siteId, getContent, enabledFeatures, baseUrl); break;
     case 'contact': body = ceContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
     case 'inventory': body = ceInventoryPage(siteId, getContent, products, baseUrl); break;
     case 'rentals': body = ceRentalsPage(siteId, getContent, baseUrl); break;
@@ -681,7 +683,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
 }
 
 // ── Service Page ──
-function ceServicePage(siteId: string, getContent: Function,
+function ceServicePage(siteId: string, getContent: Function, enabledFeatures: Set<string>,
   baseUrl: string = ''
 ) {
   let services: any[] = [];
@@ -724,7 +726,7 @@ function ceServicePage(siteId: string, getContent: Function,
     </div>
   </section>
 
-  ${ceFormSection(siteId, 'Schedule a Service Consultation', 'Fill out the form below and our service team will contact you within one business day.')}`;
+  ${ceFormSection(siteId, enabledFeatures, 'Schedule a Service Consultation', 'Fill out the form below and our service team will contact you within one business day.')}`;
 }
 
 // ── Contact Page ──
@@ -1052,7 +1054,9 @@ function cePageHeader(title: string, description: string) {
   </section>`;
 }
 
-function ceFormSection(siteId: string, heading: string, description: string) {
+function ceFormSection(siteId: string, enabledFeatures: Set<string>, heading: string, description: string) {
+  const inputCls = 'w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none';
+  const btnCls   = 'w-full py-3 rounded font-semibold text-white bg-blue-900 transition-corporate hover:brightness-110';
   return `
   <section class="py-16 bg-gray-100">
     <div class="container-corporate max-w-3xl">
@@ -1061,18 +1065,7 @@ function ceFormSection(siteId: string, heading: string, description: string) {
         <p class="text-gray-500">${description}</p>
       </div>
       <div class="border border-gray-200 rounded bg-white p-8">
-        <form class="space-y-6" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var s=f.querySelector('select');return s?{equipment_type:s.value}:null;}); ">
-          <div class="grid md:grid-cols-2 gap-6">
-            <div><label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>
-            <div><label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>
-          </div>
-          <div class="grid md:grid-cols-2 gap-6">
-            <div><label class="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>
-            <div><label class="block text-sm font-medium text-gray-700 mb-1">Phone *</label><input type="tel" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>
-          </div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">Message *</label><textarea rows="4" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none resize-y" required></textarea></div>
-          <button type="submit" class="w-full py-3 rounded font-semibold text-white bg-blue-900 transition-corporate hover:brightness-110">Submit Request</button>
-        </form>
+        ${serviceFormHtml(siteId, enabledFeatures, inputCls, btnCls)}
       </div>
     </div>
   </section>`;

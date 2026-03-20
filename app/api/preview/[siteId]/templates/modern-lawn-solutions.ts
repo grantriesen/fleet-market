@@ -4,7 +4,7 @@
 //         shadcn-inspired card system, muted gray backgrounds.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { sharedPreviewScript } from './shared';
+import { sharedPreviewScript, serviceFormHtml } from './shared';
 
 /* ── DEMO overrides ── */
 export const MODERN_LAWN_DEMO_OVERRIDES = {
@@ -141,7 +141,7 @@ export async function renderModernLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl); break;
-    case 'service': body = mlsServicePage(siteId, getContent, baseUrl); break;
+    case 'service': body = mlsServicePage(siteId, getContent, enabledFeatures, baseUrl); break;
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice, baseUrl); break;
     case 'rentals': body = mlsRentalsPage(siteId, getContent, baseUrl); break;
@@ -614,7 +614,7 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
 // ══════════════════════════════════════════════════
 //  SERVICE PAGE
 // ══════════════════════════════════════════════════
-function mlsServicePage(siteId: string, gc: (k: string) => string,
+function mlsServicePage(siteId: string, gc: (k: string) => string, enabledFeatures: Set<string>,
   baseUrl: string = ''
 ): string {
   let serviceItems: any[] = [];
@@ -664,23 +664,7 @@ function mlsServicePage(siteId: string, gc: (k: string) => string,
       <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
         <div class="card-mls" style="padding: 2rem;">
           <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">Request Service</h3>
-          <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var s=f.querySelector('select');return s?{equipment_type:s.value}:null;});">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div><label class="form-label">Name *</label><input class="form-input" required placeholder="Your name"></div>
-              <div><label class="form-label">Email *</label><input class="form-input" type="email" required placeholder="your@email.com"></div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div><label class="form-label">Phone *</label><input class="form-input" type="tel" required placeholder="(555) 123-4567"></div>
-              <div><label class="form-label">Equipment Type *</label>
-                <select class="form-input" required>
-                  <option value="">Select type</option>
-                  <option>Mower</option><option>Trimmer</option><option>Blower</option><option>Chainsaw</option><option>Tractor</option><option>Other</option>
-                </select>
-              </div>
-            </div>
-            <div style="margin-bottom: 1rem;"><label class="form-label">Description of Issue *</label><textarea class="form-input" rows="5" required placeholder="Please describe the issue or service needed..."></textarea></div>
-            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Submit Service Request</button>
-          </form>
+          ${serviceFormHtml(siteId, enabledFeatures, 'form-input', 'btn-primary', 'form-input', 'form-label')}
         </div>
         <div style="display: flex; flex-direction: column; gap: 1.5rem;">
           ${mlsContactSidebar(gc)}

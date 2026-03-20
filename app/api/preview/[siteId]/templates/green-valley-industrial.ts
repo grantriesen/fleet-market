@@ -7,7 +7,7 @@
 // (caller provides <head> shell and closing tags)
 // ============================================
 
-import { sharedPreviewScript, pageHero } from './shared';
+import { sharedPreviewScript, pageHero, serviceFormHtml } from './shared';
 import { productModalScript, registerProductsScript, rentalBookingSection } from './product-modal';
 
 // ── Types ──
@@ -1135,24 +1135,20 @@ function gvServicePage(
     })();
   </script>
   ` : `
-  <!-- Basic Service Request Form -->
+  <!-- Service Request Form -->
   <section data-section="serviceCta" class="py-12 bg-muted">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
       <h2 class="section-heading text-center mb-2">Request Service</h2>
       <p class="text-center text-muted-foreground mb-8">${getContent('servicePage.formSubheading') || "Fill out the form below and we'll get back to you as quickly as possible."}</p>
-      <div class="industrial-card rounded-lg">
-        <div class="p-6">
-          <form class="space-y-4" method="POST" action="/api/service/book/${siteId}" id="serviceBasicForm">
-            <input type="hidden" name="siteId" value="${siteId}">
-            <div class="grid md:grid-cols-2 gap-4">
-              <div><label class="block text-sm font-semibold text-foreground mb-1">Name *</label><input type="text" name="customerName" required class="w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none"></div>
-              <div><label class="block text-sm font-semibold text-foreground mb-1">Phone *</label><input type="tel" name="customerPhone" required placeholder="(555) 123-4567" class="w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none"></div>
-            </div>
-            <div><label class="block text-sm font-semibold text-foreground mb-1">Email *</label><input type="email" name="customerEmail" required class="w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none"></div>
-            <div><label class="block text-sm font-semibold text-foreground mb-1">Describe the Issue *</label><textarea name="customerNotes" required rows="4" placeholder="Please describe the problem..." class="w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none resize-y"></textarea></div>
-            <button type="submit" class="w-full cta-button rounded-md text-center">${getContent('servicePage.ctaButton') || 'Submit Service Request'}</button>
-          </form>
-        </div>
+      <div class="industrial-card rounded-lg p-6">
+        ${serviceFormHtml(
+          siteId,
+          hasServiceFeature ? new Set(['service']) : new Set(),
+          'w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none',
+          'w-full cta-button rounded-md text-center',
+          'w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none',
+          'block text-sm font-semibold text-foreground mb-1'
+        )}
       </div>
 
       <!-- Urgent + Email -->
@@ -1174,26 +1170,6 @@ function gvServicePage(
       </div>
     </div>
   </section>
-
-  <script>
-    var sbform = document.getElementById('serviceBasicForm');
-    if (sbform) {
-      sbform.addEventListener('submit', function(e) {
-        e.preventDefault();
-        var fd = new FormData(sbform); var data = {};
-        fd.forEach(function(v, k) { data[k] = v; });
-        var btn = sbform.querySelector('button[type=submit]');
-        btn.textContent = 'Submitting...'; btn.disabled = true;
-        fetch('/api/submit-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({site_id:'${siteId}',form_type:'service',name:data.name,email:data.email,phone:data.phone,message:data.message||data.description,extra_data:data['equipment-type']?{equipment_type:data['equipment-type']}:null}) })
-        .then(function(r) { return r.json(); })
-        .then(function(res) {
-          if (!res.success) { alert('Something went wrong.'); btn.textContent = 'Submit Service Request'; btn.disabled = false; }
-          else { sbform.innerHTML = '<div class="text-center py-8"><div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg></div><h3 class="text-2xl font-bold mb-2">Service Request Submitted!</h3><p class="text-muted-foreground">We will contact you within 1 business day.</p></div>'; }
-        })
-        .catch(function() { alert('Something went wrong.'); btn.textContent = 'Submit Service Request'; btn.disabled = false; });
-      });
-    }
-  </script>
   `}
   ` : ''}
   `;

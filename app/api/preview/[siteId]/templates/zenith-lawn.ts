@@ -110,7 +110,7 @@ export function renderZenithLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = zlHome(siteId, getContent, products, vis, colors, baseUrl); break;
-    case 'service': body = zlService(siteId, getContent, baseUrl); break;
+    case 'service': body = zlService(siteId, getContent, enabledFeatures, baseUrl); break;
     case 'contact': body = zlContact(siteId, getContent, hoursLine, baseUrl); break;
     case 'inventory': body = zlInventory(siteId, getContent, products, baseUrl); break;
     case 'rentals': body = zlRentals(siteId, getContent, baseUrl); break;
@@ -350,7 +350,9 @@ function zlProductCard(siteId: string, p: any) {
 }
 
 // ── Service ──
-function zlService(siteId: string, getContent: Function,
+import { serviceFormHtml } from './shared';
+
+function zlService(siteId: string, getContent: Function, enabledFeatures: Set<string>,
   baseUrl: string = ''
 ) {
   const formHeading = getContent('servicePage.formHeading') || 'Request Service';
@@ -394,14 +396,14 @@ function zlService(siteId: string, getContent: Function,
         </div>
         <div>
           <h2 class="text-xl font-light mb-8">${formHeading}</h2>
-          ${zlForm(siteId, [
-            { label: 'First Name', type: 'text', half: true },
-            { label: 'Last Name', type: 'text', half: true },
-            { label: 'Email', type: 'email' },
-            { label: 'Phone', type: 'tel' },
-            { label: 'Equipment Type & Model', type: 'text', placeholder: 'e.g., John Deere X350' },
-            { label: 'Issue Description', type: 'textarea', placeholder: 'Please describe the issue or service needed...' },
-          ], 'Submit Request')}
+          ${serviceFormHtml(
+            siteId,
+            enabledFeatures,
+            'w-full px-4 py-2.5 border border-neutral-200 rounded bg-transparent text-sm focus:ring-1 focus:ring-green-300 focus:border-green-400 outline-none',
+            'w-full py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90" style="background-color:#22c55e;',
+            'w-full px-4 py-2.5 border border-neutral-200 rounded bg-transparent text-sm focus:ring-1 focus:ring-green-300 focus:border-green-400 outline-none',
+            'text-xs uppercase tracking-wider text-neutral-400 mb-2 block'
+          )}
         </div>
       </div>
     </div>

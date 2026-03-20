@@ -154,3 +154,168 @@ export function contentSection(contentHeading: string, contentText: string): str
   </section>
   `;
 }
+
+// ============================================
+// SHARED FORM GENERATORS
+// Used by all templates to render the correct
+// service form based on the dealer's addon status.
+// ============================================
+
+/**
+ * Basic contact/service request form.
+ * Shown on the service page when the dealer does NOT have
+ * the Service Scheduling add-on.
+ * Collects: name, email, phone, message.
+ * Submits as form_type='contact'.
+ */
+export function basicServiceFormHtml(
+  siteId: string,
+  inputClass: string,
+  buttonClass: string,
+  labelClass: string = 'block text-sm font-medium text-gray-700 mb-1'
+): string {
+  return `
+    <form class="space-y-6" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'contact', null);">
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <label class="${labelClass}">First Name *</label>
+          <input type="text" class="${inputClass}" placeholder="John" required>
+        </div>
+        <div>
+          <label class="${labelClass}">Last Name *</label>
+          <input type="text" class="${inputClass}" placeholder="Smith" required>
+        </div>
+      </div>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <label class="${labelClass}">Email *</label>
+          <input type="email" class="${inputClass}" placeholder="john@company.com" required>
+        </div>
+        <div>
+          <label class="${labelClass}">Phone *</label>
+          <input type="tel" class="${inputClass}" placeholder="(555) 123-4567" required>
+        </div>
+      </div>
+      <div>
+        <label class="${labelClass}">Message *</label>
+        <textarea rows="4" class="${inputClass} resize-y" placeholder="How can we help you?" required></textarea>
+      </div>
+      <div data-fm-success style="display:none;" class="p-4 bg-green-50 border border-green-200 rounded text-green-800 text-center font-medium">
+        ✓ Message sent! We'll be in touch soon.
+      </div>
+      <button type="submit" class="${buttonClass}">Send Message</button>
+    </form>`;
+}
+
+/**
+ * Full service scheduling form.
+ * Shown on the service page when the dealer HAS the
+ * Service Scheduling add-on.
+ * Collects: name, email, phone, equipment type, service type,
+ * preferred date, and additional notes.
+ * Submits as form_type='service' with extra_data.
+ */
+export function fullServiceFormHtml(
+  siteId: string,
+  inputClass: string,
+  buttonClass: string,
+  selectClass: string = '',
+  labelClass: string = 'block text-sm font-medium text-gray-700 mb-1'
+): string {
+  const sc = selectClass || inputClass;
+  return `
+    <form class="space-y-6" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){
+      return {
+        equipment_type: (f.querySelector('[name=equipment_type]') || {}).value || null,
+        service_type:   (f.querySelector('[name=service_type]') || {}).value || null,
+        preferred_date: (f.querySelector('[name=preferred_date]') || {}).value || null,
+      };
+    });">
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <label class="${labelClass}">First Name *</label>
+          <input type="text" class="${inputClass}" placeholder="John" required>
+        </div>
+        <div>
+          <label class="${labelClass}">Last Name *</label>
+          <input type="text" class="${inputClass}" placeholder="Smith" required>
+        </div>
+      </div>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <label class="${labelClass}">Email *</label>
+          <input type="email" class="${inputClass}" placeholder="john@company.com" required>
+        </div>
+        <div>
+          <label class="${labelClass}">Phone *</label>
+          <input type="tel" class="${inputClass}" placeholder="(555) 123-4567" required>
+        </div>
+      </div>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <label class="${labelClass}">Equipment Type *</label>
+          <select name="equipment_type" class="${sc}" required>
+            <option value="">Select equipment type...</option>
+            <option>Zero-Turn Mower</option>
+            <option>Walk-Behind Mower</option>
+            <option>Stand-On Mower</option>
+            <option>Riding Tractor</option>
+            <option>String Trimmer</option>
+            <option>Chainsaw</option>
+            <option>Blower / Vacuum</option>
+            <option>Compact Utility Tractor</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="${labelClass}">Service Type *</label>
+          <select name="service_type" class="${sc}" required>
+            <option value="">Select service type...</option>
+            <option>Annual Tune-Up / Maintenance</option>
+            <option>Repair / Diagnosis</option>
+            <option>Blade Sharpening</option>
+            <option>Oil Change</option>
+            <option>Belt / Filter Replacement</option>
+            <option>Warranty Work</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="${labelClass}">Preferred Service Date</label>
+        <input type="date" name="preferred_date" class="${inputClass}" min="${new Date().toISOString().split('T')[0]}">
+      </div>
+      <div>
+        <label class="${labelClass}">Equipment Make / Model</label>
+        <input type="text" class="${inputClass}" placeholder="e.g. Toro TimeCutter 54&quot;">
+      </div>
+      <div>
+        <label class="${labelClass}">Additional Notes</label>
+        <textarea rows="4" class="${inputClass} resize-y" placeholder="Describe the issue or any additional details..."></textarea>
+      </div>
+      <div data-fm-success style="display:none;" class="p-4 bg-green-50 border border-green-200 rounded text-green-800 text-center font-medium">
+        ✓ Service request submitted! We'll confirm your appointment within one business day.
+      </div>
+      <button type="submit" class="${buttonClass}">Schedule Service</button>
+    </form>`;
+}
+
+/**
+ * Convenience wrapper — returns the correct form based on
+ * whether the dealer has the 'service' add-on enabled.
+ *
+ * Usage in any template:
+ *   serviceFormHtml(siteId, enabledFeatures, inputCls, btnCls, selectCls, labelCls)
+ */
+export function serviceFormHtml(
+  siteId: string,
+  enabledFeatures: Set<string>,
+  inputClass: string,
+  buttonClass: string,
+  selectClass: string = '',
+  labelClass: string = 'block text-sm font-medium text-gray-700 mb-1'
+): string {
+  return enabledFeatures.has('service')
+    ? fullServiceFormHtml(siteId, inputClass, buttonClass, selectClass, labelClass)
+    : basicServiceFormHtml(siteId, inputClass, buttonClass, labelClass);
+}
