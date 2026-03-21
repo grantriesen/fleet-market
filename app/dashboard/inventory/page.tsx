@@ -10,6 +10,7 @@ import {
   AlertCircle, Loader2, Grid, List, FolderPlus, FileUp, Download
 } from 'lucide-react';
 import CheckoutSettings from '@/components/CheckoutSettings';
+import ShippingTaxSettings from '@/components/ShippingTaxSettings';
 
 interface InventoryItem {
   id: string; site_id: string; title: string; description: string | null;
@@ -615,6 +616,19 @@ export default function InventoryDashboard() {
                 initialMode={siteData.checkout_mode || 'quote_only'}
                 stripeAccountId={siteData.stripe_account_id || null}
               />
+            </div>
+          </div>
+        )}
+
+        {/* Shipping & Tax Settings */}
+        {siteData && (
+          <div className="mt-6 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="px-6 py-4 border-b border-slate-100">
+              <h2 className="text-base font-bold text-slate-800">Shipping & Tax</h2>
+              <p className="text-sm text-slate-500 mt-0.5">Define shipping zones, rates, and sales tax rules applied at checkout.</p>
+            </div>
+            <div className="px-6 py-6">
+              <ShippingTaxSettings siteId={siteData.id} />
             </div>
           </div>
         )}

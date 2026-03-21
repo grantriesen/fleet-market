@@ -594,22 +594,159 @@ export function injectCartSystem(
     .catch(function(){});
   };
 
+
+  var fmShippingOptions = [];
+  var fmSelectedZoneId = null;
+  var fmDestination = null;
+
   window.fmCheckout = function() {
     if (!cartItems.length) return;
+    // Show address + shipping collection step
+    renderShippingStep();
+  };
+
+  function renderShippingStep() {
+    var itemsEl = document.getElementById('fm-cart-items');
+    var footerEl = document.getElementById('fm-cart-footer');
+    if (!itemsEl || !footerEl) return;
+
+    itemsEl.innerHTML = '<div style="padding:0 0 1rem;">'
+      + '<p style="font-weight:700;font-size:0.9375rem;margin:0 0 16px;color:#111827;">Shipping Address</p>'
+      + '<div style="display:grid;gap:10px;">'
+      + '<input id="fm-addr-email" type="email" placeholder="Email address *" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.875rem;box-sizing:border-box;">'
+      + '<input id="fm-addr-zip" type="text" placeholder="ZIP Code *" maxlength="10" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.875rem;box-sizing:border-box;">'
+      + '<input id="fm-addr-city" type="text" placeholder="City *" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.875rem;box-sizing:border-box;">'
+      + '<select id="fm-addr-state" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:0.875rem;background:#fff;box-sizing:border-box;">'
+      + '<option value="">State *</option>'
+      + ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join('')
+      + '</select>'
+      + '</div>'
+      + '<div id="fm-shipping-opts" style="margin-top:16px;"></div>'
+      + '</div>';
+
+    footerEl.innerHTML = '<button id="fm-get-shipping-btn" style="width:100%;padding:12px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:0.9375rem;font-weight:700;cursor:pointer;margin-bottom:8px;">Check Shipping Options</button>'
+      + '<button id="fm-back-btn" style="width:100%;padding:10px;background:none;border:none;font-size:0.875rem;color:#6b7280;cursor:pointer;">&#x2190; Back to Cart</button>';
+
+    document.getElementById('fm-get-shipping-btn').onclick = loadShippingOptions;
+    document.getElementById('fm-back-btn').onclick = function() { renderCartDrawer(); };
+
+    // Auto-load if zip filled
+    var zipEl = document.getElementById('fm-addr-zip');
+    if (zipEl) {
+      zipEl.addEventListener('blur', function() {
+        if (zipEl.value.length >= 5) loadShippingOptions();
+      });
+    }
+  }
+
+  function loadShippingOptions() {
+    var email = document.getElementById('fm-addr-email')?.value || '';
+    var zip   = document.getElementById('fm-addr-zip')?.value || '';
+    var city  = document.getElementById('fm-addr-city')?.value || '';
+    var state = document.getElementById('fm-addr-state')?.value || '';
+
+    if (!zip) { alert('Please enter your ZIP code.'); return; }
+
+    var orderTotal = cartItems.reduce(function(s,i){return s+Number(i.price)*(i.quantity||1);},0);
+    var itemCount  = cartItems.reduce(function(s,i){return s+(i.quantity||1);},0);
+
+    var optsEl = document.getElementById('fm-shipping-opts');
+    if (optsEl) optsEl.innerHTML = '<p style="font-size:0.875rem;color:#9ca3af;">Loading shipping options...</p>';
+
+    var url = '/api/inventory/shipping-tax/'+SITE_ID+'?zip='+encodeURIComponent(zip)+'&city='+encodeURIComponent(city)+'&state='+encodeURIComponent(state)+'&country=US&total='+orderTotal+'&items='+itemCount;
+
+    fetch(url)
+      .then(function(r){return r.json();})
+      .then(function(data) {
+        fmShippingOptions = data.shipping || [];
+        fmDestination = {zip:zip, city:city, state:state, country:'US'};
+
+        var tax = data.tax || {amount:0, rate:0};
+        var subtotal = cartItems.reduce(function(s,i){return s+Number(i.price)*(i.quantity||1);},0);
+
+        if (!optsEl) return;
+
+        if (fmShippingOptions.length === 0) {
+          optsEl.innerHTML = '<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:0.875rem;color:#dc2626;">We don\'t currently ship to this area. Please contact us directly.</div>';
+          return;
+        }
+
+        var html = '<p style="font-weight:600;font-size:0.875rem;margin:0 0 10px;color:#111827;">Shipping Options</p>';
+        fmShippingOptions.forEach(function(opt, i) {
+          var checked = i === 0 ? 'checked' : '';
+          if (i === 0) { fmSelectedZoneId = opt.id; }
+          html += '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:2px solid '+(checked?ACCENT:'#e5e7eb')+';border-radius:8px;cursor:pointer;margin-bottom:8px;" id="fm-zone-label-'+opt.id+'">'
+            + '<input type="radio" name="fm-shipping-zone" value="'+opt.id+'" '+checked+' style="accent-color:'+ACCENT+';" onchange="fmSelectZone(\''+opt.id+'\')">'
+            + '<div style="flex:1;">'
+              + '<p style="margin:0;font-weight:600;font-size:0.875rem;">'+opt.label+'</p>'
+              + (opt.estimated_days ? '<p style="margin:0;font-size:0.75rem;color:#6b7280;">'+opt.estimated_days+'</p>' : '')
+            + '</div>'
+            + '<p style="margin:0;font-weight:700;font-size:0.9375rem;">'+(opt.amount > 0 ? '$'+opt.amount.toFixed(2) : 'FREE')+'</p>'
+            + '</label>';
+        });
+
+        if (tax.amount > 0) {
+          html += '<div style="margin-top:12px;padding:10px 12px;background:#f9fafb;border-radius:8px;display:flex;justify-content:space-between;font-size:0.875rem;">'
+            + '<span style="color:#6b7280;">Estimated Tax</span>'
+            + '<span style="font-weight:600;">$'+tax.amount.toFixed(2)+'</span>'
+            + '</div>';
+        }
+
+        optsEl.innerHTML = html;
+        optsEl.setAttribute('data-tax', tax.amount);
+
+        // Update footer
+        var footerEl = document.getElementById('fm-cart-footer');
+        if (footerEl) {
+          var selectedOpt = fmShippingOptions[0];
+          var total = subtotal + (selectedOpt ? selectedOpt.amount : 0) + tax.amount;
+          footerEl.innerHTML = '<div style="margin-bottom:12px;font-size:0.875rem;">'
+            + '<div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#6b7280;"><span>Subtotal</span><span>$'+subtotal.toFixed(2)+'</span></div>'
+            + (selectedOpt && selectedOpt.amount > 0 ? '<div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#6b7280;"><span>Shipping</span><span>$'+selectedOpt.amount.toFixed(2)+'</span></div>' : '')
+            + (tax.amount > 0 ? '<div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#6b7280;"><span>Tax</span><span>$'+tax.amount.toFixed(2)+'</span></div>' : '')
+            + '<div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.0625rem;padding-top:8px;border-top:1px solid #e5e7eb;"><span>Total</span><span>$'+total.toFixed(2)+'</span></div>'
+            + '</div>'
+            + '<button id="fm-checkout-btn" style="width:100%;padding:14px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Proceed to Payment &#x2192;</button>'
+            + '<button id="fm-back-btn2" style="width:100%;padding:10px;background:none;border:none;font-size:0.875rem;color:#6b7280;cursor:pointer;margin-top:4px;">&#x2190; Back to Cart</button>';
+          document.getElementById('fm-checkout-btn').onclick = function() { doCheckout(email, tax.amount); };
+          document.getElementById('fm-back-btn2').onclick = function() { renderCartDrawer(); };
+        }
+      })
+      .catch(function() {
+        if (optsEl) optsEl.innerHTML = '<p style="font-size:0.875rem;color:#6b7280;">Unable to load shipping options. You can still proceed to checkout.</p>';
+      });
+  }
+
+  window.fmSelectZone = function(zoneId) {
+    fmSelectedZoneId = zoneId;
+    // Update border highlights
+    fmShippingOptions.forEach(function(opt) {
+      var label = document.getElementById('fm-zone-label-'+opt.id);
+      if (label) label.style.borderColor = opt.id === zoneId ? ACCENT : '#e5e7eb';
+    });
+  };
+
+  function doCheckout(email, taxAmount) {
     var btn = document.getElementById('fm-checkout-btn');
     if (btn){btn.textContent='Processing...';btn.disabled=true;}
-    fetch('/api/inventory/checkout/' + SITE_ID, {
+    fetch('/api/inventory/checkout/'+SITE_ID, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({sessionId:SESSION_ID, items:cartItems}),
+      body: JSON.stringify({
+        sessionId: SESSION_ID,
+        items: cartItems,
+        customerEmail: email || null,
+        destination: fmDestination,
+        shippingZoneId: fmSelectedZoneId,
+      }),
     })
     .then(function(r){return r.json();})
     .then(function(d){
       if (d.url) window.location.href=d.url;
-      else {alert(d.error||'Checkout unavailable');if(btn){btn.textContent='Checkout';btn.disabled=false;}}
+      else {alert(d.error||'Checkout unavailable');if(btn){btn.textContent='Proceed to Payment \u2192';btn.disabled=false;}}
     })
-    .catch(function(){if(btn){btn.textContent='Checkout';btn.disabled=false;}});
-  };
+    .catch(function(){if(btn){btn.textContent='Proceed to Payment \u2192';btn.disabled=false;}});
+  }
 
   window.fmSubmitQuote = function(e, product) {
     e.preventDefault();
@@ -688,8 +825,8 @@ export function injectCartSystem(
       btn.addEventListener('click', function(){ fmRemoveFromCart(btn.getAttribute('data-remove')); });
     });
     var total = cartItems.reduce(function(s,i){return s+Number(i.price)*(i.quantity||1);},0);
-    footerEl.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:12px;font-weight:700;font-size:1.0625rem;"><span>Total</span><span>$'+total.toLocaleString()+'</span></div>'
-      + '<button id="fm-checkout-btn" style="width:100%;padding:14px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Checkout &#x2192;</button>'
+    footerEl.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:12px;font-weight:700;font-size:1.0625rem;"><span>Subtotal</span><span>$'+total.toLocaleString()+'</span></div>'
+      + '<button id="fm-checkout-btn" style="width:100%;padding:14px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Shipping &amp; Payment &#x2192;</button>'
       + '<button id="fm-continue-btn" style="width:100%;padding:10px;background:none;border:none;font-size:0.875rem;color:#6b7280;cursor:pointer;margin-top:8px;">Continue Shopping</button>';
     document.getElementById('fm-checkout-btn').onclick = fmCheckout;
     document.getElementById('fm-continue-btn').onclick = fmCloseCart;
