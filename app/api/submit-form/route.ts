@@ -64,13 +64,41 @@ export async function POST(request: NextRequest) {
       phone: phone || null,
       message: message || null,
       source: SOURCE_MAP[form_type] ?? 'contact_form',
-      tags: [form_type],           // lets dealers filter by form type later
+      tags: [form_type],
       extra_data: extra_data || null,
     });
 
     if (leadError) {
-      // Non-fatal — log it but don't fail the request
       console.error('lead_captures sync error:', leadError);
+    }
+
+    // ----------------------------------------------------------------
+    // 3. If service form — also create a service_appointments row
+    //    so it appears immediately in the dealer's service dashboard
+    // ----------------------------------------------------------------
+    if (form_type === 'service') {
+      const ed = extra_data || {};
+      const { error: apptError } = await supabase.from('service_appointments').insert({
+        site_id,
+        customer_name:    name || null,
+        customer_email:   email || null,
+        customer_phone:   phone || null,
+        service_type_name: ed.service_type || null,
+        is_custom_request: !ed.service_type,
+        custom_description: message || null,
+        equipment_type:   ed.equipment_type || null,
+        equipment_make:   ed.equipment_make || null,
+        equipment_model:  ed.equipment_model || null,
+        preferred_date:   ed.preferred_date || null,
+        preferred_time:   null,
+        customer_notes:   message || null,
+        status:           'pending',
+      });
+
+      if (apptError) {
+        // Non-fatal — log but don't fail
+        console.error('service_appointments sync error:', apptError);
+      }
     }
 
     // ----------------------------------------------------------------
@@ -140,7 +168,7 @@ export async function POST(request: NextRequest) {
               </div>` : ''}
 
               <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb;text-align:center;">
-                <a href="https://app.fleetmarket.us/dashboard/leads"
+                <a href="https://app.fleetmarket.us${form_type === 'service' ? '/dashboard/service' : '/dashboard/leads'}"
                    style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;">
                   View in Dashboard →
                 </a>
