@@ -5,7 +5,7 @@
 //         wood texture overlays, organic/rustic aesthetic.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { sharedPreviewScript, serviceFormHtml } from './shared';
+import { sharedPreviewScript } from './shared';
 import { serviceBookingSection } from './product-modal';
 
 // Helper: render emoji OR circular image
@@ -205,7 +205,7 @@ function weShell(title: string, C: any, siteId: string, page: string, body: stri
     }
   </style>
 </head><body>${body}${sharedPreviewScript(siteId, page)}<script>
-  function fmSubmitForm(form,siteId,formType,extraFn){var btn=form.querySelector('button[type="submit"]');var orig=btn?btn.innerHTML:'';if(btn){btn.disabled=true;btn.innerHTML='Submitting...'}var firstNameEl=form.querySelector('[name=first_name]');var lastNameEl=form.querySelector('[name=last_name]');var nameEl=form.querySelector('[name=full_name]')||form.querySelector('input[type="text"]');var emailEl=form.querySelector('[name=email]')||form.querySelector('input[type="email"]');var phoneEl=form.querySelector('[name=phone]')||form.querySelector('input[type="tel"]');var notesEl=form.querySelector('[name=notes]')||form.querySelector('textarea');var msgEl=form.querySelector('textarea');var fullName=firstNameEl&&lastNameEl?(firstNameEl.value+' '+lastNameEl.value).trim():(nameEl?nameEl.value:null);var data={site_id:siteId,form_type:formType,name:fullName||null,email:emailEl?emailEl.value:null,phone:phoneEl?phoneEl.value:null,message:notesEl?notesEl.value:(msgEl?msgEl.value:null),extra_data:extraFn?extraFn(form):null};fetch('/api/submit-form',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json();}).then(function(res){if(res.success){var suc=form.parentElement?form.parentElement.querySelector('[data-fm-success]'):null;if(suc){form.style.display='none';suc.style.display='block';}else{form.reset();if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';}}}else{if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');}}).catch(function(){if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');});}
+  function fmSubmitForm(form,siteId,formType,extraFn){var btn=form.querySelector('button[type="submit"]');var orig=btn?btn.innerHTML:'';if(btn){btn.disabled=true;btn.innerHTML='Submitting...';}var nameEl=form.querySelector('input[type="text"]');var emailEl=form.querySelector('input[type="email"]');var phoneEl=form.querySelector('input[type="tel"]');var msgEl=form.querySelector('textarea');var data={site_id:siteId,form_type:formType,name:nameEl?nameEl.value:null,email:emailEl?emailEl.value:null,phone:phoneEl?phoneEl.value:null,message:msgEl?msgEl.value:null,extra_data:extraFn?extraFn(form):null};fetch('/api/submit-form',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json();}).then(function(res){if(res.success){var suc=form.parentElement?form.parentElement.querySelector('[data-fm-success]'):null;if(suc){form.style.display='none';suc.style.display='block';}else{form.reset();if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';}}}else{if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');}}).catch(function(){if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');});}
 </script>
 </body></html>`;
 }
@@ -535,7 +535,7 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
       <p style="font-size:0.875rem;color:${C.mutedFg};margin-bottom:1.5rem;">Showing ${products.length} products</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2rem;">
         ${products.map((p: any) => `
-        <div class="card-we" data-cat="${p.category||''}" data-name="${(p.title||'').toLowerCase()}">
+        <div class="card-we" data-cat="${p.category||''}" data-name="${(p.title||'').toLowerCase()}" style="cursor:pointer;" onclick="fmOpenProduct(${JSON.stringify({id:p.id,title:p.title,description:p.description,price:p.price,sale_price:p.sale_price,primary_image:p.primary_image,category:p.category,model:p.model,slug:p.slug}).replace(/"/g,'&quot;')})">
           <div style="overflow:hidden;position:relative;">
             ${p.primary_image ? `<img src="${p.primary_image}" alt="${p.title}" style="width:100%;height:220px;object-fit:cover;" loading="lazy">` : `<div style="width:100%;height:220px;background:${C.muted};display:flex;align-items:center;justify-content:center;color:${C.mutedFg};">No Image</div>`}
             <span style="position:absolute;top:1rem;left:1rem;background:${C.secondary};color:${C.bg};padding:0.25rem 0.75rem;border-radius:9999px;font-size:0.75rem;font-weight:600;">${p.category||''}</span>
@@ -543,7 +543,10 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
           <div style="padding:1.5rem;">
             <h3 class="font-serif" style="font-size:1.0625rem;font-weight:600;margin:0 0 0.375rem;color:${C.fg};">${p.title}</h3>
             <p style="font-size:0.875rem;color:${C.mutedFg};margin:0 0 1rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.description||''}</p>
-            ${p.price ? `<span class="font-serif" style="font-size:1.25rem;font-weight:700;color:${C.accent};">${fp(p.price)}</span>` : ''}
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              ${p.price ? `<span class="font-serif" style="font-size:1.25rem;font-weight:700;color:${C.accent};">${fp(p.price)}</span>` : `<span style="font-size:0.875rem;color:${C.mutedFg};">Call for Price</span>`}
+              <span style="font-size:0.8125rem;font-weight:600;color:${C.primary};">View Details →</span>
+            </div>
           </div>
         </div>`).join('')}
       </div>
@@ -603,14 +606,16 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasSch
       <div class="card-we" style="padding:2.5rem;">
         <h3 class="font-serif" style="font-size:1.5rem;font-weight:600;text-align:center;margin:0 0 0.5rem;color:${C.fg};">${gc('servicePage.formHeading') || 'Request Service'}</h3>
         <p style="text-align:center;color:${C.mutedFg};margin:0 0 2rem;">${gc('servicePage.formSubheading') || "Fill out the form below and we'll get back to you within one business day."}</p>
-        ${serviceFormHtml(
-          siteId,
-          hasScheduler ? new Set(['service']) : new Set(),
-          'form-we',
-          'btn-accent',
-          'form-we',
-          'label-we'
-        )}
+        <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', null);" style="display:flex;flex-direction:column;gap:1rem;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div><label class="label-we">Your Name</label><input class="form-we" required placeholder="John Smith"></div>
+            <div><label class="label-we">Phone</label><input class="form-we" type="tel" required placeholder="(555) 123-4567"></div>
+          </div>
+          <div><label class="label-we">Email</label><input class="form-we" type="email" required placeholder="john@example.com"></div>
+          <div><label class="label-we">Equipment Type</label><input class="form-we" required placeholder="e.g., John Deere 1025R Tractor"></div>
+          <div><label class="label-we">Describe the Issue</label><textarea class="form-we" rows="5" required placeholder="Tell us what's going on..."></textarea></div>
+          <button type="submit" class="btn-accent" style="width:100%;justify-content:center;">${gc('servicePage.ctaButton') || 'Submit Request'}</button>
+        </form>
       </div>
     </div>
   </section>`}

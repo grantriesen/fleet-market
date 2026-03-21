@@ -22,7 +22,6 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
 
     const supabase = createSupabase();
 
-    // Load site — need checkout_mode and stripe_account_id
     const { data: site } = await supabase
       .from('sites')
       .select('id, site_name, slug, checkout_mode, stripe_account_id')
@@ -30,12 +29,11 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
       .single();
 
     if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 });
-    if (site.checkout_mode !== 'online') return NextResponse.json({ error: 'Online checkout not enabled for this site' }, { status: 403 });
+    if (site.checkout_mode !== 'online') return NextResponse.json({ error: 'Online checkout not enabled' }, { status: 403 });
     if (!site.stripe_account_id) return NextResponse.json({ error: 'Dealer has not connected Stripe' }, { status: 400 });
 
     const origin = request.headers.get('origin') || `https://${site.slug}.fleetmarket.us`;
 
-    // Build Stripe line items from cart
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item: any) => ({
       price_data: {
         currency: 'usd',
@@ -43,12 +41,13 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
           name: item.title,
           images: item.primary_image ? [item.primary_image] : [],
         },
-        unit_amount: Math.round(item.price * 100), // price in cents
+        unit_amount: Math.round(item.price * 100),
       },
       quantity: item.quantity || 1,
     }));
 
-    // Create Stripe Checkout session on the dealer's connected account
+    // Create session directly on the dealer's connected account
+    // Money never touches Fleet Market — goes straight to dealer
     const session = await stripe.checkout.sessions.create(
       {
         mode: 'payment',
@@ -68,11 +67,11 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
         },
       },
       {
-        stripeAccount: site.stripe_account_id,
+        stripeAccount: site.stripe_account_id, // runs entirely on dealer's account
       }
     );
 
-    // Save pending order
+    // Save pending order on our side for dealer's dashboard
     const total = items.reduce((sum: number, i: any) => sum + i.price * (i.quantity || 1), 0);
     await supabase.from('orders').insert({
       site_id: params.siteId,

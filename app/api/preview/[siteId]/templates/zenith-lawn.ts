@@ -110,7 +110,7 @@ export function renderZenithLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = zlHome(siteId, getContent, products, vis, colors, baseUrl); break;
-    case 'service': body = zlService(siteId, getContent, enabledFeatures, baseUrl); break;
+    case 'service': body = zlService(siteId, getContent, baseUrl); break;
     case 'contact': body = zlContact(siteId, getContent, hoursLine, baseUrl); break;
     case 'inventory': body = zlInventory(siteId, getContent, products, baseUrl); break;
     case 'rentals': body = zlRentals(siteId, getContent, baseUrl); break;
@@ -157,7 +157,7 @@ function zlShell(title: string, fonts: any, colors: any, body: string) {
   </style>
 </head>
 <body>${body}<script>
-  function fmSubmitForm(form,siteId,formType,extraFn){var btn=form.querySelector('button[type="submit"]');var orig=btn?btn.innerHTML:'';if(btn){btn.disabled=true;btn.innerHTML='Submitting...'}var firstNameEl=form.querySelector('[name=first_name]');var lastNameEl=form.querySelector('[name=last_name]');var nameEl=form.querySelector('[name=full_name]')||form.querySelector('input[type="text"]');var emailEl=form.querySelector('[name=email]')||form.querySelector('input[type="email"]');var phoneEl=form.querySelector('[name=phone]')||form.querySelector('input[type="tel"]');var notesEl=form.querySelector('[name=notes]')||form.querySelector('textarea');var msgEl=form.querySelector('textarea');var fullName=firstNameEl&&lastNameEl?(firstNameEl.value+' '+lastNameEl.value).trim():(nameEl?nameEl.value:null);var data={site_id:siteId,form_type:formType,name:fullName||null,email:emailEl?emailEl.value:null,phone:phoneEl?phoneEl.value:null,message:notesEl?notesEl.value:(msgEl?msgEl.value:null),extra_data:extraFn?extraFn(form):null};fetch('/api/submit-form',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json();}).then(function(res){if(res.success){var suc=form.parentElement?form.parentElement.querySelector('[data-fm-success]'):null;if(suc){form.style.display='none';suc.style.display='block';}else{form.reset();if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';}}}else{if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');}}).catch(function(){if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');});}
+  function fmSubmitForm(form,siteId,formType,extraFn){var btn=form.querySelector('button[type="submit"]');var orig=btn?btn.innerHTML:'';if(btn){btn.disabled=true;btn.innerHTML='Submitting...';}var nameEl=form.querySelector('input[type="text"]');var emailEl=form.querySelector('input[type="email"]');var phoneEl=form.querySelector('input[type="tel"]');var msgEl=form.querySelector('textarea');var data={site_id:siteId,form_type:formType,name:nameEl?nameEl.value:null,email:emailEl?emailEl.value:null,phone:phoneEl?phoneEl.value:null,message:msgEl?msgEl.value:null,extra_data:extraFn?extraFn(form):null};fetch('/api/submit-form',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json();}).then(function(res){if(res.success){var suc=form.parentElement?form.parentElement.querySelector('[data-fm-success]'):null;if(suc){form.style.display='none';suc.style.display='block';}else{form.reset();if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';}}}else{if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');}}).catch(function(){if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');});}
 </script></body>
 </html>`;
 }
@@ -329,8 +329,13 @@ function zlProductCard(siteId: string, p: any, baseUrl: string = '') {
   const hasImage = imgUrl && !imgUrl.includes('placeholder');
   const productName = p.name || p.title || '';
   const price = p.sale_price || p.price;
+  const productData = JSON.stringify({
+    id: p.id, title: productName, description: p.description,
+    price: p.price, sale_price: p.sale_price,
+    primary_image: imgUrl, category: p.category, model: p.model, slug: p.slug,
+  }).replace(/"/g, '&quot;');
   return `
-  <a href="${baseUrl}contact" class="group block">
+  <div class="group block cursor-pointer" onclick="fmOpenProduct(${productData})">
     <div class="aspect-[4/3] overflow-hidden bg-neutral-100 mb-4">
       ${hasImage
         ? `<img src="${imgUrl}" alt="${productName}" class="w-full h-full object-cover transition-slow group-hover:scale-105 group-hover:opacity-90"/>`
@@ -341,18 +346,20 @@ function zlProductCard(siteId: string, p: any, baseUrl: string = '') {
     <div class="space-y-1">
       <p class="text-xs text-neutral-400 uppercase tracking-wider">${p.brand || ''}</p>
       <h3 class="text-base font-medium group-hover:opacity-70 transition-slow">${productName}</h3>
-      <p class="text-sm text-neutral-500">
-        ${p.sale_price ? `<span class="line-through text-neutral-300 mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}$${Number(price).toLocaleString()}
-        ${p.condition === 'used' ? ` <span class="text-xs text-neutral-400">· Used${p.hours ? ` ${p.hours}hrs` : ''}</span>` : ''}
-      </p>
+      <div class="flex items-center justify-between">
+        <p class="text-sm text-neutral-500">
+          ${p.sale_price ? `<span class="line-through text-neutral-300 mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
+          ${price ? '$' + Number(price).toLocaleString() : 'Call for Price'}
+          ${p.condition === 'used' ? ` <span class="text-xs text-neutral-400">· Used${p.hours ? ` ${p.hours}hrs` : ''}</span>` : ''}
+        </p>
+        <span class="text-xs text-neutral-400 group-hover:text-neutral-900 transition-slow">View →</span>
+      </div>
     </div>
-  </a>`;
+  </div>`;
 }
 
 // ── Service ──
-import { serviceFormHtml } from './shared';
-
-function zlService(siteId: string, getContent: Function, enabledFeatures: Set<string>,
+function zlService(siteId: string, getContent: Function,
   baseUrl: string = ''
 ) {
   const formHeading = getContent('servicePage.formHeading') || 'Request Service';
@@ -396,14 +403,14 @@ function zlService(siteId: string, getContent: Function, enabledFeatures: Set<st
         </div>
         <div>
           <h2 class="text-xl font-light mb-8">${formHeading}</h2>
-          ${serviceFormHtml(
-            siteId,
-            enabledFeatures,
-            'w-full px-4 py-2.5 border border-neutral-200 rounded bg-transparent text-sm focus:ring-1 focus:ring-green-300 focus:border-green-400 outline-none',
-            'w-full py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90" style="background-color:#22c55e;',
-            'w-full px-4 py-2.5 border border-neutral-200 rounded bg-transparent text-sm focus:ring-1 focus:ring-green-300 focus:border-green-400 outline-none',
-            'text-xs uppercase tracking-wider text-neutral-400 mb-2 block'
-          )}
+          ${zlForm(siteId, [
+            { label: 'First Name', type: 'text', half: true },
+            { label: 'Last Name', type: 'text', half: true },
+            { label: 'Email', type: 'email' },
+            { label: 'Phone', type: 'tel' },
+            { label: 'Equipment Type & Model', type: 'text', placeholder: 'e.g., John Deere X350' },
+            { label: 'Issue Description', type: 'textarea', placeholder: 'Please describe the issue or service needed...' },
+          ], 'Submit Request')}
         </div>
       </div>
     </div>

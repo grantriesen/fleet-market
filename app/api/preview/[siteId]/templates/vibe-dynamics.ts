@@ -8,7 +8,7 @@
 // thick borders, and rounded pill shapes.
 // ============================================
 
-import { sharedPreviewScript, pageHero, serviceFormHtml } from './shared';
+import { sharedPreviewScript, pageHero } from './shared';
 import { productModalScript, registerProductsScript, serviceBookingSection, rentalBookingSection } from './product-modal';
 
 // ── Types ──
@@ -45,22 +45,9 @@ export async function renderVibeDynamicsPage(
   page: string,
   googleFontsUrl: string,
   supabase?: any,
-  baseUrl: string = '',
-  siteAddons: string[] = []
+  baseUrl: string = ''
 ): Promise<string> {
-  // Seed from sites.addons first (new system)
-  const addonToFeatureMap: Record<string, string[]> = {
-    'inventory': ['inventory', 'inventory_sync'],
-    'service':   ['service', 'service_scheduling'],
-    'rentals':   ['rentals', 'rental_scheduling'],
-  };
   let enabledFeatures: Set<string> = new Set();
-  siteAddons.forEach(addon => {
-    enabledFeatures.add(addon);
-    addonToFeatureMap[addon]?.forEach(f => enabledFeatures.add(f));
-  });
-
-  // Also read site_features table (legacy / manual overrides)
   if (supabase) {
     const { data: features } = await supabase
       .from('site_features')
@@ -155,25 +142,16 @@ function vdHtmlShell(colors: Colors, fonts: Fonts, siteName: string, googleFonts
     var btn = form.querySelector('button[type="submit"]');
     var orig = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.innerHTML = 'Submitting...'; }
-    // Smart field grabbers — use name attributes when present (service form),
-    // fall back to type selectors for simple forms
-    var firstNameEl = form.querySelector('[name=first_name]');
-    var lastNameEl  = form.querySelector('[name=last_name]');
-    var nameEl      = form.querySelector('[name=full_name]') || form.querySelector('input[type="text"]');
-    var emailEl     = form.querySelector('[name=email]') || form.querySelector('input[type="email"]');
-    var phoneEl     = form.querySelector('[name=phone]') || form.querySelector('input[type="tel"]');
-    var notesEl     = form.querySelector('[name=notes]') || form.querySelector('textarea');
-    var msgEl       = form.querySelector('textarea');
-    // Build full name from first+last if separate fields exist
-    var fullName = firstNameEl && lastNameEl
-      ? (firstNameEl.value + ' ' + lastNameEl.value).trim()
-      : (nameEl ? nameEl.value : null);
+    var nameEl = form.querySelector('input[type="text"]');
+    var emailEl = form.querySelector('input[type="email"]');
+    var phoneEl = form.querySelector('input[type="tel"]');
+    var msgEl = form.querySelector('textarea');
     var data = {
       site_id: siteId, form_type: formType,
-      name: fullName || null,
+      name: nameEl ? nameEl.value : null,
       email: emailEl ? emailEl.value : null,
       phone: phoneEl ? phoneEl.value : null,
-      message: notesEl ? notesEl.value : (msgEl ? msgEl.value : null),
+      message: msgEl ? msgEl.value : null,
       extra_data: extraFn ? extraFn(form) : null,
     };
     fetch('/api/submit-form', {
@@ -636,21 +614,49 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
     </div>
   </section>`;
 
-  // Simple or full service form based on add-on
+  // Simple request form for all users
   const simpleFormHtml = `
   <section data-section="serviceForm" class="py-16 bg-gray-50">
     <div class="max-w-3xl mx-auto px-6">
       <div class="card-bold p-8">
         <h2 class="text-3xl font-heading font-black text-gray-900 mb-2">${getContent('servicePage.formHeading') || 'Request Service'}</h2>
         <p class="text-gray-500 mb-8">${getContent('servicePage.formSubheading') || 'Fill out the form below and our service team will be in touch within one business day.'}</p>
-        ${serviceFormHtml(
-          siteId,
-          hasScheduler ? new Set(['service']) : new Set(),
-          'w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none',
-          'btn-gradient w-full text-lg py-4',
-          'w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none',
-          'block text-sm font-bold text-gray-800 mb-1'
-        )}
+        <form class="space-y-4" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var inputs=f.querySelectorAll('input[type=text]');return {first_name:inputs[0]?inputs[0].value:'',last_name:inputs[1]?inputs[1].value:'',equipment:inputs[2]?inputs[2].value:''};});">
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-800 mb-1">First Name *</label>
+              <input type="text" required class="w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none" placeholder="John">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-800 mb-1">Last Name *</label>
+              <input type="text" required class="w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none" placeholder="Smith">
+            </div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-800 mb-1">Phone *</label>
+              <input type="tel" required class="w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none" placeholder="(555) 123-4567">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-800 mb-1">Email *</label>
+              <input type="email" required class="w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none" placeholder="john@example.com">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-800 mb-1">Equipment Type & Model *</label>
+            <input type="text" required class="w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none" placeholder="e.g., Toro Z Master 60&quot;">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-800 mb-1">Describe the Issue *</label>
+            <textarea rows="4" required class="w-full px-4 py-3 rounded-xl border-[3px] border-gray-200 focus:border-primary focus:outline-none" placeholder="What's going on with your equipment?"></textarea>
+          </div>
+          <button type="submit" class="btn-gradient w-full text-lg py-4">${getContent('servicePage.ctaButton') || 'Submit Request'}</button>
+        </form>
+        <div id="vd-svc-success" style="display:none;" class="text-center py-8">
+          <div class="text-5xl mb-4">✓</div>
+          <h3 class="text-2xl font-heading font-black text-gray-900 mb-2">Request Received!</h3>
+          <p class="text-gray-500">We'll be in touch within one business day.</p>
+        </div>
       </div>
     </div>
   </section>`;
@@ -852,7 +858,7 @@ async function vdInventoryPage(
         ${products.map((item: any, idx: number) => {
           const borderColor = idx % 3 === 0 ? 'var(--color-primary)' : idx % 3 === 1 ? 'var(--color-secondary)' : 'var(--color-accent)';
           return `
-          <div data-product data-category="${item.category || ''}" class="bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 cursor-pointer" style="border: 4px solid ${borderColor};" onclick="openFmModal('${item.id || item.slug || ''}')">
+          <div data-product data-category="${item.category || ''}" class="bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 cursor-pointer" style="border: 4px solid ${borderColor};" onclick="fmOpenProduct(${JSON.stringify({id:item.id||item.slug,title:item.title,description:item.description,price:item.price,sale_price:item.sale_price,primary_image:item.primary_image,category:item.category,model:item.model,slug:item.slug}).replace(/"/g,'&quot;')})">
             <div class="h-52" style="${item.primary_image ? `background: url('${item.primary_image}') center/cover no-repeat;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));`}"></div>
             <div class="p-5">
               ${item.category ? `<span class="inline-block text-xs font-bold uppercase tracking-wide mb-1" style="color: var(--color-primary);">${item.category}</span>` : ''}

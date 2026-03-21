@@ -1,5 +1,5 @@
 // app/api/stripe/connect/route.ts
-// Stripe Connect OAuth — lets dealers connect their own Stripe account
+// Creates a Stripe Connect account + Account Link for dealer onboarding
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServerClient } from '@supabase/ssr';
@@ -7,49 +7,61 @@ import { cookies } from 'next/headers';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-// GET — redirect dealer to Stripe Connect OAuth
 export async function GET(request: NextRequest) {
-  const cookieStore = cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { get(name) { return cookieStore.get(name)?.value; }, set() {}, remove() {} } }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.redirect(new URL('/login', request.url));
-
-  const { data: site } = await supabase
-    .from('sites')
-    .select('id, slug')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (!site) return NextResponse.redirect(new URL('/dashboard', request.url));
-
-  const origin = new URL(request.url).origin;
-  const redirectUri = `${origin}/api/stripe/connect/callback`;
-
-  const url = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${process.env.STRIPE_CONNECT_CLIENT_ID}&scope=read_write&redirect_uri=${encodeURIComponent(redirectUri)}&state=${site.id}`;
-
-  return NextResponse.redirect(url);
-}
-
-// POST — save connected account ID after OAuth callback
-export async function POST(request: NextRequest) {
   try {
-    const { siteId, stripeAccountId } = await request.json();
-    if (!siteId || !stripeAccountId) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
-
+    const cookieStore = cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { cookies: { get() { return undefined; }, set() {}, remove() {} }, auth: { persistSession: false, autoRefreshToken: false } }
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { cookies: { get(name: string) { return cookieStore.get(name)?.value; }, set() {}, remove() {} } }
     );
 
-    await supabase.from('sites').update({ stripe_account_id: stripeAccountId }).eq('id', siteId);
-    return NextResponse.json({ success: true });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.redirect(new URL('/login', request.url));
+
+    const { data: site } = await supabase
+      .from('sites')
+      .select('id, slug, stripe_account_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!site) return NextResponse.redirect(new URL('/dashboard', request.url));
+
+    const origin = new URL(request.url).origin;
+    let accountId = site.stripe_account_id;
+
+    if (!accountId) {
+      // Create a new Express account for the dealer
+      const account = await stripe.accounts.create({
+        type: 'express',
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        metadata: { site_id: site.id, site_slug: site.slug },
+      });
+      accountId = account.id;
+
+      // Save immediately so onboarding can resume if interrupted
+      const serviceSupabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { cookies: { get() { return undefined; }, set() {}, remove() {} }, auth: { persistSession: false, autoRefreshToken: false } }
+      );
+      await serviceSupabase.from('sites').update({ stripe_account_id: accountId }).eq('id', site.id);
+    }
+
+    // Create Account Link — hosted onboarding flow
+    const accountLink = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${origin}/api/stripe/connect`,
+      return_url: `${origin}/dashboard?stripe_connect=success`,
+      type: 'account_onboarding',
+    });
+
+    return NextResponse.redirect(accountLink.url);
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('Stripe Connect error:', err);
+    return NextResponse.redirect(new URL('/dashboard?stripe_connect=error', request.url));
   }
 }

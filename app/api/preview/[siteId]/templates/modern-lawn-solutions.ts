@@ -4,7 +4,7 @@
 //         shadcn-inspired card system, muted gray backgrounds.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { sharedPreviewScript, serviceFormHtml } from './shared';
+import { sharedPreviewScript } from './shared';
 
 /* ── DEMO overrides ── */
 export const MODERN_LAWN_DEMO_OVERRIDES = {
@@ -141,7 +141,7 @@ export async function renderModernLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl); break;
-    case 'service': body = mlsServicePage(siteId, getContent, enabledFeatures, baseUrl); break;
+    case 'service': body = mlsServicePage(siteId, getContent, baseUrl); break;
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice, baseUrl); break;
     case 'rentals': body = mlsRentalsPage(siteId, getContent, baseUrl); break;
@@ -198,25 +198,16 @@ function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, pa
     var btn = form.querySelector('button[type="submit"]');
     var orig = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.innerHTML = 'Submitting...'; }
-    // Smart field grabbers — use name attributes when present (service form),
-    // fall back to type selectors for simple forms
-    var firstNameEl = form.querySelector('[name=first_name]');
-    var lastNameEl  = form.querySelector('[name=last_name]');
-    var nameEl      = form.querySelector('[name=full_name]') || form.querySelector('input[type="text"]');
-    var emailEl     = form.querySelector('[name=email]') || form.querySelector('input[type="email"]');
-    var phoneEl     = form.querySelector('[name=phone]') || form.querySelector('input[type="tel"]');
-    var notesEl     = form.querySelector('[name=notes]') || form.querySelector('textarea');
-    var msgEl       = form.querySelector('textarea');
-    // Build full name from first+last if separate fields exist
-    var fullName = firstNameEl && lastNameEl
-      ? (firstNameEl.value + ' ' + lastNameEl.value).trim()
-      : (nameEl ? nameEl.value : null);
+    var nameEl = form.querySelector('input[type="text"]');
+    var emailEl = form.querySelector('input[type="email"]');
+    var phoneEl = form.querySelector('input[type="tel"]');
+    var msgEl = form.querySelector('textarea');
     var data = {
       site_id: siteId, form_type: formType,
-      name: fullName || null,
+      name: nameEl ? nameEl.value : null,
       email: emailEl ? emailEl.value : null,
       phone: phoneEl ? phoneEl.value : null,
-      message: notesEl ? notesEl.value : (msgEl ? msgEl.value : null),
+      message: msgEl ? msgEl.value : null,
       extra_data: extraFn ? extraFn(form) : null,
     };
     fetch('/api/submit-form', {
@@ -585,7 +576,7 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
       <!-- Products Grid -->
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem;">
         ${products.map((p: any) => `
-        <div class="card-mls" data-category="${p.category || ''}" data-title="${(p.title || '').toLowerCase()}">
+        <div class="card-mls" data-category="${p.category || ''}" data-title="${(p.title || '').toLowerCase()}" style="cursor:pointer;" onclick="fmOpenProduct(${JSON.stringify({id:p.id,title:p.title,description:p.description,price:p.price,sale_price:p.sale_price,primary_image:p.primary_image,category:p.category,model:p.model,slug:p.slug}).replace(/"/g,'&quot;')})">
           <div style="height: 200px; overflow: hidden;">
             ${p.primary_image ? `<img src="${p.primary_image}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">` : `<div style="width:100%;height:100%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#9ca3af;">No Image</div>`}
           </div>
@@ -593,7 +584,10 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
             <p style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.25rem;">${p.category || ''}</p>
             <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.375rem; color: #111827;">${p.title}</h3>
             <p style="font-size: 0.875rem; color: #6b7280; margin: 0 0 1rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${p.description || ''}</p>
-            ${p.price ? `<span style="font-size: 1.125rem; font-weight: 700; color: #111827;">${fmtPrice(p.price)}</span>` : ''}
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              ${p.price ? `<span style="font-size: 1.125rem; font-weight: 700; color: #111827;">${fmtPrice(p.price)}</span>` : '<span style="font-size:0.875rem;color:#6b7280;">Call for Price</span>'}
+              <span style="font-size:0.8125rem;font-weight:600;color:var(--color-primary, #16a34a);">View Details →</span>
+            </div>
           </div>
         </div>`).join('')}
       </div>
@@ -623,7 +617,7 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
 // ══════════════════════════════════════════════════
 //  SERVICE PAGE
 // ══════════════════════════════════════════════════
-function mlsServicePage(siteId: string, gc: (k: string) => string, enabledFeatures: Set<string>,
+function mlsServicePage(siteId: string, gc: (k: string) => string,
   baseUrl: string = ''
 ): string {
   let serviceItems: any[] = [];
@@ -673,7 +667,23 @@ function mlsServicePage(siteId: string, gc: (k: string) => string, enabledFeatur
       <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
         <div class="card-mls" style="padding: 2rem;">
           <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">Request Service</h3>
-          ${serviceFormHtml(siteId, enabledFeatures, 'form-input', 'btn-primary', 'form-input', 'form-label')}
+          <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var s=f.querySelector('select');return s?{equipment_type:s.value}:null;});">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div><label class="form-label">Name *</label><input class="form-input" required placeholder="Your name"></div>
+              <div><label class="form-label">Email *</label><input class="form-input" type="email" required placeholder="your@email.com"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div><label class="form-label">Phone *</label><input class="form-input" type="tel" required placeholder="(555) 123-4567"></div>
+              <div><label class="form-label">Equipment Type *</label>
+                <select class="form-input" required>
+                  <option value="">Select type</option>
+                  <option>Mower</option><option>Trimmer</option><option>Blower</option><option>Chainsaw</option><option>Tractor</option><option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-bottom: 1rem;"><label class="form-label">Description of Issue *</label><textarea class="form-input" rows="5" required placeholder="Please describe the issue or service needed..."></textarea></div>
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Submit Service Request</button>
+          </form>
         </div>
         <div style="display: flex; flex-direction: column; gap: 1.5rem;">
           ${mlsContactSidebar(gc)}

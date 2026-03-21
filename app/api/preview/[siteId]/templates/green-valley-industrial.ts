@@ -7,7 +7,7 @@
 // (caller provides <head> shell and closing tags)
 // ============================================
 
-import { sharedPreviewScript, pageHero, serviceFormHtml } from './shared';
+import { sharedPreviewScript, pageHero } from './shared';
 import { productModalScript, registerProductsScript, rentalBookingSection } from './product-modal';
 
 // ── Types ──
@@ -46,24 +46,10 @@ export async function renderGreenValleyPage(
   page: string,
   googleFontsUrl: string,
   supabase?: any,
-  baseUrl: string = '',
-  siteAddons: string[] = []
+  baseUrl: string = ''
 ): Promise<string> {
   // Load site features (add-ons) from DB
   let enabledFeatures: Set<string> = new Set();
-
-  // Seed from sites.addons first (new system)
-  const addonToFeatureMap: Record<string, string[]> = {
-    'inventory': ['inventory', 'inventory_sync'],
-    'service':   ['service', 'service_scheduling'],
-    'rentals':   ['rentals', 'rental_scheduling'],
-  };
-  siteAddons.forEach(addon => {
-    enabledFeatures.add(addon);
-    addonToFeatureMap[addon]?.forEach(f => enabledFeatures.add(f));
-  });
-
-  // Also read site_features table (legacy / manual overrides)
   if (supabase) {
     const { data: features } = await supabase
       .from('site_features')
@@ -517,8 +503,10 @@ function gvHomeSections(
         <h2 class="section-heading text-center mb-2">${getContent('featured.heading') || 'Featured Equipment'}</h2>
         ${getContent('featured.subheading') ? `<p class="text-center text-muted-foreground text-lg mb-8">${getContent('featured.subheading')}</p>` : '<div class="mb-8"></div>'}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          ${displayProducts.map((item: any) => `
-            <div class="industrial-card group overflow-hidden rounded-lg cursor-pointer" onclick="openFmModal('${item.id || item.slug || ''}')">
+          ${displayProducts.map((item: any) => {
+            const pd = JSON.stringify({id:item.id||item.slug,title:item.title||'',description:item.description||'',price:item.price||null,sale_price:item.sale_price||null,primary_image:item.primary_image||null,category:item.category||'',model:item.model||'',slug:item.slug||''}).replace(/"/g,'&quot;');
+            return `
+            <div class="industrial-card group overflow-hidden rounded-lg cursor-pointer" onclick="fmOpenProduct(${pd})">
               <div class="aspect-[4/3] bg-muted overflow-hidden relative">
                 ${item.primary_image
                   ? `<img src="${item.primary_image}" alt="${item.title}" loading="lazy" class="w-full h-full object-cover group-hover-scale">`
@@ -536,8 +524,8 @@ function gvHomeSections(
                   <span class="text-secondary font-semibold text-sm uppercase tracking-wide group-hover:underline">Details →</span>
                 </div>
               </div>
-            </div>
-          `).join('')}
+            </div>`;
+          }).join('')}
         </div>
       </div>
     </section>
@@ -1088,15 +1076,10 @@ function gvServicePage(
       function loadTimeSlots(serviceType) {
         var sel = document.getElementById('sf-time');
         sel.innerHTML = '<option value="">Select time</option>';
-        // value = 24h HH:MM, display = 12h AM/PM
-        var times = [
-          {v:'08:00',d:'8:00 AM'},{v:'08:30',d:'8:30 AM'},{v:'09:00',d:'9:00 AM'},{v:'09:30',d:'9:30 AM'},
-          {v:'10:00',d:'10:00 AM'},{v:'10:30',d:'10:30 AM'},{v:'11:00',d:'11:00 AM'},{v:'11:30',d:'11:30 AM'},
-          {v:'12:00',d:'12:00 PM'},{v:'12:30',d:'12:30 PM'},{v:'13:00',d:'1:00 PM'},{v:'13:30',d:'1:30 PM'},
-          {v:'14:00',d:'2:00 PM'},{v:'14:30',d:'2:30 PM'},{v:'15:00',d:'3:00 PM'},{v:'15:30',d:'3:30 PM'},
-          {v:'16:00',d:'4:00 PM'},{v:'16:30',d:'4:30 PM'}
-        ];
-        times.forEach(function(t) { var o = document.createElement('option'); o.value = t.v; o.textContent = t.d; sel.appendChild(o); });
+        // Generate standard business hour slots
+        var times = ['8:00 AM','8:30 AM','9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM',
+                     '12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM','3:00 PM','3:30 PM','4:00 PM','4:30 PM'];
+        times.forEach(function(t) { var o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); });
       }
 
       // Show step 3 when date & time selected
@@ -1132,12 +1115,12 @@ function gvServicePage(
               siteId: siteId,
               serviceTypeId: selectedService.id,
               serviceTypeName: selectedService.name,
-              preferredDate: dateInput.value,
-              preferredTime: timeInput.value,
+              date: dateInput.value,
+              time: timeInput.value,
               customerName: name,
               customerPhone: phone,
               customerEmail: email,
-              equipmentType: document.getElementById('sf-equipment').value,
+              equipmentDetails: document.getElementById('sf-equipment').value,
               customerNotes: document.getElementById('sf-notes').value
             })
           })
@@ -1154,20 +1137,24 @@ function gvServicePage(
     })();
   </script>
   ` : `
-  <!-- Service Request Form -->
+  <!-- Basic Service Request Form -->
   <section data-section="serviceCta" class="py-12 bg-muted">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
       <h2 class="section-heading text-center mb-2">Request Service</h2>
       <p class="text-center text-muted-foreground mb-8">${getContent('servicePage.formSubheading') || "Fill out the form below and we'll get back to you as quickly as possible."}</p>
-      <div class="industrial-card rounded-lg p-6">
-        ${serviceFormHtml(
-          siteId,
-          hasServiceFeature ? new Set(['service']) : new Set(),
-          'w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none',
-          'w-full cta-button rounded-md text-center',
-          'w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none',
-          'block text-sm font-semibold text-foreground mb-1'
-        )}
+      <div class="industrial-card rounded-lg">
+        <div class="p-6">
+          <form class="space-y-4" method="POST" action="/api/service/book/${siteId}" id="serviceBasicForm">
+            <input type="hidden" name="siteId" value="${siteId}">
+            <div class="grid md:grid-cols-2 gap-4">
+              <div><label class="block text-sm font-semibold text-foreground mb-1">Name *</label><input type="text" name="customerName" required class="w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none"></div>
+              <div><label class="block text-sm font-semibold text-foreground mb-1">Phone *</label><input type="tel" name="customerPhone" required placeholder="(555) 123-4567" class="w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none"></div>
+            </div>
+            <div><label class="block text-sm font-semibold text-foreground mb-1">Email *</label><input type="email" name="customerEmail" required class="w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none"></div>
+            <div><label class="block text-sm font-semibold text-foreground mb-1">Describe the Issue *</label><textarea name="customerNotes" required rows="4" placeholder="Please describe the problem..." class="w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none resize-y"></textarea></div>
+            <button type="submit" class="w-full cta-button rounded-md text-center">${getContent('servicePage.ctaButton') || 'Submit Service Request'}</button>
+          </form>
+        </div>
       </div>
 
       <!-- Urgent + Email -->
@@ -1189,6 +1176,26 @@ function gvServicePage(
       </div>
     </div>
   </section>
+
+  <script>
+    var sbform = document.getElementById('serviceBasicForm');
+    if (sbform) {
+      sbform.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var fd = new FormData(sbform); var data = {};
+        fd.forEach(function(v, k) { data[k] = v; });
+        var btn = sbform.querySelector('button[type=submit]');
+        btn.textContent = 'Submitting...'; btn.disabled = true;
+        fetch('/api/submit-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({site_id:'${siteId}',form_type:'service',name:data.name,email:data.email,phone:data.phone,message:data.message||data.description,extra_data:data['equipment-type']?{equipment_type:data['equipment-type']}:null}) })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+          if (!res.success) { alert('Something went wrong.'); btn.textContent = 'Submit Service Request'; btn.disabled = false; }
+          else { sbform.innerHTML = '<div class="text-center py-8"><div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg></div><h3 class="text-2xl font-bold mb-2">Service Request Submitted!</h3><p class="text-muted-foreground">We will contact you within 1 business day.</p></div>'; }
+        })
+        .catch(function() { alert('Something went wrong.'); btn.textContent = 'Submit Service Request'; btn.disabled = false; });
+      });
+    }
+  </script>
   `}
   ` : ''}
   `;
@@ -1273,8 +1280,10 @@ function gvInventoryPageStatic(
           <p class="text-muted-foreground" id="invCount">Showing <strong>${displayProducts.length}</strong> items</p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="invGrid">
-          ${displayProducts.map((item: any) => `
-            <div class="inv-card industrial-card group overflow-hidden rounded-lg cursor-pointer" data-category="${item.category || ''}" data-condition="${item.condition || ''}" onclick="openFmModal('${item.id || item.slug || ''}')">
+          ${displayProducts.map((item: any) => {
+            const pd2 = JSON.stringify({id:item.id||item.slug,title:item.title||'',description:item.description||'',price:item.price||null,sale_price:item.sale_price||null,primary_image:item.primary_image||null,category:item.category||'',model:item.model||'',slug:item.slug||''}).replace(/"/g,'&quot;');
+            return `
+            <div class="inv-card industrial-card group overflow-hidden rounded-lg cursor-pointer" data-category="${item.category || ''}" data-condition="${item.condition || ''}" onclick="fmOpenProduct(${pd2})">
               <div class="aspect-[4/3] bg-muted overflow-hidden relative">
                 ${item.primary_image
                   ? `<img src="${item.primary_image}" alt="${item.title}" loading="lazy" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">`
@@ -1295,8 +1304,8 @@ function gvInventoryPageStatic(
                   <span class="text-secondary font-semibold text-sm uppercase tracking-wide group-hover:underline flex-shrink-0">Details →</span>
                 </div>
               </div>
-            </div>
-          `).join('')}
+            </div>`;
+          }).join('')}
         </div>
       `}
 

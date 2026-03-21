@@ -1,5 +1,3 @@
-import { serviceFormHtml } from './shared';
-
 // ─── Corporate Edge ── Standalone Template ───────────────────────────────
 // Design: Deep navy primary, red CTA, green accent. Sharp corners.
 //         Roboto headings (600), Open Sans body. Clean professional cards,
@@ -144,7 +142,7 @@ export function renderCorporateEdgePage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors, manufacturers, baseUrl); break;
-    case 'service': body = ceServicePage(siteId, getContent, enabledFeatures, baseUrl); break;
+    case 'service': body = ceServicePage(siteId, getContent, baseUrl); break;
     case 'contact': body = ceContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
     case 'inventory': body = ceInventoryPage(siteId, getContent, products, baseUrl); break;
     case 'rentals': body = ceRentalsPage(siteId, getContent, baseUrl); break;
@@ -203,25 +201,16 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string) {
     var btn = form.querySelector('button[type="submit"]');
     var orig = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.innerHTML = 'Submitting...'; }
-    // Smart field grabbers — use name attributes when present (service form),
-    // fall back to type selectors for simple forms
-    var firstNameEl = form.querySelector('[name=first_name]');
-    var lastNameEl  = form.querySelector('[name=last_name]');
-    var nameEl      = form.querySelector('[name=full_name]') || form.querySelector('input[type="text"]');
-    var emailEl     = form.querySelector('[name=email]') || form.querySelector('input[type="email"]');
-    var phoneEl     = form.querySelector('[name=phone]') || form.querySelector('input[type="tel"]');
-    var notesEl     = form.querySelector('[name=notes]') || form.querySelector('textarea');
-    var msgEl       = form.querySelector('textarea');
-    // Build full name from first+last if separate fields exist
-    var fullName = firstNameEl && lastNameEl
-      ? (firstNameEl.value + ' ' + lastNameEl.value).trim()
-      : (nameEl ? nameEl.value : null);
+    var nameEl = form.querySelector('input[type="text"]');
+    var emailEl = form.querySelector('input[type="email"]');
+    var phoneEl = form.querySelector('input[type="tel"]');
+    var msgEl = form.querySelector('textarea');
     var data = {
       site_id: siteId, form_type: formType,
-      name: fullName || null,
+      name: nameEl ? nameEl.value : null,
       email: emailEl ? emailEl.value : null,
       phone: phoneEl ? phoneEl.value : null,
-      message: notesEl ? notesEl.value : (msgEl ? msgEl.value : null),
+      message: msgEl ? msgEl.value : null,
       extra_data: extraFn ? extraFn(form) : null,
     };
     fetch('/api/submit-form', {
@@ -692,7 +681,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
 }
 
 // ── Service Page ──
-function ceServicePage(siteId: string, getContent: Function, enabledFeatures: Set<string>,
+function ceServicePage(siteId: string, getContent: Function,
   baseUrl: string = ''
 ) {
   let services: any[] = [];
@@ -735,7 +724,7 @@ function ceServicePage(siteId: string, getContent: Function, enabledFeatures: Se
     </div>
   </section>
 
-  ${ceFormSection(siteId, enabledFeatures, 'Schedule a Service Consultation', 'Fill out the form below and our service team will contact you within one business day.')}`;
+  ${ceFormSection(siteId, 'Schedule a Service Consultation', 'Fill out the form below and our service team will contact you within one business day.')}`;
 }
 
 // ── Contact Page ──
@@ -829,7 +818,7 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[],
           const imgUrl = p.image_url || p.primary_image || ''; const hasImage = imgUrl && !imgUrl.includes('placeholder');
           const displayPrice = p.sale_price || p.price;
           return `
-        <div class="ce-product group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white" data-category="${p.category || ''}">
+        <div class="ce-product group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" data-category="${p.category || ''}" onclick="fmOpenProduct(${JSON.stringify({id:p.id||p.slug,title:p.name||p.title,description:p.description,price:p.price,sale_price:p.sale_price,primary_image:p.image_url||p.primary_image,category:p.category,model:p.model,slug:p.slug}).replace(/"/g,'&quot;')})">
           <div class="aspect-square relative overflow-hidden bg-gray-100">
             ${hasImage
               ? `<img src="${imgUrl}" alt="${p.name || p.title}" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
@@ -846,9 +835,9 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[],
             <div class="flex items-center justify-between">
               <div>
                 ${p.sale_price ? `<span class="text-gray-400 line-through text-sm mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
-                <span class="font-heading font-bold text-lg text-blue-900">$${Number(displayPrice).toLocaleString()}</span>
+                <span class="font-heading font-bold text-lg text-blue-900">${displayPrice ? '$' + Number(displayPrice).toLocaleString() : 'Call for Price'}</span>
               </div>
-              <a href="${baseUrl}contact" class="text-sm font-semibold text-blue-900 hover:underline">Details →</a>
+              <span class="text-sm font-semibold text-blue-900">View Details →</span>
             </div>
           </div>
         </div>`;
@@ -1063,9 +1052,7 @@ function cePageHeader(title: string, description: string) {
   </section>`;
 }
 
-function ceFormSection(siteId: string, enabledFeatures: Set<string>, heading: string, description: string) {
-  const inputCls = 'w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none';
-  const btnCls   = 'w-full py-3 rounded font-semibold text-white bg-blue-900 transition-corporate hover:brightness-110';
+function ceFormSection(siteId: string, heading: string, description: string) {
   return `
   <section class="py-16 bg-gray-100">
     <div class="container-corporate max-w-3xl">
@@ -1074,7 +1061,18 @@ function ceFormSection(siteId: string, enabledFeatures: Set<string>, heading: st
         <p class="text-gray-500">${description}</p>
       </div>
       <div class="border border-gray-200 rounded bg-white p-8">
-        ${serviceFormHtml(siteId, enabledFeatures, inputCls, btnCls)}
+        <form class="space-y-6" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var s=f.querySelector('select');return s?{equipment_type:s.value}:null;}); ">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-6">
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Phone *</label><input type="tel" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>
+          </div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Message *</label><textarea rows="4" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none resize-y" required></textarea></div>
+          <button type="submit" class="w-full py-3 rounded font-semibold text-white bg-blue-900 transition-corporate hover:brightness-110">Submit Request</button>
+        </form>
       </div>
     </div>
   </section>`;
