@@ -224,31 +224,40 @@ export function fullServiceFormHtml(
 ): string {
   const sc = selectClass || inputClass;
   return `
-    <form class="space-y-6" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){
-      return {
-        equipment_type: (f.querySelector('[name=equipment_type]') || {}).value || null,
-        service_type:   (f.querySelector('[name=service_type]') || {}).value || null,
-        preferred_date: (f.querySelector('[name=preferred_date]') || {}).value || null,
-      };
-    });">
+    <form class="space-y-6" id="fm-service-form-${siteId}" onsubmit="event.preventDefault(); (function(f){
+      var firstName = (f.querySelector('[name=first_name]') || {}).value || '';
+      var lastName  = (f.querySelector('[name=last_name]') || {}).value || '';
+      fmSubmitForm(f, '${siteId}', 'service', function(form){
+        return {
+          equipment_type: (form.querySelector('[name=equipment_type]') || {}).value || null,
+          service_type:   (form.querySelector('[name=service_type]') || {}).value || null,
+          preferred_date: (form.querySelector('[name=preferred_date]') || {}).value || null,
+          preferred_time: (form.querySelector('[name=preferred_time]') || {}).value || null,
+          equipment_make: (form.querySelector('[name=equipment_make]') || {}).value || null,
+          full_name:      (firstName + ' ' + lastName).trim() || null,
+          notes:          (form.querySelector('[name=notes]') || {}).value || null,
+        };
+      });
+    })(this);">
+
       <div class="grid md:grid-cols-2 gap-6">
         <div>
           <label class="${labelClass}">First Name *</label>
-          <input type="text" class="${inputClass}" placeholder="John" required>
+          <input type="text" name="first_name" class="${inputClass}" placeholder="John" required>
         </div>
         <div>
           <label class="${labelClass}">Last Name *</label>
-          <input type="text" class="${inputClass}" placeholder="Smith" required>
+          <input type="text" name="last_name" class="${inputClass}" placeholder="Smith" required>
         </div>
       </div>
       <div class="grid md:grid-cols-2 gap-6">
         <div>
           <label class="${labelClass}">Email *</label>
-          <input type="email" class="${inputClass}" placeholder="john@company.com" required>
+          <input type="email" name="email" class="${inputClass}" placeholder="john@company.com" required>
         </div>
         <div>
           <label class="${labelClass}">Phone *</label>
-          <input type="tel" class="${inputClass}" placeholder="(555) 123-4567" required>
+          <input type="tel" name="phone" class="${inputClass}" placeholder="(555) 123-4567" required>
         </div>
       </div>
       <div class="grid md:grid-cols-2 gap-6">
@@ -281,23 +290,116 @@ export function fullServiceFormHtml(
           </select>
         </div>
       </div>
+
+      <!-- Date picker + live slot availability -->
       <div>
         <label class="${labelClass}">Preferred Service Date</label>
-        <input type="date" name="preferred_date" class="${inputClass}" min="${new Date().toISOString().split('T')[0]}">
+        <input type="date" name="preferred_date" id="fm-date-${siteId}" class="${inputClass}" min="${new Date().toISOString().split('T')[0]}">
       </div>
+
+      <!-- Hidden time field — populated when a slot is selected -->
+      <input type="hidden" name="preferred_time" id="fm-time-${siteId}" value="">
+
+      <!-- Slot grid — shown after date is picked -->
+      <div id="fm-slots-wrap-${siteId}" style="display:none;">
+        <label class="${labelClass}">Available Times</label>
+        <div id="fm-slots-${siteId}" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;"></div>
+        <p id="fm-slots-msg-${siteId}" style="font-size:0.8125rem;color:#6b7280;margin-top:6px;display:none;"></p>
+      </div>
+
       <div>
         <label class="${labelClass}">Equipment Make / Model</label>
-        <input type="text" class="${inputClass}" placeholder="e.g. Toro TimeCutter 54&quot;">
+        <input type="text" name="equipment_make" class="${inputClass}" placeholder="e.g. Toro TimeCutter 54&quot;">
       </div>
       <div>
         <label class="${labelClass}">Additional Notes</label>
-        <textarea rows="4" class="${inputClass} resize-y" placeholder="Describe the issue or any additional details..."></textarea>
+        <textarea name="notes" rows="4" class="${inputClass} resize-y" placeholder="Describe the issue or any additional details..."></textarea>
       </div>
       <div data-fm-success style="display:none;" class="p-4 bg-green-50 border border-green-200 rounded text-green-800 text-center font-medium">
         ✓ Service request submitted! We'll confirm your appointment within one business day.
       </div>
       <button type="submit" class="${buttonClass}">Schedule Service</button>
-    </form>`;
+    </form>
+
+    <script>
+    (function() {
+      var dateInput  = document.getElementById('fm-date-${siteId}');
+      var slotsWrap  = document.getElementById('fm-slots-wrap-${siteId}');
+      var slotsGrid  = document.getElementById('fm-slots-${siteId}');
+      var slotsMsg   = document.getElementById('fm-slots-msg-${siteId}');
+      var timeHidden = document.getElementById('fm-time-${siteId}');
+      if (!dateInput) return;
+
+      dateInput.addEventListener('change', function() {
+        var date = dateInput.value;
+        if (!date) { slotsWrap.style.display = 'none'; return; }
+
+        // Show loading state
+        slotsWrap.style.display = '';
+        slotsGrid.innerHTML = '<span style="font-size:0.875rem;color:#9ca3af;">Checking availability...</span>';
+        slotsMsg.style.display = 'none';
+        timeHidden.value = '';
+
+        fetch('/api/service/slots/${siteId}?date=' + date)
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            slotsGrid.innerHTML = '';
+
+            if (data.blocked || data.closed) {
+              slotsGrid.innerHTML = '';
+              slotsMsg.textContent = data.message || 'Not available on this date.';
+              slotsMsg.style.display = '';
+              return;
+            }
+
+            if (!data.slots || data.slots.length === 0) {
+              slotsMsg.textContent = 'No available slots on this date.';
+              slotsMsg.style.display = '';
+              return;
+            }
+
+            data.slots.forEach(function(slot) {
+              var btn = document.createElement('button');
+              btn.type = 'button';
+              btn.textContent = slot.display;
+              btn.style.cssText = [
+                'padding:6px 14px',
+                'border-radius:6px',
+                'font-size:0.8125rem',
+                'font-weight:500',
+                'border:2px solid',
+                slot.available
+                  ? 'border-color:#d1d5db;background:#fff;color:#111827;cursor:pointer;'
+                  : 'border-color:#e5e7eb;background:#f9fafb;color:#9ca3af;cursor:not-allowed;',
+              ].join(';');
+
+              if (slot.available) {
+                btn.addEventListener('click', function() {
+                  // Deselect all
+                  slotsGrid.querySelectorAll('button').forEach(function(b) {
+                    b.style.borderColor = '#d1d5db';
+                    b.style.background = '#fff';
+                    b.style.color = '#111827';
+                  });
+                  // Select this one
+                  btn.style.borderColor = '#16a34a';
+                  btn.style.background = '#f0fdf4';
+                  btn.style.color = '#15803d';
+                  timeHidden.value = slot.time;
+                });
+              }
+
+              slotsGrid.appendChild(btn);
+            });
+          })
+          .catch(function() {
+            slotsGrid.innerHTML = '';
+            slotsMsg.textContent = 'Unable to load availability. You can still submit without a time.';
+            slotsMsg.style.display = '';
+          });
+      });
+    })();
+    </script>`;
 }
 
 /**

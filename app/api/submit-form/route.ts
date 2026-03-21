@@ -78,21 +78,23 @@ export async function POST(request: NextRequest) {
     // ----------------------------------------------------------------
     if (form_type === 'service') {
       const ed = extra_data || {};
+      // full_name comes from extra_data when first+last are separate fields
+      const customerName = ed.full_name || name || null;
       const { error: apptError } = await supabase.from('service_appointments').insert({
         site_id,
-        customer_name:    name || null,
-        customer_email:   email || null,
-        customer_phone:   phone || null,
+        customer_name:     customerName,
+        customer_email:    email || null,
+        customer_phone:    phone || null,
         service_type_name: ed.service_type || null,
         is_custom_request: !ed.service_type,
-        custom_description: message || null,
-        equipment_type:   ed.equipment_type || null,
-        equipment_make:   ed.equipment_make || null,
-        equipment_model:  ed.equipment_model || null,
-        preferred_date:   ed.preferred_date || null,
-        preferred_time:   null,
-        customer_notes:   message || null,
-        status:           'pending',
+        custom_description: message || ed.notes || null,
+        equipment_type:    ed.equipment_type || null,
+        equipment_make:    ed.equipment_make || null,
+        equipment_model:   ed.equipment_model || null,
+        preferred_date:    ed.preferred_date || null,
+        preferred_time:    null,
+        customer_notes:    message || ed.notes || null,
+        status:            'pending',
       });
 
       if (apptError) {
