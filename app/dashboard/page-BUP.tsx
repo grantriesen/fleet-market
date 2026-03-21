@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   BarChart3, Globe, Package, Wrench, Calendar,
   Mail, Loader2, ExternalLink, TrendingUp, Users,
-  Eye, Activity, Lock, User, ShoppingBag
+  Eye, Activity, Lock, User
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -177,13 +177,12 @@ export default function DashboardPage() {
 
   // ── Quick actions — addon-gated ──
   const quickActions = [
-    { title: 'Analytics',  description: 'View detailed analytics', icon: BarChart3,    href: '/dashboard/analytics', color: 'bg-blue-500',    addon: null },
-    { title: 'My Website', description: 'Edit and customize',      icon: Globe,        href: '/dashboard/website',   color: 'bg-green-500',  addon: null },
-    { title: 'Leads',      description: 'View contacts',           icon: Mail,         href: '/dashboard/leads',     color: 'bg-indigo-500', addon: null },
-    { title: 'Orders',     description: 'View purchases',          icon: ShoppingBag,  href: '/dashboard/orders',    color: 'bg-emerald-500',addon: 'inventory' },
-    { title: 'Inventory',  description: 'Manage equipment',        icon: Package,      href: '/dashboard/inventory', color: 'bg-orange-500', addon: 'inventory' },
-    { title: 'Rentals',    description: 'Track bookings',          icon: Wrench,       href: '/dashboard/rentals',   color: 'bg-purple-500', addon: 'rentals'   },
-    { title: 'Service',    description: 'Manage requests',         icon: Calendar,     href: '/dashboard/service',   color: 'bg-red-500',    addon: 'service'   },
+    { title: 'Analytics',  description: 'View detailed analytics', icon: BarChart3, href: '/dashboard/analytics', color: 'bg-blue-500',   addon: null },
+    { title: 'My Website', description: 'Edit and customize',      icon: Globe,     href: '/dashboard/website',   color: 'bg-green-500',  addon: null },
+    { title: 'Leads',      description: 'View contacts',           icon: Mail,      href: '/dashboard/leads',     color: 'bg-indigo-500', addon: null },
+    { title: 'Inventory',  description: 'Manage equipment',        icon: Package,   href: '/dashboard/inventory', color: 'bg-orange-500', addon: 'inventory' },
+    { title: 'Rentals',    description: 'Track bookings',          icon: Wrench,    href: '/dashboard/rentals',   color: 'bg-purple-500', addon: 'rentals'   },
+    { title: 'Service',    description: 'Manage requests',         icon: Calendar,  href: '/dashboard/service',   color: 'bg-red-500',    addon: 'service'   },
   ];
 
   // Addon badge label

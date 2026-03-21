@@ -9,6 +9,7 @@ import {
   DollarSign, ArrowUpDown, ArrowUp, ArrowDown,
   AlertCircle, Loader2, Grid, List, FolderPlus, FileUp, Download
 } from 'lucide-react';
+import CheckoutSettings from '@/components/CheckoutSettings';
 
 interface InventoryItem {
   id: string; site_id: string; title: string; description: string | null;
@@ -59,6 +60,7 @@ export default function InventoryDashboard() {
   const PAGE_SIZE = 20;
 
   const [siteId, setSiteId] = useState<string | null>(null);
+  const [siteData, setSiteData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -168,9 +170,9 @@ export default function InventoryDashboard() {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/auth/login'); return; }
-      const { data: site } = await supabase.from('sites').select('id, site_name').eq('user_id', user.id).single();
+      const { data: site } = await supabase.from('sites').select('id, site_name, checkout_mode, stripe_account_id').eq('user_id', user.id).single();
       if (!site) { router.push('/onboarding'); return; }
-      setSiteId(site.id); setLoading(false);
+      setSiteId(site.id); setSiteData(site); setLoading(false);
     }
     init();
   }, []);
@@ -596,6 +598,23 @@ export default function InventoryDashboard() {
               <button onClick={()=>setPage(p=>Math.max(0,p-1))} disabled={page===0} className="p-2 rounded-lg border border-slate-200 disabled:opacity-40"><ChevronLeft className="w-4 h-4" /></button>
               {Array.from({length:Math.min(totalPages,7)},(_,i)=>{const pn=totalPages<=7?i:page<=3?i:page>=totalPages-4?totalPages-7+i:page-3+i;return <button key={pn} onClick={()=>setPage(pn)} className={`w-9 h-9 rounded-lg text-sm font-medium ${page===pn?'text-white':'border border-slate-200 text-slate-600 hover:bg-slate-50'}`} style={page===pn?{background:FM.navy}:{}}>{pn+1}</button>;})}
               <button onClick={()=>setPage(p=>Math.min(totalPages-1,p+1))} disabled={page>=totalPages-1} className="p-2 rounded-lg border border-slate-200 disabled:opacity-40"><ChevronRight className="w-4 h-4" /></button>
+            </div>
+          </div>
+        )}
+
+        {/* Checkout Settings */}
+        {siteData && (
+          <div className="mt-10 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="px-6 py-4 border-b border-slate-100">
+              <h2 className="text-base font-bold text-slate-800">Checkout Settings</h2>
+              <p className="text-sm text-slate-500 mt-0.5">Control how customers interact with your inventory listings.</p>
+            </div>
+            <div className="px-6 py-6">
+              <CheckoutSettings
+                siteId={siteData.id}
+                initialMode={siteData.checkout_mode || 'quote_only'}
+                stripeAccountId={siteData.stripe_account_id || null}
+              />
             </div>
           </div>
         )}
