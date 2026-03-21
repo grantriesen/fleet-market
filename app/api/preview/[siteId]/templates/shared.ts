@@ -438,14 +438,13 @@ export function injectCartSystem(
   accentColor: string = '#16a34a'
 ): string {
   return `
-<!-- ── Fleet Market Cart System ── -->
+<!-- Fleet Market Cart System -->
 <style>
   .fm-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;display:none;align-items:center;justify-content:center;padding:1rem;}
   .fm-modal-overlay.fm-open{display:flex;}
-  .fm-modal{background:#fff;border-radius:12px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
-  .fm-modal-close{position:absolute;top:12px;right:12px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#6b7280;z-index:1;}
-  .fm-cart-btn{position:fixed;bottom:24px;right:24px;z-index:9997;background:${accentColor};color:#fff;border:none;border-radius:50px;padding:12px 20px;font-size:0.9375rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);transition:transform 0.2s;}
-  .fm-cart-btn:hover{transform:translateY(-2px);}
+  .fm-modal{background:#fff;border-radius:12px;max-width:720px;width:100%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+  .fm-modal-close{position:absolute;top:12px;right:12px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#6b7280;z-index:1;width:32px;height:32px;}
+  .fm-cart-btn{position:fixed;bottom:24px;right:24px;z-index:9997;background:${accentColor};color:#fff;border:none;border-radius:50px;padding:12px 20px;font-size:0.9375rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);}
   .fm-cart-badge{background:#ef4444;color:#fff;border-radius:50%;width:20px;height:20px;font-size:0.6875rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
   .fm-cart-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:none;}
   .fm-cart-overlay.fm-open{display:block;}
@@ -453,28 +452,25 @@ export function injectCartSystem(
   .fm-cart-drawer.fm-open{transform:translateX(0);}
 </style>
 
-<!-- Product Modal -->
 <div class="fm-modal-overlay" id="fm-product-modal">
   <div class="fm-modal">
-    <button class="fm-modal-close" onclick="fmCloseModal()">✕</button>
+    <button class="fm-modal-close" onclick="fmCloseModal()">&#x2715;</button>
     <div id="fm-modal-content" style="padding:2rem;"></div>
   </div>
 </div>
 
-<!-- Cart Overlay + Drawer -->
 <div class="fm-cart-overlay" id="fm-cart-overlay" onclick="fmCloseCart()"></div>
 <div class="fm-cart-drawer" id="fm-cart-drawer">
   <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;">
     <h2 style="font-size:1.125rem;font-weight:700;margin:0;">Your Cart</h2>
-    <button onclick="fmCloseCart()" style="background:none;border:none;font-size:1.25rem;cursor:pointer;color:#6b7280;">✕</button>
+    <button onclick="fmCloseCart()" style="background:none;border:none;font-size:1.25rem;cursor:pointer;color:#6b7280;">&#x2715;</button>
   </div>
   <div id="fm-cart-items" style="flex:1;overflow-y:auto;padding:1rem 1.5rem;"></div>
   <div id="fm-cart-footer" style="padding:1.25rem 1.5rem;border-top:1px solid #e5e7eb;"></div>
 </div>
 
-<!-- Floating Cart Button -->
 <button class="fm-cart-btn" id="fm-cart-trigger" onclick="fmOpenCart()" style="display:none;">
-  🛒 Cart <span class="fm-cart-badge" id="fm-cart-count">0</span>
+  &#x1F6D2; Cart <span class="fm-cart-badge" id="fm-cart-count">0</span>
 </button>
 
 <script>
@@ -482,63 +478,75 @@ export function injectCartSystem(
   var SITE_ID = '${siteId}';
   var CHECKOUT_MODE = '${checkoutMode}';
   var ACCENT = '${accentColor}';
-
-  // ── Session ID ──
   var SESSION_ID = sessionStorage.getItem('fm_cart_sid');
   if (!SESSION_ID) {
     SESSION_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
     sessionStorage.setItem('fm_cart_sid', SESSION_ID);
   }
-
-  // ── Cart state ──
   var cartItems = [];
 
-  // ── Init: load cart from server ──
   fetch('/api/inventory/cart/' + SITE_ID + '?session=' + SESSION_ID)
-    .then(function(r) { return r.json(); })
-    .then(function(d) { cartItems = d.items || []; renderCartBtn(); })
-    .catch(function() {});
+    .then(function(r){return r.json();})
+    .then(function(d){cartItems=d.items||[];renderCartBtn();})
+    .catch(function(){});
 
-  // ── Open/close product modal ──
   window.fmOpenProduct = function(product) {
     var el = document.getElementById('fm-modal-content');
-    var inCart = cartItems.find(function(i) { return i.id === product.id; });
+    if (!el) return;
+    var inCart = cartItems.find(function(i){return i.id===product.id;});
     var price = product.sale_price || product.price;
+
     var priceHtml = price
       ? (product.sale_price
-          ? '<span style="text-decoration:line-through;color:#9ca3af;margin-right:8px;">$' + Number(product.price).toLocaleString() + '</span><span style="color:#dc2626;font-weight:700;font-size:1.5rem;">$' + Number(product.sale_price).toLocaleString() + '</span>'
-          : '<span style="font-weight:700;font-size:1.5rem;">$' + Number(price).toLocaleString() + '</span>')
+          ? '<span style="text-decoration:line-through;color:#9ca3af;margin-right:8px;">$'+Number(product.price).toLocaleString()+'</span><span style="color:#dc2626;font-weight:700;font-size:1.5rem;">$'+Number(product.sale_price).toLocaleString()+'</span>'
+          : '<span style="font-weight:700;font-size:1.5rem;">$'+Number(price).toLocaleString()+'</span>')
       : '<span style="font-weight:600;color:#6b7280;">Call for Price</span>';
 
     var actionHtml = '';
     if (CHECKOUT_MODE === 'online' && price) {
-      actionHtml = inCart
-        ? '<button onclick="fmOpenCart();fmCloseModal();" style="width:100%;padding:14px;background:' + ACCENT + ';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:10px;">View Cart (' + inCart.quantity + ' in cart)</button>'
-        : '<button onclick="fmAddToCart(' + JSON.stringify(product).replace(/"/g, '&quot;') + ')" style="width:100%;padding:14px;background:' + ACCENT + ';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:10px;">Add to Cart</button>'
-          + '<button onclick="fmBuyNow(' + JSON.stringify(product).replace(/"/g, '&quot;') + ')" style="width:100%;padding:14px;background:#fff;color:' + ACCENT + ';border:2px solid ' + ACCENT + ';border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Buy Now</button>';
+      if (inCart) {
+        actionHtml = '<button id="fm-view-cart-btn" style="width:100%;padding:14px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:10px;">View Cart ('+inCart.quantity+' in cart)</button>';
+      } else {
+        actionHtml = '<button id="fm-atc-btn" style="width:100%;padding:14px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:10px;">Add to Cart</button>'
+          + '<button id="fm-buy-btn" style="width:100%;padding:14px;background:#fff;color:'+ACCENT+';border:2px solid '+ACCENT+';border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Buy Now</button>';
+      }
     } else {
       actionHtml = '<div style="background:#f9fafb;border-radius:8px;padding:1.25rem;margin-top:1rem;">'
         + '<p style="font-weight:600;margin:0 0 12px;font-size:0.9375rem;">Request a Quote</p>'
-        + '<form onsubmit="fmSubmitQuote(event, ' + JSON.stringify(product).replace(/"/g, '&quot;') + ')">'
+        + '<form id="fm-quote-form">'
         + '<input name="name" type="text" required placeholder="Your name" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:8px;font-size:0.9375rem;box-sizing:border-box;">'
         + '<input name="email" type="email" required placeholder="Email address" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:8px;font-size:0.9375rem;box-sizing:border-box;">'
         + '<input name="phone" type="tel" placeholder="Phone (optional)" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:8px;font-size:0.9375rem;box-sizing:border-box;">'
         + '<textarea name="message" rows="3" placeholder="Any questions or details..." style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:10px;font-size:0.9375rem;box-sizing:border-box;resize:vertical;"></textarea>'
-        + '<button type="submit" style="width:100%;padding:12px;background:' + ACCENT + ';color:#fff;border:none;border-radius:6px;font-size:0.9375rem;font-weight:700;cursor:pointer;">Send Quote Request</button>'
+        + '<button type="submit" style="width:100%;padding:12px;background:'+ACCENT+';color:#fff;border:none;border-radius:6px;font-size:0.9375rem;font-weight:700;cursor:pointer;">Send Quote Request</button>'
         + '</form></div>';
     }
 
+    var imgHtml = product.primary_image
+      ? '<img src="'+product.primary_image+'" style="width:100%;border-radius:8px;object-fit:cover;aspect-ratio:4/3;" />'
+      : '<div style="width:100%;aspect-ratio:4/3;background:#f3f4f6;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#9ca3af;">No image</div>';
+
     el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">'
-      + '<div>' + (product.primary_image ? '<img src="' + product.primary_image + '" style="width:100%;border-radius:8px;object-fit:cover;aspect-ratio:4/3;" />' : '<div style="width:100%;aspect-ratio:4/3;background:#f3f4f6;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#9ca3af;">No image</div>') + '</div>'
+      + '<div>'+imgHtml+'</div>'
       + '<div>'
-        + (product.category ? '<p style="font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin:0 0 6px;">' + product.category + '</p>' : '')
-        + '<h2 style="font-size:1.25rem;font-weight:700;margin:0 0 8px;">' + product.title + '</h2>'
-        + (product.model ? '<p style="font-size:0.875rem;color:#6b7280;margin:0 0 12px;">Model: ' + product.model + '</p>' : '')
-        + '<div style="margin-bottom:16px;">' + priceHtml + '</div>'
-        + (product.description ? '<p style="font-size:0.9375rem;color:#374151;line-height:1.6;margin:0 0 16px;">' + product.description + '</p>' : '')
+        + (product.category ? '<p style="font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin:0 0 6px;">'+product.category+'</p>' : '')
+        + '<h2 style="font-size:1.25rem;font-weight:700;margin:0 0 8px;">'+product.title+'</h2>'
+        + (product.model ? '<p style="font-size:0.875rem;color:#6b7280;margin:0 0 12px;">Model: '+product.model+'</p>' : '')
+        + '<div style="margin-bottom:16px;">'+priceHtml+'</div>'
+        + (product.description ? '<p style="font-size:0.9375rem;color:#374151;line-height:1.6;margin:0 0 16px;">'+product.description+'</p>' : '')
         + actionHtml
       + '</div>'
       + '</div>';
+
+    // Wire up buttons after innerHTML is set
+    var atcBtn = document.getElementById('fm-atc-btn');
+    var buyBtn = document.getElementById('fm-buy-btn');
+    var vcBtn  = document.getElementById('fm-view-cart-btn');
+    var qForm  = document.getElementById('fm-quote-form');
+    if (atcBtn) atcBtn.onclick = function(){ fmAddToCart(product); };
+    if (buyBtn) buyBtn.onclick = function(){ fmBuyNow(product); };
+    if (vcBtn)  vcBtn.onclick  = function(){ fmOpenCart(); fmCloseModal(); };
+    if (qForm)  qForm.onsubmit = function(e){ fmSubmitQuote(e, product); };
 
     document.getElementById('fm-product-modal').classList.add('fm-open');
     document.body.style.overflow = 'hidden';
@@ -549,122 +557,89 @@ export function injectCartSystem(
     document.body.style.overflow = '';
   };
 
-  // Close modal on overlay click
   document.getElementById('fm-product-modal').addEventListener('click', function(e) {
     if (e.target === this) fmCloseModal();
   });
 
-  // ── Add to cart ──
   window.fmAddToCart = function(product, qty) {
-    var item = {
-      id: product.id,
-      title: product.title,
-      price: product.sale_price || product.price,
-      quantity: qty || 1,
-      primary_image: product.primary_image || null,
-      slug: product.slug || null,
-    };
-
     fetch('/api/inventory/cart/' + SITE_ID, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: SESSION_ID, item: item }),
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({sessionId:SESSION_ID, item:{id:product.id,title:product.title,price:product.sale_price||product.price,quantity:qty||1,primary_image:product.primary_image||null,slug:product.slug||null}}),
     })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      cartItems = d.items || [];
-      renderCartBtn();
-      fmCloseModal();
-      fmOpenCart();
-    })
-    .catch(function() {});
+    .then(function(r){return r.json();})
+    .then(function(d){cartItems=d.items||[];renderCartBtn();fmCloseModal();fmOpenCart();})
+    .catch(function(){});
   };
 
-  // ── Buy now — add to cart then go straight to checkout ──
   window.fmBuyNow = function(product) {
-    var item = {
-      id: product.id,
-      title: product.title,
-      price: product.sale_price || product.price,
-      quantity: 1,
-      primary_image: product.primary_image || null,
-      slug: product.slug || null,
-    };
     fetch('/api/inventory/cart/' + SITE_ID, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: SESSION_ID, item: item }),
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({sessionId:SESSION_ID, item:{id:product.id,title:product.title,price:product.sale_price||product.price,quantity:1,primary_image:product.primary_image||null,slug:product.slug||null}}),
     })
-    .then(function(r) { return r.json(); })
-    .then(function(d) { cartItems = d.items || []; fmCheckout(); })
-    .catch(function() {});
+    .then(function(r){return r.json();})
+    .then(function(d){cartItems=d.items||[];fmCheckout();})
+    .catch(function(){});
   };
 
-  // ── Remove from cart ──
   window.fmRemoveFromCart = function(itemId) {
     fetch('/api/inventory/cart/' + SITE_ID, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: SESSION_ID, itemId: itemId }),
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({sessionId:SESSION_ID, itemId:itemId}),
     })
-    .then(function(r) { return r.json(); })
-    .then(function(d) { cartItems = d.items || []; renderCartBtn(); renderCartDrawer(); })
-    .catch(function() {});
+    .then(function(r){return r.json();})
+    .then(function(d){cartItems=d.items||[];renderCartBtn();renderCartDrawer();})
+    .catch(function(){});
   };
 
-  // ── Checkout ──
   window.fmCheckout = function() {
     if (!cartItems.length) return;
     var btn = document.getElementById('fm-checkout-btn');
-    if (btn) { btn.textContent = 'Processing...'; btn.disabled = true; }
-
+    if (btn){btn.textContent='Processing...';btn.disabled=true;}
     fetch('/api/inventory/checkout/' + SITE_ID, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: SESSION_ID, items: cartItems }),
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({sessionId:SESSION_ID, items:cartItems}),
     })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (d.url) window.location.href = d.url;
-      else { alert(d.error || 'Checkout unavailable'); if (btn) { btn.textContent = 'Checkout'; btn.disabled = false; } }
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.url) window.location.href=d.url;
+      else {alert(d.error||'Checkout unavailable');if(btn){btn.textContent='Checkout';btn.disabled=false;}}
     })
-    .catch(function() { if (btn) { btn.textContent = 'Checkout'; btn.disabled = false; } });
+    .catch(function(){if(btn){btn.textContent='Checkout';btn.disabled=false;}});
   };
 
-  // ── Quote request submit ──
   window.fmSubmitQuote = function(e, product) {
     e.preventDefault();
     var form = e.target;
     var btn = form.querySelector('button[type=submit]');
-    var orig = btn.textContent;
-    btn.textContent = 'Sending...'; btn.disabled = true;
-
+    var orig = btn ? btn.textContent : '';
+    if (btn){btn.textContent='Sending...';btn.disabled=true;}
     fetch('/api/submit-form', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
-        site_id: SITE_ID,
-        form_type: 'contact',
-        name: form.name.value,
-        email: form.email.value,
-        phone: form.phone.value || null,
-        message: form.message.value || null,
-        extra_data: { product_id: product.id, product_title: product.title, inquiry_type: 'quote_request' },
+        site_id: SITE_ID, form_type: 'contact',
+        name: form.name.value, email: form.email.value,
+        phone: form.phone ? form.phone.value : null,
+        message: form.message ? form.message.value : null,
+        extra_data: {product_id:product.id, product_title:product.title, inquiry_type:'quote_request'},
       }),
     })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
+    .then(function(r){return r.json();})
+    .then(function(d){
       if (d.success) {
-        document.getElementById('fm-modal-content').innerHTML = '<div style="text-align:center;padding:3rem 2rem;"><div style="font-size:3rem;margin-bottom:1rem;">✓</div><h3 style="font-size:1.25rem;font-weight:700;margin:0 0 8px;">Quote Request Sent!</h3><p style="color:#6b7280;">We\'ll be in touch shortly.</p></div>';
+        document.getElementById('fm-modal-content').innerHTML = '<div style="text-align:center;padding:3rem 2rem;"><div style="font-size:3rem;margin-bottom:1rem;">&#x2713;</div><h3 style="font-size:1.25rem;font-weight:700;margin:0 0 8px;">Quote Request Sent!</h3><p style="color:#6b7280;">We&#x27;ll be in touch shortly.</p></div>';
       } else {
-        btn.textContent = orig; btn.disabled = false;
+        if(btn){btn.textContent=orig;btn.disabled=false;}
         alert('Something went wrong. Please try again.');
       }
     })
-    .catch(function() { btn.textContent = orig; btn.disabled = false; });
+    .catch(function(){if(btn){btn.textContent=orig;btn.disabled=false;}});
   };
 
-  // ── Cart drawer ──
   window.fmOpenCart = function() {
     renderCartDrawer();
     document.getElementById('fm-cart-overlay').classList.add('fm-open');
@@ -679,10 +654,10 @@ export function injectCartSystem(
   };
 
   function renderCartBtn() {
-    var count = cartItems.reduce(function(s, i) { return s + (i.quantity || 1); }, 0);
+    var count = cartItems.reduce(function(s,i){return s+(i.quantity||1);},0);
     var btn = document.getElementById('fm-cart-trigger');
     var badge = document.getElementById('fm-cart-count');
-    if (btn) btn.style.display = CHECKOUT_MODE === 'online' && count > 0 ? 'flex' : 'none';
+    if (btn) btn.style.display = CHECKOUT_MODE==='online' && count>0 ? 'flex' : 'none';
     if (badge) badge.textContent = count;
   }
 
@@ -690,30 +665,34 @@ export function injectCartSystem(
     var itemsEl = document.getElementById('fm-cart-items');
     var footerEl = document.getElementById('fm-cart-footer');
     if (!itemsEl || !footerEl) return;
-
     if (!cartItems.length) {
-      itemsEl.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#9ca3af;"><p style="font-size:2rem;margin-bottom:8px;">🛒</p><p>Your cart is empty</p></div>';
+      itemsEl.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#9ca3af;"><p style="font-size:2rem;margin-bottom:8px;">&#x1F6D2;</p><p>Your cart is empty</p></div>';
       footerEl.innerHTML = '';
       return;
     }
-
-    itemsEl.innerHTML = cartItems.map(function(item) {
-      return '<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f3f4f6;">'
-        + (item.primary_image ? '<img src="' + item.primary_image + '" style="width:64px;height:64px;object-fit:cover;border-radius:6px;flex-shrink:0;" />' : '<div style="width:64px;height:64px;background:#f3f4f6;border-radius:6px;flex-shrink:0;"></div>')
+    var rows = '';
+    for (var i=0;i<cartItems.length;i++) {
+      var item = cartItems[i];
+      rows += '<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f3f4f6;">'
+        + (item.primary_image ? '<img src="'+item.primary_image+'" style="width:64px;height:64px;object-fit:cover;border-radius:6px;flex-shrink:0;" />' : '<div style="width:64px;height:64px;background:#f3f4f6;border-radius:6px;flex-shrink:0;"></div>')
         + '<div style="flex:1;min-width:0;">'
-          + '<p style="font-weight:600;font-size:0.875rem;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + item.title + '</p>'
-          + '<p style="font-size:0.875rem;color:#374151;margin:0 0 6px;">$' + Number(item.price).toLocaleString() + ' × ' + item.quantity + '</p>'
-          + '<button onclick="fmRemoveFromCart(\'' + item.id + '\')" style="font-size:0.75rem;color:#ef4444;background:none;border:none;cursor:pointer;padding:0;">Remove</button>'
+          + '<p style="font-weight:600;font-size:0.875rem;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+item.title+'</p>'
+          + '<p style="font-size:0.875rem;color:#374151;margin:0 0 6px;">$'+Number(item.price).toLocaleString()+' x '+item.quantity+'</p>'
+          + '<button data-remove="'+item.id+'" style="font-size:0.75rem;color:#ef4444;background:none;border:none;cursor:pointer;padding:0;">Remove</button>'
         + '</div>'
-        + '<p style="font-weight:700;font-size:0.9375rem;flex-shrink:0;">$' + (Number(item.price) * item.quantity).toLocaleString() + '</p>'
+        + '<p style="font-weight:700;font-size:0.9375rem;flex-shrink:0;">$'+(Number(item.price)*item.quantity).toLocaleString()+'</p>'
         + '</div>';
-    }).join('');
-
-    var total = cartItems.reduce(function(s, i) { return s + Number(i.price) * (i.quantity || 1); }, 0);
-    footerEl.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:12px;font-weight:700;font-size:1.0625rem;">'
-      + '<span>Total</span><span>$' + total.toLocaleString() + '</span></div>'
-      + '<button id="fm-checkout-btn" onclick="fmCheckout()" style="width:100%;padding:14px;background:' + ACCENT + ';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Checkout →</button>'
-      + '<button onclick="fmCloseCart()" style="width:100%;padding:10px;background:none;border:none;font-size:0.875rem;color:#6b7280;cursor:pointer;margin-top:8px;">Continue Shopping</button>';
+    }
+    itemsEl.innerHTML = rows;
+    itemsEl.querySelectorAll('[data-remove]').forEach(function(btn) {
+      btn.addEventListener('click', function(){ fmRemoveFromCart(btn.getAttribute('data-remove')); });
+    });
+    var total = cartItems.reduce(function(s,i){return s+Number(i.price)*(i.quantity||1);},0);
+    footerEl.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:12px;font-weight:700;font-size:1.0625rem;"><span>Total</span><span>$'+total.toLocaleString()+'</span></div>'
+      + '<button id="fm-checkout-btn" style="width:100%;padding:14px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Checkout &#x2192;</button>'
+      + '<button id="fm-continue-btn" style="width:100%;padding:10px;background:none;border:none;font-size:0.875rem;color:#6b7280;cursor:pointer;margin-top:8px;">Continue Shopping</button>';
+    document.getElementById('fm-checkout-btn').onclick = fmCheckout;
+    document.getElementById('fm-continue-btn').onclick = fmCloseCart;
   }
 
   renderCartBtn();
@@ -721,10 +700,7 @@ export function injectCartSystem(
 </script>`;
 }
 
-/**
- * Generates the onclick handler string for a product card.
- * Usage: <div onclick="${productCardOnclick(product)}">
- */
+
 export function productCardOnclick(product: any): string {
   const safe = JSON.stringify({
     id: product.id,
