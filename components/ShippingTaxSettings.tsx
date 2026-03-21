@@ -341,8 +341,8 @@ export default function ShippingTaxSettings({ siteId }: Props) {
                   ) : (
                     <textarea value={zoneValuesInput} onChange={e => setZoneValuesInput(e.target.value)}
                       rows={3} placeholder={
-                        zoneForm.zone_type === 'zip' ? '68008, 68010, 68022' :
-                        zoneForm.zone_type === 'city' ? 'Blair, Omaha, Council Bluffs' : 'US, CA'
+                        zoneForm.zone_type === 'zip' ? '75001, 75002, 75006' :
+                        zoneForm.zone_type === 'city' ? 'Dallas, Houston, Austin' : 'US, CA'
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" />
                   )}
@@ -355,11 +355,15 @@ export default function ShippingTaxSettings({ siteId }: Props) {
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">
                       {zoneForm.rate_type === 'percentage' ? 'Rate (%)' :
-                       zoneForm.rate_type === 'free_over' ? 'Rate if below threshold ($)' : 'Rate ($)'}
+                       zoneForm.rate_type === 'free_over' ? 'Flat Rate if Below Threshold ($)' :
+                       zoneForm.rate_type === 'per_item' ? 'Base Rate ($)' : 'Rate ($)'}
                     </label>
                     <input type="number" min="0" step="0.01"
                       value={zoneForm.rate_amount || ''} onChange={e => zf('rate_amount', parseFloat(e.target.value) || 0)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    {zoneForm.rate_type === 'per_item' && (
+                      <p className="text-xs text-gray-400 mt-1">Optional base charge added once per order.</p>
+                    )}
                   </div>
                 )}
                 {zoneForm.rate_type === 'per_item' && (
@@ -368,6 +372,7 @@ export default function ShippingTaxSettings({ siteId }: Props) {
                     <input type="number" min="0" step="0.01"
                       value={zoneForm.per_item_amount || ''} onChange={e => zf('per_item_amount', parseFloat(e.target.value) || 0)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <p className="text-xs text-gray-400 mt-1">Charged per item in the order (e.g. $5 × 3 items = $15).</p>
                   </div>
                 )}
                 {zoneForm.rate_type === 'free_over' && (
@@ -376,6 +381,7 @@ export default function ShippingTaxSettings({ siteId }: Props) {
                     <input type="number" min="0" step="0.01"
                       value={zoneForm.min_order_amount || ''} onChange={e => zf('min_order_amount', parseFloat(e.target.value) || 0)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <p className="text-xs text-gray-400 mt-1">Orders at or above this amount get free shipping.</p>
                   </div>
                 )}
               </div>
@@ -476,14 +482,14 @@ export default function ShippingTaxSettings({ siteId }: Props) {
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Label *</label>
                   <input value={taxForm.label} onChange={e => tf('label', e.target.value)}
-                    placeholder="e.g. Nebraska State Tax" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    placeholder="e.g. Texas State Tax" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Tax Rate (%) *</label>
                   <input type="number" min="0" max="100" step="0.001"
-                    value={taxForm.rate ? (Number(taxForm.rate) * 100).toFixed(3) : ''}
+                    value={taxForm.rate ? (Number(taxForm.rate) * 100).toFixed(3).replace(/\.?0+$/, '') : ''}
                     onChange={e => tf('rate', parseFloat(e.target.value) / 100 || 0)}
-                    placeholder="e.g. 5.5" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    placeholder="e.g. 7.25" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                   <p className="text-xs text-gray-400 mt-1">Enter as percentage, e.g. 5.5 for 5.5%</p>
                 </div>
               </div>
@@ -531,8 +537,8 @@ export default function ShippingTaxSettings({ siteId }: Props) {
                   ) : (
                     <textarea value={taxValuesInput} onChange={e => setTaxValuesInput(e.target.value)}
                       rows={2} placeholder={
-                        taxForm.applies_to === 'zip' ? '68008, 68010' :
-                        taxForm.applies_to === 'city' ? 'Blair, Omaha' : 'US, CA'
+                        taxForm.applies_to === 'zip' ? '75001, 75002' :
+                        taxForm.applies_to === 'city' ? 'Dallas, Houston' : 'US, CA'
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" />
                   )}
