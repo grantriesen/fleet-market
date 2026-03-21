@@ -157,7 +157,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
         .eq('site_id', params.siteId);
 
       const loadedContent: Record<string, string> = {};
-      contentData?.forEach((item) => {
+      contentData?.forEach((item: any) => {
         loadedContent[item.field_key] = item.value || '';
       });
       setContent(loadedContent);
@@ -168,27 +168,27 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
         .select('customization_type, config_json')
         .eq('site_id', params.siteId);
 
-      customData?.forEach((item) => {
+      customData?.forEach((item: any) => {
         if (item.customization_type === 'colors') {
           setColors(item.config_json);
         } else if (item.customization_type === 'fonts') {
           setFonts(item.config_json);
         } else if (item.customization_type === 'section_visibility') {
           const savedVisibility = item.config_json;
-          // Always enforce addon-gated sections
-          if (!hasInventory(addons)) {
+          const currentAddons: string[] = site?.addons || [];
+          if (!hasInventory(currentAddons)) {
             savedVisibility.featured = false;
             savedVisibility.inventoryPage = false;
           }
-          if (!hasRentals(addons)) {
+          if (!hasRentals(currentAddons)) {
             savedVisibility.rentalsPage = false;
           }
           setSectionVisibility(savedVisibility);
         } else if (item.customization_type === 'page_visibility') {
           const savedPageVis = item.config_json;
-          // Always enforce addon-gated pages
-          if (!hasInventory(addons)) savedPageVis.inventory = false;
-          if (!hasRentals(addons)) savedPageVis.rentals = false;
+          const currentAddons: string[] = site?.addons || [];
+          if (!hasInventory(currentAddons)) savedPageVis.inventory = false;
+          if (!hasRentals(currentAddons)) savedPageVis.rentals = false;
           setPageVisibility(savedPageVis);
         }
       });

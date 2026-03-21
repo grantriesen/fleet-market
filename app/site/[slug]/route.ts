@@ -234,7 +234,7 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   if (templateSlug === 'modern-lawn-solutions') {
     return await renderModernLawnPage(
       siteId, page, availablePages, displayProducts,
-      config, customizations, enabledFeatures, vis, content, supabase, manufacturers || [], '/'
+      config, customizations, enabledFeatures, vis, content, supabase, '/'
     );
   }
   if (templateSlug === 'warm-earth-designs') {

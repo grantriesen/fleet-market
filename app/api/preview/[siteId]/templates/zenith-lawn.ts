@@ -324,7 +324,7 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
 }
 
 // ── Product Card ──
-function zlProductCard(siteId: string, p: any) {
+function zlProductCard(siteId: string, p: any, baseUrl: string = '') {
   const imgUrl = p.image_url || p.primary_image || '';
   const hasImage = imgUrl && !imgUrl.includes('placeholder');
   const productName = p.name || p.title || '';
