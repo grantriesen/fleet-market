@@ -29,6 +29,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
   const [templateSlug, setTemplateSlug] = useState('');
   const [templateConfig, setTemplateConfig] = useState<any>(null);
   const [subscriptionTier, setSubscriptionTier] = useState('basic');
+  const [siteAddons, setSiteAddons] = useState<string[]>([]);
   
   // Guided Tour state
   const [tourActive, setTourActive] = useState(false);
@@ -36,8 +37,10 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
   const [tourCompleted, setTourCompleted] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
   
-  // Helper: check if current tier allows professional features
-  const hasProfessionalAccess = (tier: string) => ['professional', 'enterprise'].includes(tier);
+  // Addon helpers — replaces hasProfessionalAccess
+  const hasInventory = (addons = siteAddons) => addons.includes('inventory');
+  const hasService   = (addons = siteAddons) => addons.includes('service') || addons.includes('service_scheduling');
+  const hasRentals   = (addons = siteAddons) => addons.includes('rentals') || addons.includes('rental_scheduling');
   
   // Content
   const [content, setContent] = useState<Record<string, string>>({});
@@ -94,6 +97,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
           site_name,
           slug,
           subscription_tier,
+          addons,
           published,
           custom_domain,
           site_password,
@@ -113,6 +117,8 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
         setTemplateSlug(site.template.slug);
         setTemplateConfig(site.template.config_json);
         setSubscriptionTier(site.subscription_tier || 'basic');
+        const addons: string[] = site.addons || [];
+        setSiteAddons(addons);
         setPublished(site.published || false);
         setSiteSlug(site.slug || '');
         setCustomDomain(site.custom_domain || '');
@@ -124,23 +130,24 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
         Object.keys(sections).forEach(key => {
           initialVisibility[key] = true;
         });
-        // Default premium sections to hidden for basic tier
-        if (!hasProfessionalAccess(site.subscription_tier || 'basic')) {
+        // Lock addon-gated sections based on purchased addons
+        if (!hasInventory(addons)) {
           initialVisibility.featured = false;
           initialVisibility.inventoryPage = false;
+        }
+        if (!hasRentals(addons)) {
           initialVisibility.rentalsPage = false;
         }
         setSectionVisibility(initialVisibility);
 
-        // Default premium pages to hidden for basic tier
-        if (!hasProfessionalAccess(site.subscription_tier || 'basic')) {
-          const initialPageVis: Record<string, boolean> = {};
-          (site.template.config_json.pages || []).forEach((p: any) => {
-            const premiumPageSlugs = ['inventory', 'rentals'];
-            initialPageVis[p.slug] = !premiumPageSlugs.includes(p.slug);
-          });
-          setPageVisibility(initialPageVis);
-        }
+        // Default addon-gated pages to hidden if addon not purchased
+        const initialPageVis: Record<string, boolean> = {};
+        (site.template.config_json.pages || []).forEach((p: any) => {
+          if (p.slug === 'inventory') initialPageVis[p.slug] = hasInventory(addons);
+          else if (p.slug === 'rentals') initialPageVis[p.slug] = hasRentals(addons);
+          else initialPageVis[p.slug] = true;
+        });
+        setPageVisibility(initialPageVis);
       }
 
       // Load content
@@ -168,24 +175,20 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
           setFonts(item.config_json);
         } else if (item.customization_type === 'section_visibility') {
           const savedVisibility = item.config_json;
-          // Force premium sections to hidden for basic tier
-          const tier = site?.subscription_tier || 'basic';
-          if (!hasProfessionalAccess(tier)) {
-            if (savedVisibility.featured === undefined) {
-              savedVisibility.featured = false;
-            }
+          // Always enforce addon-gated sections
+          if (!hasInventory(addons)) {
+            savedVisibility.featured = false;
             savedVisibility.inventoryPage = false;
+          }
+          if (!hasRentals(addons)) {
             savedVisibility.rentalsPage = false;
           }
           setSectionVisibility(savedVisibility);
         } else if (item.customization_type === 'page_visibility') {
           const savedPageVis = item.config_json;
-          // Force premium pages to hidden for basic tier
-          const tier = site?.subscription_tier || 'basic';
-          if (!hasProfessionalAccess(tier)) {
-            savedPageVis.inventory = false;
-            savedPageVis.rentals = false;
-          }
+          // Always enforce addon-gated pages
+          if (!hasInventory(addons)) savedPageVis.inventory = false;
+          if (!hasRentals(addons)) savedPageVis.rentals = false;
           setPageVisibility(savedPageVis);
         }
       });
@@ -474,13 +477,14 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
   };
 
   const toggleSectionVisibility = (section: string) => {
-    // Block premium sections for basic tier
-    const premiumSections: Record<string, string> = {
-      'inventoryPage': 'professional',
-      'rentalsPage': 'professional',
+    // Block addon-gated sections if addon not purchased
+    const addonGatedSections: Record<string, () => boolean> = {
+      'featured':      () => !hasInventory(),
+      'inventoryPage': () => !hasInventory(),
+      'rentalsPage':   () => !hasRentals(),
     };
-    if (premiumSections[section] && (!hasProfessionalAccess(subscriptionTier))) return;
-    
+    if (addonGatedSections[section]?.()) return;
+
     setSectionVisibility({
       ...sectionVisibility,
       [section]: !sectionVisibility[section],
@@ -488,13 +492,13 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
   };
 
   const togglePageVisibility = (page: string) => {
-    // Block premium pages for basic tier
-    const premiumPages: Record<string, string> = {
-      'inventory': 'professional',
-      'rentals': 'professional',
+    // Block addon-gated pages if addon not purchased
+    const addonGatedPages: Record<string, () => boolean> = {
+      'inventory': () => !hasInventory(),
+      'rentals':   () => !hasRentals(),
     };
-    if (premiumPages[page] && (!hasProfessionalAccess(subscriptionTier))) return;
-    
+    if (addonGatedPages[page]?.()) return;
+
     setPageVisibility({
       ...pageVisibility,
       [page]: !pageVisibility[page],
@@ -1202,14 +1206,13 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
               <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Editing Page</label>
               <div className="flex flex-wrap gap-1.5">
                 {templateConfig.pages.map((page: any) => {
-                  // Define which pages are premium add-ons
-                  const premiumPages: Record<string, { requiredTier: string; label: string }> = {
-                    'inventory': { requiredTier: 'professional', label: 'Inventory Management' },
-                    'rentals': { requiredTier: 'professional', label: 'Rental Scheduling' },
-                  };
                   const pageSlug = page.slug === 'home' ? 'index' : page.slug;
-                  const addOn = premiumPages[pageSlug];
-                  const isLocked = addOn && !hasProfessionalAccess(subscriptionTier);
+                  const isLocked =
+                    (pageSlug === 'inventory' && !hasInventory()) ||
+                    (pageSlug === 'rentals'   && !hasRentals());
+                  const lockedLabel =
+                    pageSlug === 'inventory' ? 'Inventory Management add-on required.' :
+                    pageSlug === 'rentals'   ? 'Rental Management add-on required.'    : '';
                   const isActive = currentPage === pageSlug || (currentPage === 'index' && page.slug === 'home');
                   
                   return (
@@ -1243,13 +1246,13 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                       {isLocked && (
                         <div className="absolute left-0 top-full mt-1 w-52 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 group-hover/tip:opacity-100 transition-opacity z-50 shadow-lg pointer-events-none">
                           <div className="absolute bottom-full left-4 mb-[-4px] w-2 h-2 bg-gray-900 rotate-45"></div>
-                          <p className="font-semibold mb-1">Premium Add-On</p>
-                          <p className="text-gray-300">{addOn.label} requires a {addOn.requiredTier} plan.</p>
+                          <p className="font-semibold mb-1">Add-on Required</p>
+                          <p className="text-gray-300">{lockedLabel}</p>
                           <button
-                            onClick={() => router.push(`/dashboard/settings/${params.siteId}?tab=billing`)}
+                            onClick={() => router.push('/pricing')}
                             className="text-[#E85525] font-medium mt-1.5 hover:text-[#F06A3E] cursor-pointer"
                           >
-                            Upgrade to unlock →
+                            View add-ons →
                           </button>
                         </div>
                       )}
@@ -1325,16 +1328,16 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                 {/* Management cards for special pages */}
                 {currentPage === 'inventory' && (
                   <div className="space-y-4">
-                    {!hasProfessionalAccess(subscriptionTier) ? (
+                    {!hasInventory() ? (
                       <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                         <div className="text-4xl mb-3">🔒</div>
                         <h3 className="font-bold text-gray-700 text-lg mb-2">Inventory Management</h3>
-                        <p className="text-sm text-gray-500 mb-4">Upgrade to a Professional plan to manage your equipment inventory, upload product images, and sync your catalog.</p>
+                        <p className="text-sm text-gray-500 mb-4">Add the Inventory add-on to manage your equipment catalog, upload product images, and display listings on your site.</p>
                         <button
-                          onClick={() => router.push(`/dashboard/settings/${params.siteId}?tab=billing`)}
-                          className="bg-[#1E3A6E] text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-[#152C54] transition-colors"
+                          onClick={() => router.push('/pricing')}
+                          className="bg-[#E85525] text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-[#D13A24] transition-colors"
                         >
-                          Upgrade Plan →
+                          Add Inventory →
                         </button>
                       </div>
                     ) : (
@@ -1374,7 +1377,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                         </div>
                       </div>
                     </div>
-                    {!hasProfessionalAccess(subscriptionTier) && (
+                    {!hasService() && (
                       <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-4">
                         <div className="flex items-start gap-3">
                           <span className="text-xl">🔒</span>
@@ -1382,10 +1385,10 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                             <h4 className="font-bold text-gray-700 text-sm mb-1">Service Scheduling Add-On</h4>
                             <p className="text-xs text-gray-500 mb-3">Let customers book service appointments directly from your website with online scheduling.</p>
                             <button
-                              onClick={() => router.push(`/dashboard/settings/${params.siteId}?tab=billing`)}
-                              className="bg-[#1E3A6E] text-white px-4 py-1.5 rounded-md text-xs font-semibold hover:bg-[#152C54] transition-colors"
+                              onClick={() => router.push('/pricing')}
+                              className="bg-[#E85525] text-white px-4 py-1.5 rounded-md text-xs font-semibold hover:bg-[#D13A24] transition-colors"
                             >
-                              Upgrade to Unlock →
+                              Add Service Scheduling →
                             </button>
                           </div>
                         </div>
@@ -1396,16 +1399,16 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
 
                 {currentPage === 'rentals' && (
                   <div className="space-y-4">
-                    {!hasProfessionalAccess(subscriptionTier) ? (
+                    {!hasRentals() ? (
                       <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                         <div className="text-4xl mb-3">🔒</div>
-                        <h3 className="font-bold text-gray-700 text-lg mb-2">Rental Scheduling</h3>
-                        <p className="text-sm text-gray-500 mb-4">Upgrade to a Professional plan to manage rental equipment, set rates, track availability, and accept online bookings.</p>
+                        <h3 className="font-bold text-gray-700 text-lg mb-2">Rental Management</h3>
+                        <p className="text-sm text-gray-500 mb-4">Add the Rental Management add-on to manage rental equipment, set rates, track availability, and accept online bookings.</p>
                         <button
-                          onClick={() => router.push(`/dashboard/settings/${params.siteId}?tab=billing`)}
-                          className="bg-[#1E3A6E] text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-[#152C54] transition-colors"
+                          onClick={() => router.push('/pricing')}
+                          className="bg-[#E85525] text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-[#D13A24] transition-colors"
                         >
-                          Upgrade Plan →
+                          Add Rental Management →
                         </button>
                       </div>
                     ) : (
@@ -1646,12 +1649,14 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                   </p>
                   <div className="space-y-3">
                     {templateConfig?.pages?.map((page: any) => {
-                      const premiumPages: Record<string, { requiredTier: string; label: string }> = {
-                        'inventory': { requiredTier: 'professional', label: 'Inventory Management' },
-                        'rentals': { requiredTier: 'professional', label: 'Rental Scheduling' },
+                      const addonRequired: Record<string, { label: string; addon: string }> = {
+                        'inventory': { label: 'Inventory Management', addon: 'inventory' },
+                        'rentals':   { label: 'Rental Management',    addon: 'rentals'   },
                       };
-                      const addOn = premiumPages[page.slug];
-                      const isLocked = addOn && (!hasProfessionalAccess(subscriptionTier));
+                      const requirement = addonRequired[page.slug];
+                      const isLocked = requirement && (
+                        requirement.addon === 'inventory' ? !hasInventory() : !hasRentals()
+                      );
                       
                       return (
                         <div key={page.slug} className={`flex items-center justify-between gap-3 p-3 rounded-lg ${isLocked ? 'bg-gray-50 border border-gray-200' : ''}`}>
@@ -1661,7 +1666,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                               checked={isLocked ? false : pageVisibility[page.slug] !== false}
                               onChange={() => togglePageVisibility(page.slug)}
                               className="rounded"
-                              disabled={isLocked}
+                              disabled={!!isLocked}
                             />
                             <span className={`font-medium ${isLocked ? 'text-gray-400' : ''}`}>
                               {isLocked && '🔒 '}{page.name}
@@ -1669,10 +1674,10 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                           </label>
                           {isLocked && (
                             <button
-                              onClick={() => router.push(`/dashboard/settings/${params.siteId}?tab=billing`)}
-                              className="text-xs text-[#1E3A6E] font-semibold hover:text-[#1E3A6E] whitespace-nowrap"
+                              onClick={() => router.push('/pricing')}
+                              className="text-xs text-[#E85525] font-semibold hover:underline whitespace-nowrap"
                             >
-                              Upgrade →
+                              Add-on required →
                             </button>
                           )}
                         </div>
@@ -1764,13 +1769,14 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                     ) : (
                       /* For home page: show regular section tabs */
                       sections.map((section) => {
-                      // Check if this is a premium add-on section
-                      const premiumAddOns: Record<string, { requiredTier: string; label: string }> = {
-                        'inventoryPage': { requiredTier: 'professional', label: 'Inventory Management' },
-                        'rentalsPage': { requiredTier: 'professional', label: 'Rental Scheduling' },
+                      // Addon-gated sections
+                      const addonGated: Record<string, { label: string; locked: boolean }> = {
+                        'featured':      { label: 'Inventory Management', locked: !hasInventory() },
+                        'inventoryPage': { label: 'Inventory Management', locked: !hasInventory() },
+                        'rentalsPage':   { label: 'Rental Management',    locked: !hasRentals()   },
                       };
-                      const addOn = premiumAddOns[section.key];
-                      const isLocked = addOn && !hasProfessionalAccess(subscriptionTier);
+                      const gate = addonGated[section.key];
+                      const isLocked = gate?.locked ?? false;
                       
                       return (
                         <div key={section.key} className="relative group/sec flex-shrink-0">
@@ -1795,13 +1801,13 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                           {isLocked && (
                             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 group-hover/sec:opacity-100 transition-opacity z-50 shadow-lg">
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-[-4px] w-2 h-2 bg-gray-900 rotate-45"></div>
-                              <p className="font-semibold mb-1">Premium Add-On</p>
-                              <p className="text-gray-300">{addOn.label} requires a {addOn.requiredTier} plan or above.</p>
+                              <p className="font-semibold mb-1">Add-on Required</p>
+                              <p className="text-gray-300">{gate.label} add-on is required to edit this section.</p>
                               <button
-                                onClick={() => router.push(`/dashboard/settings/${params.siteId}?tab=billing`)}
+                                onClick={() => router.push('/pricing')}
                                 className="text-[#E85525] font-medium mt-1.5 hover:text-[#F06A3E] cursor-pointer"
                               >
-                                Upgrade to unlock →
+                                View add-ons →
                               </button>
                             </div>
                           )}
