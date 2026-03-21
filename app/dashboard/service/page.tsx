@@ -8,7 +8,7 @@ import {
   Calendar, Clock, User, Phone, Mail, Wrench, AlertCircle,
   ChevronLeft, ChevronRight, Check, X, MessageSquare, Filter,
   Plus, Settings, Loader2, ArrowRight, MoreVertical, Search,
-  UserCheck, Ban, ChevronDown
+  UserCheck, Ban, ChevronDown, CalendarPlus
 } from 'lucide-react';
 
 // ============================================
