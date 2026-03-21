@@ -18,6 +18,18 @@ const SOURCE_MAP: Record<string, string> = {
   rental: 'quote_request',
 };
 
+function getSource(form_type: string, extra_data: any): string {
+  if (extra_data?.inquiry_type === 'quote_request') return 'product_quote_request';
+  return SOURCE_MAP[form_type] ?? 'contact_form';
+}
+
+function getTags(form_type: string, extra_data: any): string[] {
+  if (extra_data?.inquiry_type === 'quote_request') {
+    return ['product_quote_request', extra_data.product_title].filter(Boolean);
+  }
+  return [form_type];
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -63,8 +75,8 @@ export async function POST(request: NextRequest) {
       email: email || null,
       phone: phone || null,
       message: message || null,
-      source: SOURCE_MAP[form_type] ?? 'contact_form',
-      tags: [form_type],
+      source: getSource(form_type, extra_data),
+      tags: getTags(form_type, extra_data),
       extra_data: extra_data || null,
     });
 
@@ -124,8 +136,14 @@ export async function POST(request: NextRequest) {
     // 4. Send Resend notification to the dealer
     // ----------------------------------------------------------------
     if (dealerEmail) {
-      const formLabel = FORM_LABELS[form_type] ?? form_type;
+      const isProductQuote = extra_data?.inquiry_type === 'quote_request';
+      const formLabel = isProductQuote
+        ? `Product Quote Request${extra_data?.product_title ? ` — ${extra_data.product_title}` : ''}`
+        : (FORM_LABELS[form_type] ?? form_type);
       const siteName = site?.site_name ?? 'Your Fleet Market Site';
+      const dashboardLink = form_type === 'service'
+        ? '/dashboard/service'
+        : '/dashboard/leads';
 
       // Build a readable extra_data block if present
       const extraLines = extra_data && typeof extra_data === 'object'
@@ -170,7 +188,7 @@ export async function POST(request: NextRequest) {
               </div>` : ''}
 
               <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb;text-align:center;">
-                <a href="https://app.fleetmarket.us${form_type === 'service' ? '/dashboard/service' : '/dashboard/leads'}"
+                <a href="https://fleetmarket.us${dashboardLink}"
                    style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;">
                   View in Dashboard →
                 </a>

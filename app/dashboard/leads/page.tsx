@@ -16,7 +16,8 @@ import {
   Tag,
   MessageSquare,
   Wrench,
-  Truck
+  Truck,
+  ShoppingBag
 } from 'lucide-react';
 
 interface Lead {
@@ -27,20 +28,23 @@ interface Lead {
   source: string;
   message?: string;
   tags?: string[];
+  extra_data?: Record<string, any>;
   created_at: string;
 }
 
 // Source values written by /api/submit-form
 const SOURCE_LABELS: Record<string, string> = {
-  contact_form: 'Contact Form',
-  quote_request: 'Service / Rental',
-  newsletter: 'Newsletter',
+  contact_form:          'Contact Form',
+  quote_request:         'Service / Rental',
+  product_quote_request: 'Product Quote',
+  newsletter:            'Newsletter',
 };
 
 const SOURCE_COLORS: Record<string, string> = {
-  contact_form: 'bg-blue-100 text-blue-800',
-  quote_request: 'bg-orange-100 text-orange-800',
-  newsletter: 'bg-purple-100 text-purple-800',
+  contact_form:          'bg-blue-100 text-blue-800',
+  quote_request:         'bg-orange-100 text-orange-800',
+  product_quote_request: 'bg-emerald-100 text-emerald-800',
+  newsletter:            'bg-purple-100 text-purple-800',
 };
 
 export default function LeadsPage() {
@@ -100,6 +104,7 @@ export default function LeadsPage() {
         source: l.source || 'contact_form',
         message: l.message || '',
         tags: l.tags || [],
+        extra_data: l.extra_data || null,
         created_at: l.created_at,
       }));
 
@@ -166,6 +171,7 @@ export default function LeadsPage() {
 
   const contactCount   = leads.filter(l => l.source === 'contact_form').length;
   const quoteCount     = leads.filter(l => l.source === 'quote_request').length;
+  const productQuoteCount = leads.filter(l => l.source === 'product_quote_request').length;
   const newsletterCount = leads.filter(l => l.source === 'newsletter').length;
   const thisWeekCount  = leads.filter(l => new Date(l.created_at) > new Date(Date.now() - 7 * 86400000)).length;
 
@@ -201,7 +207,7 @@ export default function LeadsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-blue-50 rounded-lg">
@@ -230,6 +236,16 @@ export default function LeadsPage() {
               <p className="text-sm text-gray-600">Service / Rental</p>
             </div>
             <p className="text-3xl font-bold text-gray-900">{quoteCount}</p>
+          </div>
+
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-emerald-50 rounded-lg">
+                <ShoppingBag className="w-5 h-5 text-emerald-600" />
+              </div>
+              <p className="text-sm text-gray-600">Product Quotes</p>
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{productQuoteCount}</p>
           </div>
 
           <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -267,6 +283,7 @@ export default function LeadsPage() {
                 <option value="all">All Sources ({leads.length})</option>
                 <option value="contact_form">Contact Form ({contactCount})</option>
                 <option value="quote_request">Service / Rental ({quoteCount})</option>
+                <option value="product_quote_request">Product Quotes ({productQuoteCount})</option>
                 <option value="newsletter">Newsletter ({newsletterCount})</option>
               </select>
             </div>
@@ -334,9 +351,15 @@ export default function LeadsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm text-gray-600 max-w-xs truncate">
-                          {lead.message || '—'}
-                        </p>
+                        <div className="text-sm text-gray-600 max-w-xs">
+                          {lead.source === 'product_quote_request' && lead.extra_data?.product_title && (
+                            <p className="font-medium text-emerald-700 mb-1 flex items-center gap-1">
+                              <ShoppingBag className="w-3 h-3" />
+                              {lead.extra_data.product_title}
+                            </p>
+                          )}
+                          <p className="truncate">{lead.message || '—'}</p>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-sm text-gray-900">
