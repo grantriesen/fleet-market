@@ -1127,12 +1127,12 @@ function gvServicePage(
               siteId: siteId,
               serviceTypeId: selectedService.id,
               serviceTypeName: selectedService.name,
-              date: dateInput.value,
-              time: timeInput.value,
+              preferredDate: dateInput.value,
+              preferredTime: timeInput.value,
               customerName: name,
               customerPhone: phone,
               customerEmail: email,
-              equipmentDetails: document.getElementById('sf-equipment').value,
+              equipmentType: document.getElementById('sf-equipment').value,
               customerNotes: document.getElementById('sf-notes').value
             })
           })
