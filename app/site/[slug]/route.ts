@@ -177,8 +177,22 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     return '';
   };
 
-  // Load enabled features
+  // Load enabled features — from site_features table AND sites.addons column
   const enabledFeatures = new Set<string>();
+
+  // 1. Seed from sites.addons (the new addon system)
+  // Map addon keys to the feature keys templates expect
+  const addonToFeatureMap: Record<string, string[]> = {
+    'inventory':          ['inventory', 'inventory_sync'],
+    'service':            ['service', 'service_scheduling'],
+    'rentals':            ['rentals', 'rental_scheduling'],
+  };
+  (site.addons || []).forEach((addon: string) => {
+    enabledFeatures.add(addon);
+    addonToFeatureMap[addon]?.forEach(f => enabledFeatures.add(f));
+  });
+
+  // 2. Also read site_features table (legacy / manual overrides)
   try {
     const { data: features } = await supabase
       .from('site_features').select('feature_key').eq('site_id', siteId).eq('enabled', true);
@@ -250,6 +264,7 @@ export async function GET(
       .from('sites')
       .select(`
         id, site_name, slug, subscription_tier,
+        addons,
         published, custom_domain, site_password,
         template:templates ( name, slug, config_json )
       `);
