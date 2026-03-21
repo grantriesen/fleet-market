@@ -379,7 +379,7 @@ async function generateTemplateHTML(
     const ceEnabledFeatures = new Set<string>();
     try {
       const { data: features } = await supabase
-        .from('site_features').select('feature_key').eq('site_id', site.id).eq('is_enabled', true);
+        .from('site_features').select('feature_key').eq('site_id', site.id).eq('enabled', true);
       if (features) features.forEach((f: any) => ceEnabledFeatures.add(f.feature_key));
     } catch {}
     return renderCorporateEdgePage(
@@ -403,7 +403,7 @@ async function generateTemplateHTML(
     const zlFeatures = new Set<string>();
     try {
       const { data: features } = await supabase
-        .from('site_features').select('feature_key').eq('site_id', site.id).eq('is_enabled', true);
+        .from('site_features').select('feature_key').eq('site_id', site.id).eq('enabled', true);
       if (features) features.forEach((f: any) => zlFeatures.add(f.feature_key));
     } catch {}
     return renderZenithLawnPage(
@@ -418,7 +418,7 @@ async function generateTemplateHTML(
     const mlsFeatures = new Set<string>();
     try {
       const { data: features } = await supabase
-        .from('site_features').select('feature_key').eq('site_id', site.id).eq('is_enabled', true);
+        .from('site_features').select('feature_key').eq('site_id', site.id).eq('enabled', true);
       if (features) features.forEach((f: any) => mlsFeatures.add(f.feature_key));
     } catch {}
     return await renderModernLawnPage(
@@ -433,7 +433,7 @@ async function generateTemplateHTML(
     const weFeatures = new Set<string>();
     try {
       const { data: features } = await supabase
-        .from('site_features').select('feature_key').eq('site_id', site.id).eq('is_enabled', true);
+        .from('site_features').select('feature_key').eq('site_id', site.id).eq('enabled', true);
       if (features) features.forEach((f: any) => weFeatures.add(f.feature_key));
     } catch {}
     return renderWarmEarthPage(

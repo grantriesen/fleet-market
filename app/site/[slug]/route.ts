@@ -181,7 +181,7 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   const enabledFeatures = new Set<string>();
   try {
     const { data: features } = await supabase
-      .from('site_features').select('feature_key').eq('site_id', siteId).eq('is_enabled', true);
+      .from('site_features').select('feature_key').eq('site_id', siteId).eq('enabled', true);
     if (features) features.forEach((f: any) => enabledFeatures.add(f.feature_key));
   } catch {}
 
