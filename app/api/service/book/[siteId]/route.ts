@@ -64,14 +64,28 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
     let scheduledStart = null;
     let scheduledEnd = null;
     if (preferredDate && preferredTime && duration) {
-      scheduledStart = `${preferredDate}T${preferredTime}:00`;
-      // Calculate end time by adding duration in minutes manually (avoids timezone conversion)
-      const [hours, minutes] = preferredTime.split(':').map(Number);
-      const totalMinutes = hours * 60 + minutes + duration;
-      const endHours = Math.floor(totalMinutes / 60) % 24;
-      const endMinutes = totalMinutes % 60;
-      const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
-      scheduledEnd = `${preferredDate}T${endTimeStr}:00`;
+      // Normalize time — handle both "09:00" (24h) and "9:00 AM" (12h) formats
+      let normalizedTime = preferredTime.trim();
+      if (/AM|PM/i.test(normalizedTime)) {
+        const match = normalizedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+        if (match) {
+          let hours = parseInt(match[1]);
+          const minutes = parseInt(match[2]);
+          const meridiem = match[3].toUpperCase();
+          if (meridiem === 'PM' && hours !== 12) hours += 12;
+          if (meridiem === 'AM' && hours === 12) hours = 0;
+          normalizedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+      }
+      scheduledStart = `${preferredDate}T${normalizedTime}:00`;
+      const [hours, minutes] = normalizedTime.split(':').map(Number);
+      if (!isNaN(hours) && !isNaN(minutes)) {
+        const totalMinutes = hours * 60 + minutes + duration;
+        const endHours = Math.floor(totalMinutes / 60) % 24;
+        const endMinutes = totalMinutes % 60;
+        const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+        scheduledEnd = `${preferredDate}T${endTimeStr}:00`;
+      }
     }
 
     const appointment = {

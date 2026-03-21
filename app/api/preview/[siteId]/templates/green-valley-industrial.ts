@@ -1088,10 +1088,15 @@ function gvServicePage(
       function loadTimeSlots(serviceType) {
         var sel = document.getElementById('sf-time');
         sel.innerHTML = '<option value="">Select time</option>';
-        // Generate standard business hour slots
-        var times = ['8:00 AM','8:30 AM','9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM',
-                     '12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM','3:00 PM','3:30 PM','4:00 PM','4:30 PM'];
-        times.forEach(function(t) { var o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o); });
+        // value = 24h HH:MM, display = 12h AM/PM
+        var times = [
+          {v:'08:00',d:'8:00 AM'},{v:'08:30',d:'8:30 AM'},{v:'09:00',d:'9:00 AM'},{v:'09:30',d:'9:30 AM'},
+          {v:'10:00',d:'10:00 AM'},{v:'10:30',d:'10:30 AM'},{v:'11:00',d:'11:00 AM'},{v:'11:30',d:'11:30 AM'},
+          {v:'12:00',d:'12:00 PM'},{v:'12:30',d:'12:30 PM'},{v:'13:00',d:'1:00 PM'},{v:'13:30',d:'1:30 PM'},
+          {v:'14:00',d:'2:00 PM'},{v:'14:30',d:'2:30 PM'},{v:'15:00',d:'3:00 PM'},{v:'15:30',d:'3:30 PM'},
+          {v:'16:00',d:'4:00 PM'},{v:'16:30',d:'4:30 PM'}
+        ];
+        times.forEach(function(t) { var o = document.createElement('option'); o.value = t.v; o.textContent = t.d; sel.appendChild(o); });
       }
 
       // Show step 3 when date & time selected
