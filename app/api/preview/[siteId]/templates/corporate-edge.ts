@@ -203,16 +203,25 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string) {
     var btn = form.querySelector('button[type="submit"]');
     var orig = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.innerHTML = 'Submitting...'; }
-    var nameEl = form.querySelector('input[type="text"]');
-    var emailEl = form.querySelector('input[type="email"]');
-    var phoneEl = form.querySelector('input[type="tel"]');
-    var msgEl = form.querySelector('textarea');
+    // Smart field grabbers — use name attributes when present (service form),
+    // fall back to type selectors for simple forms
+    var firstNameEl = form.querySelector('[name=first_name]');
+    var lastNameEl  = form.querySelector('[name=last_name]');
+    var nameEl      = form.querySelector('[name=full_name]') || form.querySelector('input[type="text"]');
+    var emailEl     = form.querySelector('[name=email]') || form.querySelector('input[type="email"]');
+    var phoneEl     = form.querySelector('[name=phone]') || form.querySelector('input[type="tel"]');
+    var notesEl     = form.querySelector('[name=notes]') || form.querySelector('textarea');
+    var msgEl       = form.querySelector('textarea');
+    // Build full name from first+last if separate fields exist
+    var fullName = firstNameEl && lastNameEl
+      ? (firstNameEl.value + ' ' + lastNameEl.value).trim()
+      : (nameEl ? nameEl.value : null);
     var data = {
       site_id: siteId, form_type: formType,
-      name: nameEl ? nameEl.value : null,
+      name: fullName || null,
       email: emailEl ? emailEl.value : null,
       phone: phoneEl ? phoneEl.value : null,
-      message: msgEl ? msgEl.value : null,
+      message: notesEl ? notesEl.value : (msgEl ? msgEl.value : null),
       extra_data: extraFn ? extraFn(form) : null,
     };
     fetch('/api/submit-form', {
