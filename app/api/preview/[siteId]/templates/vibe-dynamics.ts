@@ -9,7 +9,8 @@
 // ============================================
 
 import { sharedPreviewScript, pageHero } from './shared';
-import { productModalScript, registerProductsScript, serviceBookingSection, rentalBookingSection } from './product-modal';
+import { serviceBookingSection, rentalBookingSection } from './product-modal';
+import { injectCartSystem } from './shared';
 
 // ── Types ──
 interface Colors {
@@ -45,9 +46,20 @@ export async function renderVibeDynamicsPage(
   page: string,
   googleFontsUrl: string,
   supabase?: any,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  siteAddons: string[] = [],
+  checkoutMode: 'online' | 'quote_only' = 'quote_only'
 ): Promise<string> {
   let enabledFeatures: Set<string> = new Set();
+  const addonMap: Record<string, string[]> = {
+    'inventory': ['inventory', 'inventory_sync'],
+    'service':   ['service', 'service_scheduling'],
+    'rentals':   ['rentals', 'rental_scheduling'],
+  };
+  siteAddons.forEach((addon: string) => {
+    enabledFeatures.add(addon);
+    addonMap[addon]?.forEach((f: string) => enabledFeatures.add(f));
+  });
   if (supabase) {
     const { data: features } = await supabase
       .from('site_features')
@@ -95,8 +107,7 @@ export async function renderVibeDynamicsPage(
     + header
     + body
     + footer
-    + productModalScript(siteId, colors.primary)
-    + registerProductsScript(displayProducts)
+    + injectCartSystem(siteId, checkoutMode, colors.primary)
     + sharedPreviewScript(siteId, page)
     + '\n</body>\n</html>';
 }
@@ -427,10 +438,11 @@ function vdHomeSections(
           <p class="text-xl text-white/80">${getContent('featured.subheading')}</p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          ${displayProducts.map((item, idx) => {
+          ${displayProducts.map((item: any, idx: number) => {
             const borderColor = idx % 3 === 0 ? 'var(--color-primary)' : idx % 3 === 1 ? 'var(--color-secondary)' : 'var(--color-accent)';
+            const pd = JSON.stringify({id:item.id||item.slug,title:item.title||'',description:item.description||'',price:item.price||null,sale_price:item.sale_price||null,primary_image:item.primary_image||null,category:item.category||'',model:item.model||'',slug:item.slug||''}).replace(/"/g,'&quot;');
             return `
-            <div class="bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 cursor-pointer" style="border: 4px solid ${borderColor};" onclick="openFmModal('${item.id || item.slug || ''}')">
+            <div class="bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 cursor-pointer" style="border: 4px solid ${borderColor};" onclick="fmOpenProduct(${pd})">
               <div class="h-48" style="${item.primary_image ? `background: url('${item.primary_image}') center/cover no-repeat;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-secondary), var(--color-accent));`}"></div>
               <div class="p-5">
                 <h3 class="font-heading font-black text-lg mb-1" style="color: var(--color-primary);">${item.title.toUpperCase()}</h3>
@@ -858,7 +870,7 @@ async function vdInventoryPage(
         ${products.map((item: any, idx: number) => {
           const borderColor = idx % 3 === 0 ? 'var(--color-primary)' : idx % 3 === 1 ? 'var(--color-secondary)' : 'var(--color-accent)';
           return `
-          <div data-product data-category="${item.category || ''}" class="bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 cursor-pointer" style="border: 4px solid ${borderColor};" onclick="fmOpenProduct(${JSON.stringify({id:item.id||item.slug,title:item.title,description:item.description,price:item.price,sale_price:item.sale_price,primary_image:item.primary_image,category:item.category,model:item.model,slug:item.slug}).replace(/"/g,'&quot;')})">
+          <div data-product data-category="${item.category || ''}" class="bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 cursor-pointer" style="border: 4px solid ${borderColor};" onclick="(function(el){try{fmOpenProduct(JSON.parse(el.getAttribute('data-p')));}catch(e){}})(this)" data-p="${JSON.stringify({id:item.id||item.slug,title:item.title||'',description:item.description||'',price:item.price||null,sale_price:item.sale_price||null,primary_image:item.primary_image||null,category:item.category||'',model:item.model||'',slug:item.slug||''}).replace(/"/g,'&quot;')}">
             <div class="h-52" style="${item.primary_image ? `background: url('${item.primary_image}') center/cover no-repeat;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));`}"></div>
             <div class="p-5">
               ${item.category ? `<span class="inline-block text-xs font-bold uppercase tracking-wide mb-1" style="color: var(--color-primary);">${item.category}</span>` : ''}

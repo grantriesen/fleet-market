@@ -7,8 +7,7 @@
 // (caller provides <head> shell and closing tags)
 // ============================================
 
-import { sharedPreviewScript, pageHero } from './shared';
-import { productModalScript, registerProductsScript, rentalBookingSection } from './product-modal';
+import { sharedPreviewScript, pageHero, serviceFormHtml, injectCartSystem } from './shared';
 
 // ── Types ──
 interface Colors {
@@ -46,10 +45,21 @@ export async function renderGreenValleyPage(
   page: string,
   googleFontsUrl: string,
   supabase?: any,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  siteAddons: string[] = [],
+  checkoutMode: 'online' | 'quote_only' = 'quote_only'
 ): Promise<string> {
-  // Load site features (add-ons) from DB
+  // Load site features from both sites.addons and site_features table
   let enabledFeatures: Set<string> = new Set();
+  const addonToFeatureMap: Record<string, string[]> = {
+    'inventory': ['inventory', 'inventory_sync'],
+    'service':   ['service', 'service_scheduling'],
+    'rentals':   ['rentals', 'rental_scheduling'],
+  };
+  siteAddons.forEach((addon: string) => {
+    enabledFeatures.add(addon);
+    addonToFeatureMap[addon]?.forEach((f: string) => enabledFeatures.add(f));
+  });
   if (supabase) {
     const { data: features } = await supabase
       .from('site_features')
@@ -94,8 +104,7 @@ export async function renderGreenValleyPage(
     + header
     + body
     + footer
-    + productModalScript(siteId, colors.primary)
-    + registerProductsScript(displayProducts)
+    + injectCartSystem(siteId, checkoutMode, colors.primary)
     + sharedPreviewScript(siteId, page)
     + '\n</body>\n</html>';
 }

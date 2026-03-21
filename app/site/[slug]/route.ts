@@ -111,9 +111,9 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
 
   let html = '';
   if (templateSlug === 'green-valley-industrial') {
-    html = await renderGreenValleyPage(getContent, colors, fonts, manufacturers || [], sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, '/', site.addons || []);
+    html = await renderGreenValleyPage(getContent, colors, fonts, manufacturers || [], sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, '/', site.addons || [], site.checkout_mode || 'quote_only');
   } else if (templateSlug === 'vibe-dynamics') {
-    html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers || [], sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, '/', site.addons || []);
+    html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers || [], sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, '/', site.addons || [], site.checkout_mode || 'quote_only');
   } else if (templateSlug === 'corporate-edge') {
     html = renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/');
   } else if (templateSlug === 'zenith-lawn') {
