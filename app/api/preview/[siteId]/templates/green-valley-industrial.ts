@@ -46,10 +46,24 @@ export async function renderGreenValleyPage(
   page: string,
   googleFontsUrl: string,
   supabase?: any,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  siteAddons: string[] = []
 ): Promise<string> {
   // Load site features (add-ons) from DB
   let enabledFeatures: Set<string> = new Set();
+
+  // Seed from sites.addons first (new system)
+  const addonToFeatureMap: Record<string, string[]> = {
+    'inventory': ['inventory', 'inventory_sync'],
+    'service':   ['service', 'service_scheduling'],
+    'rentals':   ['rentals', 'rental_scheduling'],
+  };
+  siteAddons.forEach(addon => {
+    enabledFeatures.add(addon);
+    addonToFeatureMap[addon]?.forEach(f => enabledFeatures.add(f));
+  });
+
+  // Also read site_features table (legacy / manual overrides)
   if (supabase) {
     const { data: features } = await supabase
       .from('site_features')

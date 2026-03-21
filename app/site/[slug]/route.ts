@@ -207,14 +207,16 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     return await renderGreenValleyPage(
       getContent, colors, fonts, manufacturers || [], sectionVisibility,
       siteId, site.site_name, displayProducts, isRealProducts, fmtPrice,
-      availablePages, page, googleFontsUrl, supabase, '/'
+      availablePages, page, googleFontsUrl, supabase, '/',
+      site.addons || []
     );
   }
   if (templateSlug === 'vibe-dynamics') {
     return await renderVibeDynamicsPage(
       getContent, colors, fonts, manufacturers || [], sectionVisibility,
       siteId, site.site_name, displayProducts, isRealProducts, fmtPrice,
-      availablePages, page, googleFontsUrl, supabase, '/'
+      availablePages, page, googleFontsUrl, supabase, '/',
+      site.addons || []
     );
   }
   if (templateSlug === 'corporate-edge') {

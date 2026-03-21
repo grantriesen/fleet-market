@@ -45,9 +45,22 @@ export async function renderVibeDynamicsPage(
   page: string,
   googleFontsUrl: string,
   supabase?: any,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  siteAddons: string[] = []
 ): Promise<string> {
+  // Seed from sites.addons first (new system)
+  const addonToFeatureMap: Record<string, string[]> = {
+    'inventory': ['inventory', 'inventory_sync'],
+    'service':   ['service', 'service_scheduling'],
+    'rentals':   ['rentals', 'rental_scheduling'],
+  };
   let enabledFeatures: Set<string> = new Set();
+  siteAddons.forEach(addon => {
+    enabledFeatures.add(addon);
+    addonToFeatureMap[addon]?.forEach(f => enabledFeatures.add(f));
+  });
+
+  // Also read site_features table (legacy / manual overrides)
   if (supabase) {
     const { data: features } = await supabase
       .from('site_features')
