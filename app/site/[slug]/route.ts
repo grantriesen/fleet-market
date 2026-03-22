@@ -127,7 +127,11 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   }
 
   // Inject cart system if dealer has inventory addon
-  if (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync')) {
+  // Guard against double injection (green-valley and vibe-dynamics inject their own)
+  if (
+    (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync')) &&
+    !html.includes('fm-product-modal')
+  ) {
     const checkoutMode = site.checkout_mode || 'quote_only';
     const cartHtml = injectCartSystem(siteId, checkoutMode, colors.primary);
     html = html.includes('</body>') ? html.replace('</body>', cartHtml + '\n</body>') : html + cartHtml;
