@@ -826,7 +826,7 @@ export function injectCartSystem(
     });
     var total = cartItems.reduce(function(s,i){return s+Number(i.price)*(i.quantity||1);},0);
     footerEl.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:12px;font-weight:700;font-size:1.0625rem;"><span>Subtotal</span><span>$'+total.toLocaleString()+'</span></div>'
-      + '<button id="fm-checkout-btn" style="width:100%;padding:14px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Shipping &amp; Payment &#x2192;</button>'
+      + '<button id="fm-checkout-btn" style="width:100%;padding:14px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Shipping & Payment →</button>'
       + '<button id="fm-continue-btn" style="width:100%;padding:10px;background:none;border:none;font-size:0.875rem;color:#6b7280;cursor:pointer;margin-top:8px;">Continue Shopping</button>';
     document.getElementById('fm-checkout-btn').onclick = fmCheckout;
     document.getElementById('fm-continue-btn').onclick = fmCloseCart;
