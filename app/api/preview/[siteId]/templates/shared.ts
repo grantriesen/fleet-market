@@ -201,7 +201,7 @@ export function basicServiceFormHtml(
         <textarea rows="4" class="${inputClass} resize-y" placeholder="How can we help you?" required></textarea>
       </div>
       <div data-fm-success style="display:none;" class="p-4 bg-green-50 border border-green-200 rounded text-green-800 text-center font-medium">
-        ✓ Message sent! We'll be in touch soon.
+        \u2713 Message sent! We'll be in touch soon.
       </div>
       <button type="submit" class="${buttonClass}">Send Message</button>
     </form>`;
@@ -316,7 +316,7 @@ export function fullServiceFormHtml(
         <textarea name="notes" rows="4" class="${inputClass} resize-y" placeholder="Describe the issue or any additional details..."></textarea>
       </div>
       <div data-fm-success style="display:none;" class="p-4 bg-green-50 border border-green-200 rounded text-green-800 text-center font-medium">
-        ✓ Service request submitted! We'll confirm your appointment within one business day.
+        \u2713 Service request submitted! We'll confirm your appointment within one business day.
       </div>
       <button type="submit" class="${buttonClass}">Schedule Service</button>
     </form>
@@ -454,7 +454,7 @@ export function injectCartSystem(
 
 <div class="fm-modal-overlay" id="fm-product-modal">
   <div class="fm-modal">
-    <button class="fm-modal-close" onclick="fmCloseModal()">✕</button>
+    <button class="fm-modal-close" onclick="fmCloseModal()">\u2715</button>
     <div id="fm-modal-content" style="padding:2rem;"></div>
   </div>
 </div>
@@ -463,14 +463,14 @@ export function injectCartSystem(
 <div class="fm-cart-drawer" id="fm-cart-drawer">
   <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;">
     <h2 style="font-size:1.125rem;font-weight:700;margin:0;">Your Cart</h2>
-    <button onclick="fmCloseCart()" style="background:none;border:none;font-size:1.25rem;cursor:pointer;color:#6b7280;">✕</button>
+    <button onclick="fmCloseCart()" style="background:none;border:none;font-size:1.25rem;cursor:pointer;color:#6b7280;">\u2715</button>
   </div>
   <div id="fm-cart-items" style="flex:1;overflow-y:auto;padding:1rem 1.5rem;"></div>
   <div id="fm-cart-footer" style="padding:1.25rem 1.5rem;border-top:1px solid #e5e7eb;"></div>
 </div>
 
 <button class="fm-cart-btn" id="fm-cart-trigger" onclick="fmOpenCart()" style="display:none;">
-  🛒 Cart <span class="fm-cart-badge" id="fm-cart-count">0</span>
+  \uD83D\uDED2 Cart <span class="fm-cart-badge" id="fm-cart-count">0</span>
 </button>
 
 <script>
@@ -625,7 +625,7 @@ export function injectCartSystem(
       + '</div>';
 
     footerEl.innerHTML = '<button id="fm-get-shipping-btn" style="width:100%;padding:12px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:0.9375rem;font-weight:700;cursor:pointer;margin-bottom:8px;">Check Shipping Options</button>'
-      + '<button id="fm-back-btn" style="width:100%;padding:10px;background:none;border:none;font-size:0.875rem;color:#6b7280;cursor:pointer;">← Back to Cart</button>';
+      + '<button id="fm-back-btn" style="width:100%;padding:10px;background:none;border:none;font-size:0.875rem;color:#6b7280;cursor:pointer;">\u2190 Back to Cart</button>';
 
     document.getElementById('fm-get-shipping-btn').onclick = loadShippingOptions;
     document.getElementById('fm-back-btn').onclick = function() { renderCartDrawer(); };
@@ -706,8 +706,8 @@ export function injectCartSystem(
             + (tax.amount > 0 ? '<div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#6b7280;"><span>Tax</span><span>$'+tax.amount.toFixed(2)+'</span></div>' : '')
             + '<div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.0625rem;padding-top:8px;border-top:1px solid #e5e7eb;"><span>Total</span><span>$'+total.toFixed(2)+'</span></div>'
             + '</div>'
-            + '<button id="fm-checkout-btn" style="width:100%;padding:14px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Proceed to Payment →</button>'
-            + '<button id="fm-back-btn2" style="width:100%;padding:10px;background:none;border:none;font-size:0.875rem;color:#6b7280;cursor:pointer;margin-top:4px;">← Back to Cart</button>';
+            + '<button id="fm-checkout-btn" style="width:100%;padding:14px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Proceed to Payment \u2192</button>'
+            + '<button id="fm-back-btn2" style="width:100%;padding:10px;background:none;border:none;font-size:0.875rem;color:#6b7280;cursor:pointer;margin-top:4px;">\u2190 Back to Cart</button>';
           document.getElementById('fm-checkout-btn').onclick = function() { doCheckout(email, tax.amount); };
           document.getElementById('fm-back-btn2').onclick = function() { renderCartDrawer(); };
         }
@@ -768,7 +768,7 @@ export function injectCartSystem(
     .then(function(r){return r.json();})
     .then(function(d){
       if (d.success) {
-        document.getElementById('fm-modal-content').innerHTML = '<div style="text-align:center;padding:3rem 2rem;"><div style="font-size:3rem;margin-bottom:1rem;">✓</div><h3 style="font-size:1.25rem;font-weight:700;margin:0 0 8px;">Quote Request Sent!</h3><p style="color:#6b7280;">We'll be in touch shortly.</p></div>';
+        document.getElementById('fm-modal-content').innerHTML = '<div style="text-align:center;padding:3rem 2rem;"><div style="font-size:3rem;margin-bottom:1rem;">\u2713</div><h3 style="font-size:1.25rem;font-weight:700;margin:0 0 8px;">Quote Request Sent!</h3><p style="color:#6b7280;">We'll be in touch shortly.</p></div>';
       } else {
         if(btn){btn.textContent=orig;btn.disabled=false;}
         alert('Something went wrong. Please try again.');
@@ -803,7 +803,7 @@ export function injectCartSystem(
     var footerEl = document.getElementById('fm-cart-footer');
     if (!itemsEl || !footerEl) return;
     if (!cartItems.length) {
-      itemsEl.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#9ca3af;"><p style="font-size:2rem;margin-bottom:8px;">🛒</p><p>Your cart is empty</p></div>';
+      itemsEl.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#9ca3af;"><p style="font-size:2rem;margin-bottom:8px;">\uD83D\uDED2</p><p>Your cart is empty</p></div>';
       footerEl.innerHTML = '';
       return;
     }
@@ -826,7 +826,7 @@ export function injectCartSystem(
     });
     var total = cartItems.reduce(function(s,i){return s+Number(i.price)*(i.quantity||1);},0);
     footerEl.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:12px;font-weight:700;font-size:1.0625rem;"><span>Subtotal</span><span>$'+total.toLocaleString()+'</span></div>'
-      + '<button id="fm-checkout-btn" style="width:100%;padding:14px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Shipping & Payment →</button>'
+      + '<button id="fm-checkout-btn" style="width:100%;padding:14px;background:'+ACCENT+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Shipping & Payment \u2192</button>'
       + '<button id="fm-continue-btn" style="width:100%;padding:10px;background:none;border:none;font-size:0.875rem;color:#6b7280;cursor:pointer;margin-top:8px;">Continue Shopping</button>';
     document.getElementById('fm-checkout-btn').onclick = fmCheckout;
     document.getElementById('fm-continue-btn').onclick = fmCloseCart;
