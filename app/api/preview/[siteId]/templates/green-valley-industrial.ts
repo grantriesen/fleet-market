@@ -810,7 +810,6 @@ function gvContactPage(
       });
     }
   </script>
-  ` : ''}
   `;
 }
 
@@ -1767,6 +1766,5 @@ async function gvRentalsPage(
     window.gvCalculateTotal = gvCalculateTotal;
   })();
   </script>
-  ` : ''}
   `;
 }
