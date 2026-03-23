@@ -667,7 +667,7 @@ export function injectCartSystem(
         if (!optsEl) return;
 
         if (fmShippingOptions.length === 0) {
-          optsEl.innerHTML = '<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:0.875rem;color:#dc2626;">We don\'t currently ship to this area. Please contact us directly.</div>';
+          optsEl.innerHTML = '<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:0.875rem;color:#dc2626;">We do not currently ship to this area. Please contact us directly.</div>';
           return;
         }
 
