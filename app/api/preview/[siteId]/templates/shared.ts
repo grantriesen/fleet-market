@@ -676,7 +676,7 @@ export function injectCartSystem(
           var checked = i === 0 ? 'checked' : '';
           if (i === 0) { fmSelectedZoneId = opt.id; }
           html += '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:2px solid '+(checked?ACCENT:'#e5e7eb')+';border-radius:8px;cursor:pointer;margin-bottom:8px;" id="fm-zone-label-'+opt.id+'">'
-            + '<input type="radio" name="fm-shipping-zone" value="'+opt.id+'" '+checked+' style="accent-color:'+ACCENT+';" onchange="fmSelectZone(\''+opt.id+'\')">'
+            + '<input type="radio" name="fm-shipping-zone" value="'+opt.id+'" '+checked+' style="accent-color:'+ACCENT+';" onchange="fmSelectZone("+opt.id+")">'
             + '<div style="flex:1;">'
               + '<p style="margin:0;font-weight:600;font-size:0.875rem;">'+opt.label+'</p>'
               + (opt.estimated_days ? '<p style="margin:0;font-size:0.75rem;color:#6b7280;">'+opt.estimated_days+'</p>' : '')
