@@ -1566,7 +1566,10 @@ async function gvRentalsPage(
                   ${item.monthly_rate ? `<div><p class="text-xs text-muted-foreground uppercase">Monthly</p><p class="font-bold text-primary text-lg">$${item.monthly_rate}</p></div>` : ''}
                 </div>
               </div>
-              <a href="tel:${phone.replace(/[^0-9]/g, '')}" class="block w-full text-center cta-button rounded-md text-sm py-2">Reserve Now</a>
+              \${item.quantity_available > 0
+                ? \`<button onclick="gvShowRentalModal('\${item.id}', '\${item.title.replace(/'/g, "\\'")}', \${item.daily_rate || 0})" class="block w-full text-center cta-button rounded-md text-sm py-2 cursor-pointer border-0 w-full">Reserve Now</button>\`
+                : \`<button disabled class="block w-full text-center bg-muted text-muted-foreground rounded-md text-sm py-2 cursor-not-allowed">Currently Unavailable</button>\`
+              }
             </div>
           </div>
         `).join('')}
@@ -1600,5 +1603,170 @@ async function gvRentalsPage(
     </div>
   </section>
   ` : ''}
-  `;
+
+  <!-- GVI Rental Booking Modal -->
+  <div id="gvRentalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:white;border-radius:0.75rem;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 40px rgba(0,0,0,0.3);">
+      <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;background:var(--color-primary);border-radius:0.75rem 0.75rem 0 0;">
+        <h3 id="gvModalTitle" style="font-size:1.25rem;font-weight:700;color:white;margin:0;">Book Rental</h3>
+        <button onclick="gvCloseRentalModal()" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;line-height:1;padding:0.25rem;">&#x2715;</button>
+      </div>
+      <form id="gvRentalForm" style="padding:1.5rem;">
+        <input type="hidden" name="siteId" value="${siteId}">
+        <input type="hidden" id="gvRentalItemId" name="rentalItemId">
+        <input type="hidden" id="gvRateAmount" name="rateAmount">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+          <div>
+            <label style="display:block;margin-bottom:0.375rem;font-weight:600;font-size:0.875rem;color:#374151;">Full Name *</label>
+            <input type="text" name="customerName" required placeholder="Jane Smith" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;margin-bottom:0.375rem;font-weight:600;font-size:0.875rem;color:#374151;">Phone *</label>
+            <input type="tel" name="customerPhone" required placeholder="(555) 000-0000" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;box-sizing:border-box;">
+          </div>
+        </div>
+
+        <div style="margin-bottom:1rem;">
+          <label style="display:block;margin-bottom:0.375rem;font-weight:600;font-size:0.875rem;color:#374151;">Email *</label>
+          <input type="email" name="customerEmail" required placeholder="jane@example.com" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;box-sizing:border-box;">
+        </div>
+
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:0.5rem;padding:1.25rem;margin-bottom:1rem;">
+          <h4 style="font-size:0.9375rem;font-weight:600;color:#111827;margin:0 0 0.75rem;">Rental Period</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+            <div>
+              <label style="display:block;margin-bottom:0.375rem;font-weight:600;font-size:0.875rem;color:#374151;">Start Date *</label>
+              <input type="date" name="startDate" id="gvStartDate" required min="${new Date().toISOString().split('T')[0]}" onchange="gvCalculateTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="display:block;margin-bottom:0.375rem;font-weight:600;font-size:0.875rem;color:#374151;">Pickup Time *</label>
+              <select name="pickupTime" required style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;background:white;box-sizing:border-box;">
+                <option value="">Select time</option>
+                <option>7:00 AM</option><option>8:00 AM</option><option>9:00 AM</option>
+                <option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option>
+                <option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option>
+                <option>4:00 PM</option><option>5:00 PM</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div>
+              <label style="display:block;margin-bottom:0.375rem;font-weight:600;font-size:0.875rem;color:#374151;">End Date *</label>
+              <input type="date" name="endDate" id="gvEndDate" required min="${new Date().toISOString().split('T')[0]}" onchange="gvCalculateTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="display:block;margin-bottom:0.375rem;font-weight:600;font-size:0.875rem;color:#374151;">Return Time *</label>
+              <select name="returnTime" required style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;background:white;box-sizing:border-box;">
+                <option value="">Select time</option>
+                <option>7:00 AM</option><option>8:00 AM</option><option>9:00 AM</option>
+                <option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option>
+                <option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option>
+                <option>4:00 PM</option><option>5:00 PM</option>
+              </select>
+            </div>
+          </div>
+          <div id="gvTotalCalc" style="display:none;margin-top:1rem;padding:0.75rem;background:white;border-radius:0.375rem;border:1px solid #e5e7eb;">
+            <p style="font-size:0.875rem;color:#6b7280;margin:0 0 0.25rem;">Duration: <strong id="gvRentalDays">0</strong> day(s)</p>
+            <p style="font-size:1.125rem;font-weight:700;color:var(--color-primary);margin:0;">Estimated Total: $<span id="gvTotalAmount">0</span></p>
+          </div>
+        </div>
+
+        <div style="margin-bottom:1rem;">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+            <input type="checkbox" name="deliveryRequired" onchange="gvToggleDelivery(this)" style="width:1rem;height:1rem;">
+            <span style="font-weight:600;font-size:0.875rem;color:#374151;">Request Delivery</span>
+          </label>
+        </div>
+        <div id="gvDeliveryAddress" style="display:none;margin-bottom:1rem;">
+          <label style="display:block;margin-bottom:0.375rem;font-weight:600;font-size:0.875rem;color:#374151;">Delivery Address</label>
+          <textarea name="deliveryAddress" rows="2" placeholder="Street address, city, state, zip" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;resize:vertical;box-sizing:border-box;"></textarea>
+        </div>
+
+        <div style="margin-bottom:1.5rem;">
+          <label style="display:block;margin-bottom:0.375rem;font-weight:600;font-size:0.875rem;color:#374151;">Special Requests</label>
+          <textarea name="notes" rows="3" placeholder="Any special requests or notes..." style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;resize:vertical;box-sizing:border-box;"></textarea>
+        </div>
+
+        <button type="submit" id="gvRentalSubmitBtn" style="width:100%;background:var(--color-primary);color:white;padding:0.875rem;border:none;border-radius:0.375rem;font-weight:700;font-size:1rem;cursor:pointer;transition:opacity 0.2s;">
+          Submit Rental Request
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    function gvShowRentalModal(itemId, itemTitle, dailyRate) {
+      var modal = document.getElementById('gvRentalModal');
+      document.getElementById('gvModalTitle').textContent = 'Book: ' + itemTitle;
+      document.getElementById('gvRentalItemId').value = itemId;
+      document.getElementById('gvRateAmount').value = dailyRate;
+      document.getElementById('gvTotalCalc').style.display = 'none';
+      document.getElementById('gvRentalForm').reset();
+      document.getElementById('gvRentalItemId').value = itemId;
+      document.getElementById('gvRateAmount').value = dailyRate;
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+    function gvCloseRentalModal() {
+      document.getElementById('gvRentalModal').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+    function gvToggleDelivery(cb) {
+      document.getElementById('gvDeliveryAddress').style.display = cb.checked ? 'block' : 'none';
+    }
+    function gvCalculateTotal() {
+      var start = document.getElementById('gvStartDate').value;
+      var end = document.getElementById('gvEndDate').value;
+      var rate = parseFloat(document.getElementById('gvRateAmount').value) || 0;
+      if (start && end && rate) {
+        var days = Math.ceil((new Date(end) - new Date(start)) / 86400000) + 1;
+        if (days > 0) {
+          document.getElementById('gvRentalDays').textContent = days;
+          document.getElementById('gvTotalAmount').textContent = (days * rate).toFixed(2);
+          document.getElementById('gvTotalCalc').style.display = 'block';
+        }
+      }
+    }
+    document.getElementById('gvRentalModal').addEventListener('click', function(e) {
+      if (e.target === this) gvCloseRentalModal();
+    });
+    document.getElementById('gvRentalForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var btn = document.getElementById('gvRentalSubmitBtn');
+      var formData = new FormData(this);
+      var data = {};
+      formData.forEach(function(v, k) { data[k] = v; });
+      btn.textContent = 'Submitting...';
+      btn.disabled = true;
+      fetch('/api/rental/book/' + data.siteId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(result) {
+        if (result.error) {
+          alert('Error: ' + result.error);
+          btn.textContent = 'Submit Rental Request';
+          btn.disabled = false;
+        } else {
+          document.getElementById('gvRentalForm').innerHTML = '<div style="text-align:center;padding:3rem 1.5rem;"><div style="font-size:3rem;margin-bottom:1rem;">✅</div><h3 style="color:var(--color-primary);font-size:1.5rem;font-weight:700;margin-bottom:0.75rem;">Request Submitted!</h3><p style="color:#6b7280;">We will contact you shortly to confirm your booking.</p></div>';
+        }
+      })
+      .catch(function() {
+        alert('Something went wrong. Please try again.');
+        btn.textContent = 'Submit Rental Request';
+        btn.disabled = false;
+      });
+    });
+    window.gvShowRentalModal = gvShowRentalModal;
+    window.gvCloseRentalModal = gvCloseRentalModal;
+    window.gvToggleDelivery = gvToggleDelivery;
+    window.gvCalculateTotal = gvCalculateTotal;
+  })();
+  </script>
+  \` : ''}
+  \`;
 }

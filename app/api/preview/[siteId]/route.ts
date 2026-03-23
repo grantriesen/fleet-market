@@ -161,6 +161,7 @@ export async function GET(
         site_name,
         slug,
         subscription_tier,
+        addons,
         template:templates (
           name,
           slug,
@@ -348,7 +349,9 @@ async function generateTemplateHTML(
       availablePages,
       page,
       googleFontsUrl,
-      supabase
+      supabase,
+      '',
+      site.addons || []
     );
   }
 
@@ -2072,17 +2075,27 @@ async function renderRentalsPageWithIntegration(
   colors: any,
   supabase: any
 ): Promise<string> {
-  // Check if site has rental_scheduling add-on
+  // Check if site has rentals add-on via sites.addons array
   let hasRentalFeature = false;
   if (supabase) {
-    const { data: feature } = await supabase
-      .from('site_features')
-      .select('feature_key')
-      .eq('site_id', siteId)
-      .eq('feature_key', 'rental_scheduling')
-      .eq('enabled', true)
+    const { data: siteRow } = await supabase
+      .from('sites')
+      .select('addons')
+      .eq('id', siteId)
       .single();
-    hasRentalFeature = !!feature;
+    const addons: string[] = siteRow?.addons || [];
+    hasRentalFeature = addons.includes('rentals');
+    // Also check site_features table as fallback
+    if (!hasRentalFeature) {
+      const { data: feature } = await supabase
+        .from('site_features')
+        .select('feature_key')
+        .eq('site_id', siteId)
+        .eq('feature_key', 'rental_scheduling')
+        .eq('enabled', true)
+        .single();
+      hasRentalFeature = !!feature;
+    }
   }
 
   const heading = getContent('rentalsPage.heading') || 'Equipment Rentals';
