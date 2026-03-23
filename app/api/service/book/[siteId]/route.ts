@@ -121,6 +121,40 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
 
     if (error) throw error;
 
+    // Capture lead — fire and forget (don't fail the booking if this errors)
+    try {
+      const notes: string[] = [];
+      if (serviceTypeName) notes.push(`Service: ${serviceTypeName}`);
+      if (equipmentType)   notes.push(`Equipment: ${equipmentType}`);
+      if (equipmentMake)   notes.push(`Make: ${equipmentMake}`);
+      if (equipmentModel)  notes.push(`Model: ${equipmentModel}`);
+      if (preferredDate)   notes.push(`Preferred date: ${preferredDate}`);
+      if (preferredTime)   notes.push(`Preferred time: ${preferredTime}`);
+      if (customerNotes)   notes.push(`Notes: ${customerNotes}`);
+
+      await supabase.from('lead_captures').insert({
+        site_id:    params.siteId,
+        name:       customerName,
+        email:      customerEmail,
+        phone:      customerPhone || null,
+        source:     'quote_request',
+        tags:       ['service'],
+        message:    notes.join(' | ') || null,
+        extra_data: {
+          appointment_id:   data.id,
+          service_type:     serviceTypeName,
+          equipment_type:   equipmentType || null,
+          equipment_make:   equipmentMake || null,
+          equipment_model:  equipmentModel || null,
+          equipment_serial: equipmentSerial || null,
+          preferred_date:   preferredDate || null,
+          preferred_time:   preferredTime || null,
+        },
+      });
+    } catch (leadErr) {
+      console.error('Lead capture failed (non-fatal):', leadErr);
+    }
+
     return NextResponse.json({
       success: true,
       appointmentId: data.id,
