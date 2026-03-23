@@ -676,7 +676,7 @@ export function injectCartSystem(
           var checked = i === 0 ? 'checked' : '';
           if (i === 0) { fmSelectedZoneId = opt.id; }
           html += '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:2px solid '+(checked?ACCENT:'#e5e7eb')+';border-radius:8px;cursor:pointer;margin-bottom:8px;" id="fm-zone-label-'+opt.id+'">'
-            + '<input type="radio" name="fm-shipping-zone" value="'+opt.id+'" '+checked+' style="accent-color:'+ACCENT+';" onchange="fmSelectZone("+opt.id+")">'
+            + '<input type="radio" name="fm-shipping-zone" value="'+opt.id+'" '+checked+' style="accent-color:'+ACCENT+';" onchange="fmSelectZone(\''+opt.id+'\')">'
             + '<div style="flex:1;">'
               + '<p style="margin:0;font-weight:600;font-size:0.875rem;">'+opt.label+'</p>'
               + (opt.estimated_days ? '<p style="margin:0;font-size:0.75rem;color:#6b7280;">'+opt.estimated_days+'</p>' : '')
@@ -768,7 +768,7 @@ export function injectCartSystem(
     .then(function(r){return r.json();})
     .then(function(d){
       if (d.success) {
-        document.getElementById('fm-modal-content').innerHTML = '<div style="text-align:center;padding:3rem 2rem;"><div style="font-size:3rem;margin-bottom:1rem;">\u2713</div><h3 style="font-size:1.25rem;font-weight:700;margin:0 0 8px;">Quote Request Sent!</h3><p style="color:#6b7280;">We'll be in touch shortly.</p></div>';
+        document.getElementById('fm-modal-content').innerHTML = '<div style="text-align:center;padding:3rem 2rem;"><div style="font-size:3rem;margin-bottom:1rem;">\u2713</div><h3 style="font-size:1.25rem;font-weight:700;margin:0 0 8px;">Quote Request Sent!</h3><p style="color:#6b7280;">We will be in touch shortly.</p></div>';
       } else {
         if(btn){btn.textContent=orig;btn.disabled=false;}
         alert('Something went wrong. Please try again.');
