@@ -1767,6 +1767,6 @@ async function gvRentalsPage(
     window.gvCalculateTotal = gvCalculateTotal;
   })();
   </script>
-  \` : ''}
-  \`;
+  ` : ''}
+  `;
 }
