@@ -1566,9 +1566,9 @@ async function gvRentalsPage(
                   ${item.monthly_rate ? `<div><p class="text-xs text-muted-foreground uppercase">Monthly</p><p class="font-bold text-primary text-lg">$${item.monthly_rate}</p></div>` : ''}
                 </div>
               </div>
-              \${item.quantity_available > 0
-                ? \`<button onclick="gvShowRentalModal('\${item.id}', '\${item.title.replace(/'/g, "\\'")}', \${item.daily_rate || 0})" class="block w-full text-center cta-button rounded-md text-sm py-2 cursor-pointer border-0 w-full">Reserve Now</button>\`
-                : \`<button disabled class="block w-full text-center bg-muted text-muted-foreground rounded-md text-sm py-2 cursor-not-allowed">Currently Unavailable</button>\`
+              ${item.quantity_available > 0
+                ? `<button onclick="gvShowRentalModal('${item.id}', '${item.title.replace(/'/g, "\\'")}', ${item.daily_rate || 0})" class="block w-full text-center cta-button rounded-md text-sm py-2 cursor-pointer border-0 w-full">Reserve Now</button>`
+                : `<button disabled class="block w-full text-center bg-muted text-muted-foreground rounded-md text-sm py-2 cursor-not-allowed">Currently Unavailable</button>`
               }
             </div>
           </div>
