@@ -799,20 +799,19 @@ async function mlsRentalsPage(
           <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Phone *</label><input type="tel" name="customerPhone" required style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
         </div>
         <div style="margin-bottom:1rem;"><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Email *</label><input type="email" name="customerEmail" required style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
-        <div style="background:#f9fafb;padding:1rem;border-radius:0.5rem;margin-bottom:1rem;border:1px solid #e5e7eb;">
+        <div style="margin-bottom:1rem;">
           <h4 style="font-size:0.9375rem;font-weight:600;margin:0 0 0.75rem;color:#111827;">Rental Period</h4>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0.75rem;">
-            <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Start Date *</label><input type="date" name="startDate" id="fmRentalStart" required min="${new Date().toISOString().split('T')[0]}" onchange="fmCalcRentalTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
-            <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Pickup Time *</label><select name="pickupTime" required onchange="fmCalcRentalTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;background:white;box-sizing:border-box;"><option value="">Select time</option><option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option></select></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-            <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">End Date *</label><input type="date" name="endDate" id="fmRentalEnd" required min="${new Date().toISOString().split('T')[0]}" onchange="fmCalcRentalTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
-            <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Return Time *</label><select name="returnTime" required onchange="fmCalcRentalTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;background:white;box-sizing:border-box;"><option value="">Select time</option><option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option></select></div>
-          </div>
+          <input type="hidden" id="fmStartDateVal" name="startDate">
+          <input type="hidden" id="fmEndDateVal" name="endDate">
+          <div id="fmDatePicker" style="border:1px solid #e5e7eb;border-radius:0.5rem;padding:0.875rem;background:#fafafa;"></div>
           <div id="fmRentalTotal" style="display:none;margin-top:0.75rem;padding:0.75rem;background:white;border-radius:0.375rem;border:1px solid #e5e7eb;">
-            <p style="font-size:0.8125rem;color:#6b7280;margin:0 0 0.25rem;">Duration: <span id="fmRentalDays">0</span> day(s)</p>
-            <p style="font-size:1.0625rem;font-weight:700;color:#16a34a;margin:0;">Estimated Total: $<span id="fmRentalTotalAmt">0</span></p>
+            <p style="font-size:0.8125rem;color:#6b7280;margin:0 0 0.25rem;">Duration: <span id="fmRentalDays">0</span></p>
+            <p style="font-size:1.0625rem;font-weight:700;color:#1e3a6e;margin:0;">Estimated Total: $<span id="fmRentalTotalAmt">0</span></p>
           </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+          <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Pickup Time</label><select name="pickupTime" onchange="fmCalcRentalTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;background:white;box-sizing:border-box;"><option value="">Select time</option><option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option></select></div>
+          <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Return Time</label><select name="returnTime" onchange="fmCalcRentalTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;background:white;box-sizing:border-box;"><option value="">Select time</option><option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option></select></div>
         </div>
         <div id="fmDeliverySection" style="display:none;margin-bottom:0.75rem;">
           <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;font-weight:600;color:#374151;">
@@ -838,6 +837,8 @@ async function mlsRentalsPage(
       document.getElementById('fmRentalModal').style.display = 'flex';
       document.getElementById('fmRentalModalTitle').textContent = 'Book: ' + itemTitle;
       document.getElementById('fmRentalForm').reset();
+      document.getElementById('fmStartDateVal').value = '';
+      document.getElementById('fmEndDateVal').value = '';
       document.getElementById('fmRentalItemId').value = itemId;
       document.getElementById('fmRateAmount').value = dailyRate;
       var hrEl = document.getElementById('fmHourlyRate');
@@ -850,6 +851,13 @@ async function mlsRentalsPage(
       document.getElementById('fmDeliveryAddr').style.display = 'none';
       document.getElementById('fmDeliverySection').style.display = deliveryAvailable ? 'block' : 'none';
       document.body.style.overflow = 'hidden';
+      // Init inline date picker
+      var siteId = document.querySelector('[name="siteId"]') ? document.querySelector('[name="siteId"]').value : '';
+      fmRentalDatePicker.init('fmDatePicker', siteId, itemId, function(start, end) {
+        document.getElementById('fmStartDateVal').value = start;
+        document.getElementById('fmEndDateVal').value = end;
+        fmCalcRentalTotal();
+      }, getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#1e3a6e');
     }
     function fmCloseRentalModal() { document.getElementById('fmRentalModal').style.display = 'none'; document.body.style.overflow = ''; }
     function fmToggleDelivery(cb) { document.getElementById('fmDeliveryAddr').style.display = cb.checked ? 'block' : 'none'; }
@@ -862,8 +870,8 @@ async function mlsRentalsPage(
       return h + mn / 60;
     };
     function fmCalcRentalTotal() {
-      var s = document.getElementById('fmRentalStart').value;
-      var e = document.getElementById('fmRentalEnd').value;
+      var s = document.getElementById('fmStartDateVal') ? document.getElementById('fmStartDateVal').value : '';
+      var e = document.getElementById('fmEndDateVal') ? document.getElementById('fmEndDateVal').value : '';
       if (!s || !e) return;
       var dailyRate   = parseFloat(document.getElementById('fmRateAmount').value)  || 0;
       var hourlyRate  = parseFloat((document.getElementById('fmHourlyRate')  || {}).value) || 0;
@@ -927,6 +935,178 @@ async function mlsRentalsPage(
     window.fmShowRentalModal = fmShowRentalModal; window.fmCloseRentalModal = fmCloseRentalModal;
     window.fmToggleDelivery = fmToggleDelivery; window.fmCalcRentalTotal = fmCalcRentalTotal;
   })();
+  // Inline date range picker
+  // Shared inline date range picker for all Fleet Market rental modals
+  // Injected into both gv-prefixed (GVI) and fm-prefixed (other templates) modals
+  // Usage: fmRentalDatePicker.init(containerId, siteId, itemId, onRangeSelected, primaryColor)
+  
+  (function() {
+    var DP = window.fmRentalDatePicker = {};
+    
+    DP.state = {
+      bookedDates: [],
+      startDate: null,
+      endDate: null,
+      hoverDate: null,
+      viewYear: new Date().getFullYear(),
+      viewMonth: new Date().getMonth(),
+      containerId: null,
+      onSelect: null,
+      primaryColor: '#1e3a6e'
+    };
+  
+    var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  
+    function dateStr(d) {
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    function parseDate(s) { var p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+    function today() { return dateStr(new Date()); }
+  
+    DP.init = function(containerId, siteId, itemId, onSelect, primaryColor) {
+      DP.state.containerId = containerId;
+      DP.state.onSelect = onSelect;
+      DP.state.primaryColor = primaryColor || '#1e3a6e';
+      DP.state.startDate = null;
+      DP.state.endDate = null;
+      DP.state.hoverDate = null;
+      DP.state.bookedDates = [];
+      DP.state.viewYear = new Date().getFullYear();
+      DP.state.viewMonth = new Date().getMonth();
+      DP.render();
+      // Fetch booked dates
+      if (siteId && itemId) {
+        fetch('/api/rental/availability/' + siteId + '?itemId=' + itemId)
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            DP.state.bookedDates = (data.bookedRanges && data.bookedRanges[itemId]) || [];
+            DP.render();
+          })
+          .catch(function() {});
+      }
+    };
+  
+    DP.render = function() {
+      var el = document.getElementById(DP.state.containerId);
+      if (!el) return;
+      var s = DP.state;
+      var pc = s.primaryColor;
+      var today_str = today();
+  
+      // Build calendar days
+      var firstDay = new Date(s.viewYear, s.viewMonth, 1).getDay();
+      var daysInMonth = new Date(s.viewYear, s.viewMonth + 1, 0).getDate();
+      var prevMonthDays = new Date(s.viewYear, s.viewMonth, 0).getDate();
+  
+      var cells = '';
+      var totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+  
+      for (var i = 0; i < totalCells; i++) {
+        var day, inMonth = true;
+        if (i < firstDay) { day = prevMonthDays - firstDay + i + 1; inMonth = false; }
+        else if (i >= firstDay + daysInMonth) { day = i - firstDay - daysInMonth + 1; inMonth = false; }
+        else { day = i - firstDay + 1; }
+  
+        if (!inMonth) { cells += '<div style="padding:0.375rem;"></div>'; continue; }
+  
+        var ds = s.viewYear + '-' + String(s.viewMonth+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+        var isPast = ds < today_str;
+        var isBooked = s.bookedDates.indexOf(ds) !== -1;
+        var isStart = ds === s.startDate;
+        var isEnd = ds === s.endDate;
+        var isToday = ds === today_str;
+        var inRange = s.startDate && s.endDate && ds > s.startDate && ds < s.endDate;
+        var inHover = s.startDate && !s.endDate && s.hoverDate && ds > s.startDate && ds <= s.hoverDate;
+  
+        var bg = 'transparent', color = '#111827', cursor = 'pointer', border = 'none', textDec = 'none';
+        var borderRadius = '50%';
+  
+        if (isPast || isBooked) {
+          bg = isBooked ? '#fee2e2' : 'transparent';
+          color = '#9ca3af';
+          cursor = 'not-allowed';
+          textDec = isBooked ? 'line-through' : 'none';
+        } else if (isStart || isEnd) {
+          bg = pc;
+          color = 'white';
+        } else if (inRange || inHover) {
+          bg = pc + '20';
+          color = '#111827';
+          borderRadius = '0';
+        }
+        if (isToday && !isStart && !isEnd) { border = '2px solid ' + pc; }
+  
+        var disabled = isPast || isBooked ? 'data-disabled="1"' : '';
+        cells += '<div ' + disabled + ' data-date="' + ds + '" onclick="fmRentalDatePicker.pick(this)" onmouseover="fmRentalDatePicker.hover(this)" style="padding:0.375rem;text-align:center;font-size:0.8125rem;font-weight:' + (isStart||isEnd?'700':'400') + ';border-radius:' + borderRadius + ';background:' + bg + ';color:' + color + ';cursor:' + cursor + ';border:' + border + ';text-decoration:' + textDec + ';user-select:none;line-height:1.75rem;">' + day + '</div>';
+      }
+  
+      // Selected range display
+      var rangeLabel = '';
+      if (s.startDate && s.endDate) {
+        var sd = parseDate(s.startDate), ed = parseDate(s.endDate);
+        var days = Math.ceil((ed - sd) / 86400000) + 1;
+        rangeLabel = '<div style="margin-top:0.75rem;padding:0.625rem 0.875rem;background:' + pc + '15;border-radius:0.5rem;font-size:0.875rem;color:' + pc + ';font-weight:600;text-align:center;">' +
+          sd.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' → ' + ed.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' &nbsp;·&nbsp; ' + days + ' day' + (days>1?'s':'') +
+          '</div>';
+      } else if (s.startDate) {
+        rangeLabel = '<div style="margin-top:0.75rem;padding:0.5rem;text-align:center;font-size:0.8125rem;color:#6b7280;">Select your end date</div>';
+      } else {
+        rangeLabel = '<div style="margin-top:0.75rem;padding:0.5rem;text-align:center;font-size:0.8125rem;color:#6b7280;">Click a start date</div>';
+      }
+  
+      // Legend
+      var legend = '<div style="display:flex;gap:1rem;margin-top:0.625rem;font-size:0.75rem;color:#6b7280;">' +
+        '<span style="display:flex;align-items:center;gap:0.25rem;"><span style="width:0.75rem;height:0.75rem;background:#fee2e2;border-radius:2px;text-decoration:line-through;display:inline-flex;align-items:center;justify-content:center;font-size:0.5rem;color:#9ca3af;">X</span>Unavailable</span>' +
+        '<span style="display:flex;align-items:center;gap:0.25rem;"><span style="width:0.75rem;height:0.75rem;background:' + pc + ';border-radius:50%;display:inline-block;"></span>Selected</span>' +
+        '</div>';
+  
+      el.innerHTML = '<div style="user-select:none;">' +
+        // Header
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.625rem;">' +
+          '<button type="button" onclick="fmRentalDatePicker.prevMonth()" style="background:none;border:1px solid #e5e7eb;border-radius:0.375rem;padding:0.25rem 0.5rem;cursor:pointer;font-size:1rem;color:#374151;">‹</button>' +
+          '<span style="font-weight:700;font-size:0.9375rem;color:#111827;">' + MONTHS[s.viewMonth] + ' ' + s.viewYear + '</span>' +
+          '<button type="button" onclick="fmRentalDatePicker.nextMonth()" style="background:none;border:1px solid #e5e7eb;border-radius:0.375rem;padding:0.25rem 0.5rem;cursor:pointer;font-size:1rem;color:#374151;">›</button>' +
+        '</div>' +
+        // Day headers
+        '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:2px;">' +
+          DAYS.map(function(d) { return '<div style="text-align:center;font-size:0.6875rem;font-weight:600;color:#9ca3af;padding:0.25rem 0;">' + d + '</div>'; }).join('') +
+        '</div>' +
+        // Day cells
+        '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;" onmouseleave="fmRentalDatePicker.clearHover()">' + cells + '</div>' +
+        rangeLabel + legend +
+      '</div>';
+    };
+  
+    DP.pick = function(el) {
+      if (el.getAttribute('data-disabled')) return;
+      var ds = el.getAttribute('data-date');
+      var s = DP.state;
+      if (!s.startDate || (s.startDate && s.endDate) || ds < s.startDate) {
+        s.startDate = ds; s.endDate = null;
+      } else {
+        s.endDate = ds;
+        if (s.onSelect) s.onSelect(s.startDate, s.endDate);
+      }
+      DP.render();
+    };
+  
+    DP.hover = function(el) {
+      if (el.getAttribute('data-disabled')) return;
+      var s = DP.state;
+      if (s.startDate && !s.endDate) {
+        var ds = el.getAttribute('data-date');
+        if (ds > s.startDate) { s.hoverDate = ds; DP.render(); }
+      }
+    };
+  
+    DP.clearHover = function() { DP.state.hoverDate = null; DP.render(); };
+    DP.prevMonth = function() { var s = DP.state; s.viewMonth--; if (s.viewMonth < 0) { s.viewMonth = 11; s.viewYear--; } DP.render(); };
+    DP.nextMonth = function() { var s = DP.state; s.viewMonth++; if (s.viewMonth > 11) { s.viewMonth = 0; s.viewYear++; } DP.render(); };
+    DP.getStart = function() { return DP.state.startDate || ''; };
+    DP.getEnd   = function() { return DP.state.endDate   || ''; };
+  })();
+  
   </script>`;
     }
   }

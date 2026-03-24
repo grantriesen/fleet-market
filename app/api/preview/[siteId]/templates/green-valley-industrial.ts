@@ -1610,7 +1610,6 @@ async function gvRentalsPage(
         <h3 id="gvModalTitle" style="font-size:1.25rem;font-weight:700;color:white;margin:0;">Book Rental</h3>
         <button onclick="gvCloseRentalModal()" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;line-height:1;padding:0.25rem;">&#x2715;</button>
       </div>
-      <div id="gvAvailNotice" style="padding:0.5rem 1.5rem;font-size:0.8125rem;color:#6b7280;min-height:1.25rem;"></div>
       <form id="gvRentalForm" style="padding:1.5rem;">
         <input type="hidden" name="siteId" value="${siteId}">
         <input type="hidden" id="gvRentalItemId" name="rentalItemId">
@@ -1635,46 +1634,20 @@ async function gvRentalsPage(
           <input type="email" name="customerEmail" required placeholder="jane@example.com" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;box-sizing:border-box;">
         </div>
 
-        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:0.5rem;padding:1.25rem;margin-bottom:1rem;">
+        <div style="margin-bottom:1rem;">
           <h4 style="font-size:0.9375rem;font-weight:600;color:#111827;margin:0 0 0.75rem;">Rental Period</h4>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-            <div>
-              <label style="display:block;margin-bottom:0.375rem;font-weight:600;font-size:0.875rem;color:#374151;">Start Date *</label>
-              <input type="date" name="startDate" id="gvStartDate" required min="${new Date().toISOString().split('T')[0]}" onchange="gvCalculateTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;box-sizing:border-box;">
-            </div>
-            <div>
-              <label style="display:block;margin-bottom:0.375rem;font-weight:600;font-size:0.875rem;color:#374151;">Pickup Time *</label>
-              <select name="pickupTime" required style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;background:white;box-sizing:border-box;">
-                <option value="">Select time</option>
-                <option>7:00 AM</option><option>8:00 AM</option><option>9:00 AM</option>
-                <option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option>
-                <option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option>
-                <option>4:00 PM</option><option>5:00 PM</option>
-              </select>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-            <div>
-              <label style="display:block;margin-bottom:0.375rem;font-weight:600;font-size:0.875rem;color:#374151;">End Date *</label>
-              <input type="date" name="endDate" id="gvEndDate" required min="${new Date().toISOString().split('T')[0]}" onchange="gvCalculateTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;box-sizing:border-box;">
-            </div>
-            <div>
-              <label style="display:block;margin-bottom:0.375rem;font-weight:600;font-size:0.875rem;color:#374151;">Return Time *</label>
-              <select name="returnTime" required style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;background:white;box-sizing:border-box;">
-                <option value="">Select time</option>
-                <option>7:00 AM</option><option>8:00 AM</option><option>9:00 AM</option>
-                <option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option>
-                <option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option>
-                <option>4:00 PM</option><option>5:00 PM</option>
-              </select>
-            </div>
-          </div>
-          <div id="gvTotalCalc" style="display:none;margin-top:1rem;padding:0.75rem;background:white;border-radius:0.375rem;border:1px solid #e5e7eb;">
-            <p style="font-size:0.875rem;color:#6b7280;margin:0 0 0.25rem;">Duration: <strong id="gvRentalDays">0</strong> day(s)</p>
+          <input type="hidden" id="gvStartDateVal" name="startDate">
+          <input type="hidden" id="gvEndDateVal" name="endDate">
+          <div id="gvDatePicker" style="border:1px solid #e5e7eb;border-radius:0.5rem;padding:0.875rem;background:#fafafa;"></div>
+          <div id="gvTotalCalc" style="display:none;margin-top:0.75rem;padding:0.75rem;background:white;border-radius:0.375rem;border:1px solid #e5e7eb;">
+            <p style="font-size:0.8125rem;color:#6b7280;margin:0 0 0.25rem;">Duration: <span id="gvRentalDays"></span></p>
             <p style="font-size:1.125rem;font-weight:700;color:var(--color-primary);margin:0;">Estimated Total: $<span id="gvTotalAmount">0</span></p>
           </div>
         </div>
-
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+          <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Pickup Time</label><select name="pickupTime" onchange="gvCalculateTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;background:white;box-sizing:border-box;"><option value="">Select time</option><option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option></select></div>
+          <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Return Time</label><select name="returnTime" onchange="gvCalculateTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.9375rem;background:white;box-sizing:border-box;"><option value="">Select time</option><option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option></select></div>
+        </div>
         <div id="gvDeliverySection" style="display:none;margin-bottom:1rem;">
           <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
             <input type="checkbox" name="deliveryRequired" onchange="gvToggleDelivery(this)" style="width:1rem;height:1rem;">
@@ -1704,6 +1677,8 @@ async function gvRentalsPage(
       var modal = document.getElementById('gvRentalModal');
       document.getElementById('gvModalTitle').textContent = 'Book: ' + itemTitle;
       document.getElementById('gvRentalForm').reset();
+      document.getElementById('gvStartDateVal').value = '';
+      document.getElementById('gvEndDateVal').value = '';
       document.getElementById('gvRentalItemId').value = itemId;
       document.getElementById('gvRateAmount').value = dailyRate;
       document.getElementById('gvHourlyRate').value = hourlyRate || '';
@@ -1714,77 +1689,16 @@ async function gvRentalsPage(
       document.getElementById('gvDeliverySection').style.display = deliveryAvailable ? 'block' : 'none';
       modal.style.display = 'flex';
       document.body.style.overflow = 'hidden';
-      // Fetch booked dates and disable them
-      gvLoadAvailability(itemId);
+      // Init inline date picker
+      fmRentalDatePicker.init('gvDatePicker', '${siteId}', itemId, function(start, end) {
+        document.getElementById('gvStartDateVal').value = start;
+        document.getElementById('gvEndDateVal').value = end;
+        gvCalculateTotal();
+      }, getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#1a3a1a');
     }
-    function gvLoadAvailability(itemId) {
-      var startEl = document.getElementById('gvStartDate');
-      var endEl = document.getElementById('gvEndDate');
-      var notice = document.getElementById('gvAvailNotice');
-      if (notice) notice.textContent = 'Checking availability...';
-      fetch('/api/rental/availability/${siteId}?itemId=' + itemId)
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          var booked = (data.bookedRanges && data.bookedRanges[itemId]) || [];
-          window._gvBookedDates = booked;
-          if (notice) notice.textContent = booked.length ? 'Some dates are unavailable — shown in red.' : '';
-          // Attach validation to date inputs
-          [startEl, endEl].forEach(function(el) {
-            if (!el) return;
-            el.addEventListener('input', gvCheckDateAvailability);
-          });
-        })
-        .catch(function() { if (notice) notice.textContent = ''; });
-    }
-    function gvCheckDateAvailability() {
-      var booked = window._gvBookedDates || [];
-      if (!booked.length) return;
-      var startEl = document.getElementById('gvStartDate');
-      var endEl = document.getElementById('gvEndDate');
-      var notice = document.getElementById('gvAvailNotice');
-      var start = startEl ? startEl.value : '';
-      var end = endEl ? endEl.value : '';
-      var conflict = false;
-      if (start && end) {
-        var cur = new Date(start);
-        var last = new Date(end);
-        while (cur <= last) {
-          var ds = cur.toISOString().split('T')[0];
-          if (booked.indexOf(ds) !== -1) { conflict = true; break; }
-          cur.setDate(cur.getDate() + 1);
-        }
-      } else if (start) {
-        conflict = booked.indexOf(start) !== -1;
-      }
-      if (conflict) {
-        if (notice) { notice.textContent = 'These dates include unavailable days. Please choose different dates.'; notice.style.color = '#dc2626'; }
-        var submitBtn = document.getElementById('gvRentalSubmitBtn');
-        if (submitBtn) submitBtn.disabled = true;
-      } else {
-        if (notice) { notice.textContent = booked.length ? 'Some dates are unavailable — shown in red.' : ''; notice.style.color = '#6b7280'; }
-        var submitBtn = document.getElementById('gvRentalSubmitBtn');
-        if (submitBtn) submitBtn.disabled = false;
-      }
-      gvCalculateTotal();
-    }
-    function gvCloseRentalModal() {
-      document.getElementById('gvRentalModal').style.display = 'none';
-      document.body.style.overflow = '';
-    }
-    function gvToggleDelivery(cb) {
-      document.getElementById('gvDeliveryAddress').style.display = cb.checked ? 'block' : 'none';
-    }
-    var gvParseTime = function(t) {
-      var m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
-      if (!m) return null;
-      var h = parseInt(m[1]), mn = parseInt(m[2]), mer = m[3].toUpperCase();
-      if (mer === 'PM' && h !== 12) h += 12;
-      if (mer === 'AM' && h === 12) h = 0;
-      return h + mn / 60;
-    };
     function gvCalculateTotal() {
-      var start = document.getElementById('gvStartDate').value;
-      var end = document.getElementById('gvEndDate').value;
+      var start = document.getElementById('gvStartDateVal') ? document.getElementById('gvStartDateVal').value : '';
+      var end = document.getElementById('gvEndDateVal') ? document.getElementById('gvEndDateVal').value : '';
       if (!start || !end) return;
       var dailyRate   = parseFloat(document.getElementById('gvRateAmount').value)  || 0;
       var hourlyRate  = parseFloat(document.getElementById('gvHourlyRate').value)  || 0;
@@ -1866,6 +1780,178 @@ async function gvRentalsPage(
     window.gvToggleDelivery = gvToggleDelivery;
     window.gvCalculateTotal = gvCalculateTotal;
   })();
+  // Inline date range picker
+  // Shared inline date range picker for all Fleet Market rental modals
+  // Injected into both gv-prefixed (GVI) and fm-prefixed (other templates) modals
+  // Usage: fmRentalDatePicker.init(containerId, siteId, itemId, onRangeSelected, primaryColor)
+  
+  (function() {
+    var DP = window.fmRentalDatePicker = {};
+    
+    DP.state = {
+      bookedDates: [],
+      startDate: null,
+      endDate: null,
+      hoverDate: null,
+      viewYear: new Date().getFullYear(),
+      viewMonth: new Date().getMonth(),
+      containerId: null,
+      onSelect: null,
+      primaryColor: '#1e3a6e'
+    };
+  
+    var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  
+    function dateStr(d) {
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    function parseDate(s) { var p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+    function today() { return dateStr(new Date()); }
+  
+    DP.init = function(containerId, siteId, itemId, onSelect, primaryColor) {
+      DP.state.containerId = containerId;
+      DP.state.onSelect = onSelect;
+      DP.state.primaryColor = primaryColor || '#1e3a6e';
+      DP.state.startDate = null;
+      DP.state.endDate = null;
+      DP.state.hoverDate = null;
+      DP.state.bookedDates = [];
+      DP.state.viewYear = new Date().getFullYear();
+      DP.state.viewMonth = new Date().getMonth();
+      DP.render();
+      // Fetch booked dates
+      if (siteId && itemId) {
+        fetch('/api/rental/availability/' + siteId + '?itemId=' + itemId)
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            DP.state.bookedDates = (data.bookedRanges && data.bookedRanges[itemId]) || [];
+            DP.render();
+          })
+          .catch(function() {});
+      }
+    };
+  
+    DP.render = function() {
+      var el = document.getElementById(DP.state.containerId);
+      if (!el) return;
+      var s = DP.state;
+      var pc = s.primaryColor;
+      var today_str = today();
+  
+      // Build calendar days
+      var firstDay = new Date(s.viewYear, s.viewMonth, 1).getDay();
+      var daysInMonth = new Date(s.viewYear, s.viewMonth + 1, 0).getDate();
+      var prevMonthDays = new Date(s.viewYear, s.viewMonth, 0).getDate();
+  
+      var cells = '';
+      var totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+  
+      for (var i = 0; i < totalCells; i++) {
+        var day, inMonth = true;
+        if (i < firstDay) { day = prevMonthDays - firstDay + i + 1; inMonth = false; }
+        else if (i >= firstDay + daysInMonth) { day = i - firstDay - daysInMonth + 1; inMonth = false; }
+        else { day = i - firstDay + 1; }
+  
+        if (!inMonth) { cells += '<div style="padding:0.375rem;"></div>'; continue; }
+  
+        var ds = s.viewYear + '-' + String(s.viewMonth+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+        var isPast = ds < today_str;
+        var isBooked = s.bookedDates.indexOf(ds) !== -1;
+        var isStart = ds === s.startDate;
+        var isEnd = ds === s.endDate;
+        var isToday = ds === today_str;
+        var inRange = s.startDate && s.endDate && ds > s.startDate && ds < s.endDate;
+        var inHover = s.startDate && !s.endDate && s.hoverDate && ds > s.startDate && ds <= s.hoverDate;
+  
+        var bg = 'transparent', color = '#111827', cursor = 'pointer', border = 'none', textDec = 'none';
+        var borderRadius = '50%';
+  
+        if (isPast || isBooked) {
+          bg = isBooked ? '#fee2e2' : 'transparent';
+          color = '#9ca3af';
+          cursor = 'not-allowed';
+          textDec = isBooked ? 'line-through' : 'none';
+        } else if (isStart || isEnd) {
+          bg = pc;
+          color = 'white';
+        } else if (inRange || inHover) {
+          bg = pc + '20';
+          color = '#111827';
+          borderRadius = '0';
+        }
+        if (isToday && !isStart && !isEnd) { border = '2px solid ' + pc; }
+  
+        var disabled = isPast || isBooked ? 'data-disabled="1"' : '';
+        cells += '<div ' + disabled + ' data-date="' + ds + '" onclick="fmRentalDatePicker.pick(this)" onmouseover="fmRentalDatePicker.hover(this)" style="padding:0.375rem;text-align:center;font-size:0.8125rem;font-weight:' + (isStart||isEnd?'700':'400') + ';border-radius:' + borderRadius + ';background:' + bg + ';color:' + color + ';cursor:' + cursor + ';border:' + border + ';text-decoration:' + textDec + ';user-select:none;line-height:1.75rem;">' + day + '</div>';
+      }
+  
+      // Selected range display
+      var rangeLabel = '';
+      if (s.startDate && s.endDate) {
+        var sd = parseDate(s.startDate), ed = parseDate(s.endDate);
+        var days = Math.ceil((ed - sd) / 86400000) + 1;
+        rangeLabel = '<div style="margin-top:0.75rem;padding:0.625rem 0.875rem;background:' + pc + '15;border-radius:0.5rem;font-size:0.875rem;color:' + pc + ';font-weight:600;text-align:center;">' +
+          sd.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' → ' + ed.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' &nbsp;·&nbsp; ' + days + ' day' + (days>1?'s':'') +
+          '</div>';
+      } else if (s.startDate) {
+        rangeLabel = '<div style="margin-top:0.75rem;padding:0.5rem;text-align:center;font-size:0.8125rem;color:#6b7280;">Select your end date</div>';
+      } else {
+        rangeLabel = '<div style="margin-top:0.75rem;padding:0.5rem;text-align:center;font-size:0.8125rem;color:#6b7280;">Click a start date</div>';
+      }
+  
+      // Legend
+      var legend = '<div style="display:flex;gap:1rem;margin-top:0.625rem;font-size:0.75rem;color:#6b7280;">' +
+        '<span style="display:flex;align-items:center;gap:0.25rem;"><span style="width:0.75rem;height:0.75rem;background:#fee2e2;border-radius:2px;text-decoration:line-through;display:inline-flex;align-items:center;justify-content:center;font-size:0.5rem;color:#9ca3af;">X</span>Unavailable</span>' +
+        '<span style="display:flex;align-items:center;gap:0.25rem;"><span style="width:0.75rem;height:0.75rem;background:' + pc + ';border-radius:50%;display:inline-block;"></span>Selected</span>' +
+        '</div>';
+  
+      el.innerHTML = '<div style="user-select:none;">' +
+        // Header
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.625rem;">' +
+          '<button type="button" onclick="fmRentalDatePicker.prevMonth()" style="background:none;border:1px solid #e5e7eb;border-radius:0.375rem;padding:0.25rem 0.5rem;cursor:pointer;font-size:1rem;color:#374151;">‹</button>' +
+          '<span style="font-weight:700;font-size:0.9375rem;color:#111827;">' + MONTHS[s.viewMonth] + ' ' + s.viewYear + '</span>' +
+          '<button type="button" onclick="fmRentalDatePicker.nextMonth()" style="background:none;border:1px solid #e5e7eb;border-radius:0.375rem;padding:0.25rem 0.5rem;cursor:pointer;font-size:1rem;color:#374151;">›</button>' +
+        '</div>' +
+        // Day headers
+        '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:2px;">' +
+          DAYS.map(function(d) { return '<div style="text-align:center;font-size:0.6875rem;font-weight:600;color:#9ca3af;padding:0.25rem 0;">' + d + '</div>'; }).join('') +
+        '</div>' +
+        // Day cells
+        '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;" onmouseleave="fmRentalDatePicker.clearHover()">' + cells + '</div>' +
+        rangeLabel + legend +
+      '</div>';
+    };
+  
+    DP.pick = function(el) {
+      if (el.getAttribute('data-disabled')) return;
+      var ds = el.getAttribute('data-date');
+      var s = DP.state;
+      if (!s.startDate || (s.startDate && s.endDate) || ds < s.startDate) {
+        s.startDate = ds; s.endDate = null;
+      } else {
+        s.endDate = ds;
+        if (s.onSelect) s.onSelect(s.startDate, s.endDate);
+      }
+      DP.render();
+    };
+  
+    DP.hover = function(el) {
+      if (el.getAttribute('data-disabled')) return;
+      var s = DP.state;
+      if (s.startDate && !s.endDate) {
+        var ds = el.getAttribute('data-date');
+        if (ds > s.startDate) { s.hoverDate = ds; DP.render(); }
+      }
+    };
+  
+    DP.clearHover = function() { DP.state.hoverDate = null; DP.render(); };
+    DP.prevMonth = function() { var s = DP.state; s.viewMonth--; if (s.viewMonth < 0) { s.viewMonth = 11; s.viewYear--; } DP.render(); };
+    DP.nextMonth = function() { var s = DP.state; s.viewMonth++; if (s.viewMonth > 11) { s.viewMonth = 0; s.viewYear++; } DP.render(); };
+    DP.getStart = function() { return DP.state.startDate || ''; };
+    DP.getEnd   = function() { return DP.state.endDate   || ''; };
+  })();
+  
   </script>
   `;
 }
