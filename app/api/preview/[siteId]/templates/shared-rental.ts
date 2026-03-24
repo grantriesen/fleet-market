@@ -455,6 +455,24 @@ function modalScript(p: string, siteId: string): string {
     document.getElementById('${p}PickupTime').value = '';
     document.getElementById('${p}ReturnTime').value = '';
     document.getElementById('${p}PricingSummary').style.display = 'none';
+    // Reset step 2 in case a previous booking left the success message there
+    var step2 = document.getElementById('${p}Step2');
+    if (step2) step2.innerHTML = '<div id="${p}BookingSummary" style="background:#f9fafb;border-radius:0.5rem;padding:0.75rem 1rem;margin-bottom:1rem;border:1px solid #e5e7eb;font-size:0.875rem;color:#374151;"></div>'
+      + '<form id="${p}RentalForm">'
+      + '<input type="hidden" name="rentalItemId"><input type="hidden" name="rateAmount">'
+      + '<input type="hidden" name="hourlyRate"><input type="hidden" name="weeklyRate">'
+      + '<input type="hidden" name="monthlyRate"><input type="hidden" name="startDate">'
+      + '<input type="hidden" name="endDate"><input type="hidden" name="pickupTime">'
+      + '<input type="hidden" name="returnTime">'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">'
+      + '<div><label style="display:block;font-size:0.8125rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Name *</label><input type="text" name="customerName" required placeholder="Full name" style="width:100%;padding:0.5rem 0.625rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>'
+      + '<div><label style="display:block;font-size:0.8125rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Phone *</label><input type="tel" name="customerPhone" required placeholder="(555) 000-0000" style="width:100%;padding:0.5rem 0.625rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>'
+      + '</div>'
+      + '<div style="margin-bottom:0.75rem;"><label style="display:block;font-size:0.8125rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Email *</label><input type="email" name="customerEmail" required placeholder="you@email.com" style="width:100%;padding:0.5rem 0.625rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>'
+      + '<div id="${p}DeliverySection" style="display:none;margin-bottom:0.75rem;"><label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;font-weight:600;color:#374151;"><input type="checkbox" name="deliveryRequired" onchange="${p}ToggleDelivery(this)">Request Delivery</label></div>'
+      + '<div id="${p}DeliveryAddr" style="display:none;margin-bottom:0.75rem;"><label style="display:block;font-size:0.8125rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Delivery Address</label><textarea name="deliveryAddress" rows="2" placeholder="Street address, city, state, zip" style="width:100%;padding:0.5rem 0.625rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;resize:vertical;box-sizing:border-box;"></textarea></div>'
+      + '<div><label style="display:block;font-size:0.8125rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Special Requests</label><textarea name="notes" rows="2" placeholder="Any special requests..." style="width:100%;padding:0.5rem 0.625rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;resize:vertical;box-sizing:border-box;"></textarea></div>'
+      + '</form>';
     var btn = document.getElementById('${p}NextBtn');
     btn.disabled=true; btn.style.background='#e5e7eb'; btn.style.color='#9ca3af'; btn.style.cursor='not-allowed';
     ${p}GoStep1();
