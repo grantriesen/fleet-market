@@ -1892,8 +1892,7 @@ async function gvRentalsPage(
     window.gvToggleDelivery = gvToggleDelivery;
     window.gvSubmitRental = gvSubmitRental;
   })();
-
-  <script src="/fm-rental-datepicker.js">
   </script>
+  <script src="/fm-rental-datepicker.js"></script>
   `;
 }

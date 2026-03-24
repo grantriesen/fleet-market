@@ -857,9 +857,8 @@ async function zlRentals(
     window.fmToggleDelivery = fmToggleDelivery;
     window.fmSubmitRental = fmSubmitRental;
   })();
-
-  <script src="/fm-rental-datepicker.js">
-  </script>`;
+  </script>
+  <script src="/fm-rental-datepicker.js"></script>`;
     }
   }
 
