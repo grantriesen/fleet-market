@@ -1729,8 +1729,8 @@ async function gvRentalsPage(
       var st='padding:2px;text-align:center;font-size:13px;line-height:28px;user-select:none;';
       if (isPast){st+='color:#d1d5db;cursor:not-allowed;';}
       else if (isBooked){st+='background:#fee2e2;color:#9ca3af;cursor:not-allowed;text-decoration:line-through;border-radius:4px;';}
-      else if (isStart){st+='background:'+pc+';color:white;font-weight:700;cursor:pointer;border-radius:'+(s.endDate?'50% 0 0 50%':'50%')+';';}
-      else if (isEnd){st+='background:'+pc+';color:white;font-weight:700;cursor:pointer;border-radius:0 50% 50% 0;';}
+      else if (isStart){st+='background:'+pc+';color:white;font-weight:700;cursor:pointer;border-radius:'+(s.endDate?'6px 0 0 6px':'6px')+';';}
+      else if (isEnd){st+='background:'+pc+';color:white;font-weight:700;cursor:pointer;border-radius:0 6px 6px 0;';}
       else if (inRange){st+='background:'+pc+'25;color:#111827;cursor:pointer;border-radius:0;';}
       else if (inHover){st+='background:'+pc+'12;color:#374151;cursor:pointer;border-radius:0;';}
       else{st+='color:#111827;cursor:pointer;'+(isToday?'font-weight:700;border-bottom:2px solid '+pc+';':'');}
