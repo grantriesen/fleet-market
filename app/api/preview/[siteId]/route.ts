@@ -2235,7 +2235,8 @@ async function renderRentalsPageWithIntegration(
       // ── Date Picker ──────────────────────────────────────────────────────
       // Fleet Market Rental Date Picker — put in /public/fm-rental-datepicker.js
       (function() {
-        var DP = window.fmRentalDatePicker = {};
+        console.log('[FM] Rental script block executing');
+      var DP = window.fmRentalDatePicker = {};
       
         DP.state = {
           bookedDates: [], startDate: null, endDate: null, hoverDate: null,
@@ -2387,6 +2388,8 @@ async function renderRentalsPageWithIntegration(
       }
 
       function showRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable, hourlyRate, weeklyRate, monthlyRate) {
+        console.log('[FM] showRentalModal called', itemId, itemTitle);
+        console.log('[FM] fmRentalDatePicker:', typeof fmRentalDatePicker);
         var st = rentalState;
         st.itemId=itemId; st.dailyRate=dailyRate||0; st.hourlyRate=hourlyRate||0;
         st.weeklyRate=weeklyRate||0; st.monthlyRate=monthlyRate||0; st.deliveryAvailable=!!deliveryAvailable;
@@ -2401,6 +2404,7 @@ async function renderRentalsPageWithIntegration(
         rentalGoStep1();
         document.getElementById('rentalModal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
+        console.log('[FM] rentalDatePickerEl:', document.getElementById('rentalDatePickerEl'));
         fmRentalDatePicker.init('rentalDatePickerEl', '${siteId}', itemId, function(start, end) {
           document.getElementById('rentalStartVal').value = start;
           document.getElementById('rentalEndVal').value = end;
