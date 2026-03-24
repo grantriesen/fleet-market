@@ -20,7 +20,7 @@ interface RentalItem {
   deposit_required: number | null; quantity_available: number;
   location: string | null; status: string; featured: boolean;
   display_order: number; minimum_rental_period: string | null;
-  requires_training: boolean; requires_license: boolean;
+  requires_training: boolean; requires_license: boolean; delivery_available: boolean;
   created_at: string; updated_at: string;
 }
 
@@ -66,7 +66,7 @@ const EMPTY_ITEM = {
   weekly_rate: null as number | null, monthly_rate: null as number | null,
   deposit_required: null as number | null, quantity_available: 1, location: '',
   status: 'available', featured: false, display_order: 0,
-  minimum_rental_period: '1 day', requires_training: false, requires_license: false,
+  minimum_rental_period: '1 day', requires_training: false, requires_license: false, delivery_available: false,
 };
 
 export default function RentalsDashboard() {
@@ -122,7 +122,7 @@ export default function RentalsDashboard() {
   const totalFleet = items.length;
   const availableCount = items.filter(i => i.status === 'available').length;
   const activeBookings = bookings.filter(b => b.status === 'active').length;
-  const revenue = bookings.filter(b => b.status === 'completed').reduce((sum, b) => sum + (b.total_amount || 0), 0);
+  const revenue = bookings.filter(b => ['active', 'returned', 'completed'].includes(b.status)).reduce((sum, b) => sum + (b.total_amount || 0), 0);
 
   useEffect(() => {
     async function init() {
@@ -172,13 +172,13 @@ export default function RentalsDashboard() {
   const openAddModal = () => { setEditingItem(null); setForm({ ...EMPTY_ITEM }); setActiveFormTab('details'); setFormError(''); setModalOpen(true); };
   const openEditModal = (item: RentalItem) => {
     setEditingItem(item);
-    setForm({ title: item.title||'', description: item.description||'', category: item.category||'Mowers', manufacturer: item.manufacturer_id||'', model: item.model||'', year: item.year||new Date().getFullYear(), specifications: item.specifications||{}, images: item.image_gallery||[], primary_image: item.primary_image, hourly_rate: item.hourly_rate, daily_rate: item.daily_rate, weekly_rate: item.weekly_rate, monthly_rate: item.monthly_rate, deposit_required: item.deposit_required, quantity_available: item.quantity_available||1, location: item.location||'', status: item.status||'available', featured: item.featured||false, display_order: item.display_order||0, minimum_rental_period: item.minimum_rental_period||'1 day', requires_training: item.requires_training||false, requires_license: item.requires_license||false });
+    setForm({ title: item.title||'', description: item.description||'', category: item.category||'Mowers', manufacturer: item.manufacturer_id||'', model: item.model||'', year: item.year||new Date().getFullYear(), specifications: item.specifications||{}, images: item.image_gallery||[], primary_image: item.primary_image, hourly_rate: item.hourly_rate, daily_rate: item.daily_rate, weekly_rate: item.weekly_rate, monthly_rate: item.monthly_rate, deposit_required: item.deposit_required, quantity_available: item.quantity_available||1, location: item.location||'', status: item.status||'available', featured: item.featured||false, display_order: item.display_order||0, minimum_rental_period: item.minimum_rental_period||'1 day', requires_training: item.requires_training||false, requires_license: item.requires_license||false, delivery_available: item.delivery_available||false });
     setActiveFormTab('details'); setFormError(''); setModalOpen(true);
   };
   const handleSave = async () => {
     if (!siteId || !form.title.trim()) { setFormError('Title is required'); return; }
     setSaving(true); setFormError('');
-    const record = { site_id: siteId, title: form.title.trim(), description: form.description?.trim()||null, category: form.category, manufacturer_id: (form.manufacturer && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(form.manufacturer)) ? form.manufacturer : null, model: form.model?.trim()||null, year: form.year, specifications: form.specifications, image_gallery: form.images, primary_image: form.primary_image||(form.images.length>0?form.images[0]:null), hourly_rate: form.hourly_rate, daily_rate: form.daily_rate, weekly_rate: form.weekly_rate, monthly_rate: form.monthly_rate, deposit_required: form.deposit_required, quantity_available: form.quantity_available, location: form.location?.trim()||null, status: form.status, featured: form.featured, display_order: form.display_order, minimum_rental_period: form.minimum_rental_period, requires_training: form.requires_training, requires_license: form.requires_license, updated_at: new Date().toISOString() };
+    const record = { site_id: siteId, title: form.title.trim(), description: form.description?.trim()||null, category: form.category, manufacturer_id: null, // free-text manufacturer stored in form.manufacturer display only model: form.model?.trim()||null, year: form.year, specifications: form.specifications, image_gallery: form.images, primary_image: form.primary_image||(form.images.length>0?form.images[0]:null), hourly_rate: form.hourly_rate, daily_rate: form.daily_rate, weekly_rate: form.weekly_rate, monthly_rate: form.monthly_rate, deposit_required: form.deposit_required, quantity_available: form.quantity_available, location: form.location?.trim()||null, status: form.status, featured: form.featured, display_order: form.display_order, minimum_rental_period: form.minimum_rental_period, requires_training: form.requires_training, requires_license: form.requires_license, delivery_available: form.delivery_available || false, updated_at: new Date().toISOString() };
     try {
       if (editingItem) { const { error } = await supabase.from('rental_inventory').update(record).eq('id', editingItem.id); if (error) throw error; showToast('Equipment updated'); }
       else { const { error } = await supabase.from('rental_inventory').insert(record); if (error) throw error; showToast('Equipment added'); }
@@ -346,7 +346,7 @@ export default function RentalsDashboard() {
                     </div>
                     <div className="p-4">
                       <h3 className="font-semibold text-sm text-slate-800 truncate">{item.title}</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">{[manufacturers.find(m => m.id === item.manufacturer_id)?.name, item.model, item.year].filter(Boolean).join(' · ')}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{[item.model, item.year].filter(Boolean).join(' · ')}</p>
                       <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-100">
                         {item.daily_rate && <div className="text-xs"><span className="font-bold" style={{ color: FM.navy }}>{fmtPrice(item.daily_rate)}</span><span className="text-slate-400">/day</span></div>}
                         {item.weekly_rate && <div className="text-xs"><span className="font-bold" style={{ color: FM.navy }}>{fmtPrice(item.weekly_rate)}</span><span className="text-slate-400">/wk</span></div>}
@@ -488,7 +488,7 @@ export default function RentalsDashboard() {
                     <div><label className="block text-sm font-medium text-slate-700 mb-1">Status</label><select value={form.status} onChange={(e) => uf('status', e.target.value)} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-white"><option value="available">Available</option><option value="rented">Rented</option><option value="maintenance">Maintenance</option></select></div>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
-                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Manufacturer</label><select value={form.manufacturer} onChange={(e) => uf('manufacturer', e.target.value)} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-white"><option value="">— None —</option>{manufacturers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Manufacturer</label><input type="text" value={form.manufacturer} onChange={(e) => uf('manufacturer', e.target.value)} placeholder="e.g. Toro, ECHO, Bobcat" className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" /></div>
                     <div><label className="block text-sm font-medium text-slate-700 mb-1">Model</label><input type="text" value={form.model} onChange={(e) => uf('model', e.target.value)} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" /></div>
                     <div><label className="block text-sm font-medium text-slate-700 mb-1">Year</label><input type="number" value={form.year || ''} onChange={(e) => uf('year', e.target.value ? parseInt(e.target.value) : null)} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" /></div>
                   </div>
@@ -502,6 +502,7 @@ export default function RentalsDashboard() {
                     <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.featured} onChange={(e) => uf('featured', e.target.checked)} className="rounded border-slate-300" /><span className="text-sm text-slate-700">Featured</span></label>
                     <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.requires_training} onChange={(e) => uf('requires_training', e.target.checked)} className="rounded border-slate-300" /><span className="text-sm text-slate-700">Requires training</span></label>
                     <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.requires_license} onChange={(e) => uf('requires_license', e.target.checked)} className="rounded border-slate-300" /><span className="text-sm text-slate-700">Requires license</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.delivery_available || false} onChange={(e) => uf('delivery_available', e.target.checked)} className="rounded border-slate-300" /><span className="text-sm text-slate-700">Delivery available</span></label>
                   </div>
                 </div>
               )}
@@ -587,6 +588,9 @@ export default function RentalsDashboard() {
                 <div><span className="text-slate-500 block">Rate</span><span className="font-medium">{fmtPrice(selectedBooking.rate_amount)} / {selectedBooking.rental_period}</span></div>
                 <div><span className="text-slate-500 block">Total Cost</span><span className="font-bold text-lg" style={{ color: FM.navy }}>{fmtPrice(selectedBooking.total_amount)}</span></div>
                 <div><span className="text-slate-500 block">Delivery Required</span><span className="font-medium">{selectedBooking.delivery_required ? 'Yes' : 'No'}</span></div>
+                {selectedBooking.delivery_required && selectedBooking.delivery_address && (
+                  <div className="col-span-2"><span className="text-slate-500 block">Delivery Address</span><span className="font-medium">{selectedBooking.delivery_address}</span></div>
+                )}
               </div>
               {selectedBooking.notes && <div className="text-sm"><span className="text-slate-500 block mb-1">Notes</span><p className="text-slate-700 bg-slate-50 rounded-lg p-3">{selectedBooking.notes}</p></div>}
               <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
