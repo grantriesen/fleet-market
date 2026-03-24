@@ -2,400 +2,367 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter, useSearchParams } from 'next/navigation';
-import IntegrationsSettings from '@/components/IntegrationsSettings';
-import InventoryManager from '@/components/InventoryManager';
-import ServiceManager from '@/components/ServiceManager';
-import RentalManager from '@/components/RentalManager';
+import { useRouter } from 'next/navigation';
+import {
+  ArrowLeft, Save, Loader2, Plus, Trash2, Star,
+  Building2, Phone, Mail, MapPin, Globe, CheckCircle
+} from 'lucide-react';
 
-type SettingsTab = 'general' | 'integrations' | 'inventory' | 'service' | 'rentals' | 'subscription';
+interface Testimonial {
+  id: string;
+  author: string;
+  role: string;
+  company: string;
+  text: string;
+  rating: number;
+}
 
 export default function SiteSettingsPage({ params }: { params: { siteId: string } }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const supabase = createClient();
-  
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
-  const [loading, setLoading] = useState(true);
-  const [siteName, setSiteName] = useState('');
-  const [subscriptionTier, setSubscriptionTier] = useState('basic');
+  const [loading, setLoading]     = useState(true);
+  const [site, setSite]           = useState<any>(null);
+  const [saving, setSaving]       = useState(false);
+  const [saved, setSaved]         = useState(false);
+  const [activeTab, setActiveTab] = useState<'general' | 'testimonials'>('general');
 
-  useEffect(() => {
-    loadSiteData();
-    // Check if tab was passed in URL (from customizer redirect)
-    const tab = searchParams?.get('tab');
-    if (tab) {
-      setActiveTab(tab as SettingsTab);
-    }
-  }, []);
+  // General settings state
+  const [general, setGeneral] = useState({
+    siteName: '',
+    businessName: '',
+    address: '',
+    phone: '',
+    email: '',
+    website: '',
+  });
 
-  const loadSiteData = async () => {
+  // Testimonials state
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [testSaving, setTestSaving]     = useState(false);
+  const [testSaved, setTestSaved]       = useState(false);
+
+  useEffect(() => { loadSite(); }, []);
+
+  async function loadSite() {
     try {
-      const { data: site } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push('/login'); return; }
+
+      const { data: s } = await supabase
         .from('sites')
-        .select('id, site_name, subscription_tier')
+        .select('*')
         .eq('id', params.siteId)
         .single();
 
-      if (site) {
-        setSiteName(site.site_name);
-        setSubscriptionTier(site.subscription_tier || 'basic');
-      }
+      if (!s) { router.push('/dashboard'); return; }
+      setSite(s);
 
-      setLoading(false);
-    } catch (error) {
-      console.error('Error loading site:', error);
+      const cfg    = s.config_json || {};
+      const content = cfg.content  || {};
+
+      setGeneral({
+        siteName:     s.site_name || '',
+        businessName: content['businessInfo.businessName'] || content['business.name'] || s.site_name || '',
+        address:      content['businessInfo.address']      || content['business.address'] || '',
+        phone:        content['businessInfo.phone']        || content['business.phone']   || '',
+        email:        content['businessInfo.email']        || content['business.email']   || '',
+        website:      content['businessInfo.website']      || content['business.website'] || '',
+      });
+
+      try {
+        const raw = content['testimonials.items'] || '[]';
+        const parsed = JSON.parse(raw);
+        setTestimonials(parsed.map((t: any, i: number) => ({ ...t, id: t.id || String(i) })));
+      } catch { setTestimonials([]); }
+
+    } catch (e) {
+      console.error(e);
+    } finally {
       setLoading(false);
     }
-  };
-
-  const handleIntegrationSave = async (category: string, integrationId: string, config: Record<string, string>) => {
-    try {
-      const { error } = await supabase
-        .from('site_integrations')
-        .upsert({
-          site_id: params.siteId,
-          integration_type: category,
-          integration_id: integrationId,
-          integration_name: integrationId,
-          config_json: config,
-          is_active: true,
-        });
-
-      if (error) throw error;
-      alert('Integration saved successfully!');
-    } catch (error) {
-      console.error('Error saving integration:', error);
-      alert('Error saving integration');
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
   }
 
+  async function saveGeneral() {
+    if (!site) return;
+    setSaving(true);
+    try {
+      const cfg     = site.config_json || {};
+      const content = { ...(cfg.content || {}) };
+
+      // Write all business info keys that different templates read
+      const fields: Record<string, string> = {
+        'businessInfo.businessName': general.businessName,
+        'business.name':             general.businessName,
+        'businessInfo.address':      general.address,
+        'business.address':          general.address,
+        'businessInfo.phone':        general.phone,
+        'business.phone':            general.phone,
+        'businessInfo.email':        general.email,
+        'business.email':            general.email,
+        'businessInfo.website':      general.website,
+        'business.website':          general.website,
+      };
+      Object.assign(content, fields);
+
+      await supabase.from('sites').update({
+        site_name:   general.siteName,
+        config_json: { ...cfg, content },
+      }).eq('id', site.id);
+
+      setSite((p: any) => ({ ...p, site_name: general.siteName }));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveTestimonials() {
+    if (!site) return;
+    setTestSaving(true);
+    try {
+      const cfg     = site.config_json || {};
+      const content = { ...(cfg.content || {}) };
+      content['testimonials.items'] = JSON.stringify(testimonials);
+      await supabase.from('sites').update({ config_json: { ...cfg, content } }).eq('id', site.id);
+      setTestSaved(true);
+      setTimeout(() => setTestSaved(false), 2500);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to save testimonials.');
+    } finally {
+      setTestSaving(false);
+    }
+  }
+
+  function addTestimonial() {
+    setTestimonials(prev => [...prev, {
+      id: Date.now().toString(),
+      author: '', role: '', company: '', text: '', rating: 5,
+    }]);
+  }
+
+  function updateTestimonial(id: string, field: keyof Testimonial, value: string | number) {
+    setTestimonials(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
+  }
+
+  function removeTestimonial(id: string) {
+    setTestimonials(prev => prev.filter(t => t.id !== id));
+  }
+
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+    </div>
+  );
+
+  const tabs = [
+    { id: 'general',      label: 'General Settings' },
+    { id: 'testimonials', label: 'Testimonials' },
+  ] as const;
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center gap-4">
+          <button onClick={() => router.back()} className="p-2 hover:bg-slate-100 rounded-lg">
+            <ArrowLeft className="w-5 h-5 text-slate-600" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">Settings</h1>
+            <p className="text-sm text-slate-500">{site?.site_name}</p>
+          </div>
+        </div>
+        {/* Tabs */}
+        <div className="max-w-3xl mx-auto px-6 flex gap-0 border-t border-slate-100">
+          {tabs.map(tab => (
             <button
-              onClick={() => router.push('/dashboard')}
-              className="text-gray-600 hover:text-gray-900"
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.id
+                  ? 'border-slate-800 text-slate-800'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
             >
-              ← Back to Dashboard
+              {tab.label}
             </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="max-w-3xl mx-auto px-6 py-8">
+
+        {/* ── General Settings ── */}
+        {activeTab === 'general' && (
+          <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
             <div>
-              <h1 className="text-xl font-bold">{siteName}</h1>
-              <p className="text-sm text-gray-500">Settings & Configuration</p>
+              <h2 className="text-base font-bold text-slate-800 mb-0.5">General Settings</h2>
+              <p className="text-sm text-slate-500">This information appears across your dealer website.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Site Name</label>
+                <div className="relative">
+                  <Globe className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input type="text" value={general.siteName}
+                    onChange={e => setGeneral(p => ({...p, siteName: e.target.value}))}
+                    className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm"
+                    placeholder="Grant's Equipment" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Business Name</label>
+                <div className="relative">
+                  <Building2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input type="text" value={general.businessName}
+                    onChange={e => setGeneral(p => ({...p, businessName: e.target.value}))}
+                    className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm"
+                    placeholder="Grant's Equipment LLC" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input type="tel" value={general.phone}
+                    onChange={e => setGeneral(p => ({...p, phone: e.target.value}))}
+                    className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm"
+                    placeholder="(555) 123-4567" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input type="email" value={general.email}
+                    onChange={e => setGeneral(p => ({...p, email: e.target.value}))}
+                    className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm"
+                    placeholder="info@yourbusiness.com" />
+                </div>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Business Address</label>
+                <div className="relative">
+                  <MapPin className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                  <textarea value={general.address}
+                    onChange={e => setGeneral(p => ({...p, address: e.target.value}))}
+                    rows={2} className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm resize-none"
+                    placeholder="123 Main St, Blair, NE 68008" />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={saveGeneral}
+                disabled={saving}
+                className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 text-white text-sm font-semibold rounded-lg hover:bg-slate-700 disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Save Changes
+              </button>
+              {saved && (
+                <span className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
+                  <CheckCircle className="w-4 h-4" /> Saved
+                </span>
+              )}
             </div>
           </div>
-          <button
-            onClick={() => router.push(`/customize/${params.siteId}`)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700"
-          >
-            🎨 Edit Design
-          </button>
-        </div>
-      </header>
+        )}
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex gap-8">
-          {/* Left Sidebar - Tabs */}
-          <div className="w-64 flex-shrink-0">
-            <nav className="space-y-1">
-              <button
-                onClick={() => setActiveTab('general')}
-                className={`w-full text-left px-4 py-3 rounded-lg font-medium ${
-                  activeTab === 'general'
-                    ? 'bg-green-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                ⚙️ General
-              </button>
-              
-              <div className="pt-4 pb-2 px-4 text-xs font-semibold text-gray-500 uppercase">
-                Business Features
+        {/* ── Testimonials ── */}
+        {activeTab === 'testimonials' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-slate-800">Testimonials</h2>
+                <p className="text-sm text-slate-500">Customer reviews shown on your website.</p>
               </div>
-              
               <button
-                onClick={() => setActiveTab('integrations')}
-                className={`w-full text-left px-4 py-3 rounded-lg font-medium ${
-                  activeTab === 'integrations'
-                    ? 'bg-green-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
+                onClick={addTestimonial}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white text-sm font-semibold rounded-lg hover:bg-slate-700"
               >
-                🔌 Integrations
+                <Plus className="w-4 h-4" /> Add Testimonial
               </button>
-              
-              <button
-                onClick={() => setActiveTab('inventory')}
-                className={`w-full text-left px-4 py-3 rounded-lg font-medium ${
-                  activeTab === 'inventory'
-                    ? 'bg-green-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                📦 Inventory
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('service')}
-                className={`w-full text-left px-4 py-3 rounded-lg font-medium ${
-                  activeTab === 'service'
-                    ? 'bg-green-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                🔧 Service Requests
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('rentals')}
-                className={`w-full text-left px-4 py-3 rounded-lg font-medium ${
-                  activeTab === 'rentals'
-                    ? 'bg-green-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                🚜 Rentals
-              </button>
+            </div>
 
-              <div className="pt-4 pb-2 px-4 text-xs font-semibold text-gray-500 uppercase">
-                Account
+            {testimonials.length === 0 && (
+              <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400">
+                <Star className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                <p className="font-medium">No testimonials yet</p>
+                <p className="text-sm mt-1">Add customer reviews to build trust on your site.</p>
               </div>
+            )}
 
-              <button
-                onClick={() => setActiveTab('subscription')}
-                className={`w-full text-left px-4 py-3 rounded-lg font-medium ${
-                  activeTab === 'subscription'
-                    ? 'bg-green-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                💳 Subscription
-              </button>
-            </nav>
-          </div>
-
-          {/* Right Content */}
-          <div className="flex-1">
-            <div className="bg-white rounded-lg shadow-sm border">
-              {activeTab === 'general' && (
-                <div className="p-8">
-                  <h2 className="text-2xl font-bold mb-6">General Settings</h2>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Site Name</label>
-                      <input
-                        type="text"
-                        value={siteName}
-                        onChange={(e) => setSiteName(e.target.value)}
-                        className="w-full px-4 py-2 border rounded-lg"
-                      />
+            {testimonials.map((t, idx) => (
+              <div key={t.id} className="bg-white rounded-xl border border-slate-200 p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm font-semibold text-slate-500">Testimonial {idx + 1}</span>
+                  <div className="flex items-center gap-3">
+                    {/* Star rating */}
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map(star => (
+                        <button key={star} onClick={() => updateTestimonial(t.id, 'rating', star)}>
+                          <Star className={`w-4 h-4 ${star <= t.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
+                        </button>
+                      ))}
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Business Name</label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg"
-                        placeholder="Your Company Name"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Business Address</label>
-                      <textarea
-                        rows={3}
-                        className="w-full px-4 py-2 border rounded-lg"
-                        placeholder="123 Main St, City, State 12345"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Phone Number</label>
-                      <input
-                        type="tel"
-                        className="w-full px-4 py-2 border rounded-lg"
-                        placeholder="(555) 123-4567"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Email</label>
-                      <input
-                        type="email"
-                        className="w-full px-4 py-2 border rounded-lg"
-                        placeholder="info@yourcompany.com"
-                      />
-                    </div>
-
-                    <button className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700">
-                      Save Changes
+                    <button onClick={() => removeTestimonial(t.id)} className="p-1.5 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-500">
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-              )}
-
-              {activeTab === 'integrations' && (
-                <div className="p-8">
-                  <h2 className="text-2xl font-bold mb-2">Integrations</h2>
-                  <p className="text-gray-600 mb-6">
-                    Connect your existing business software to automatically sync data
-                  </p>
-
-                  <div className="space-y-8">
-                    {/* Inventory Integrations */}
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">📦 Inventory Management</h3>
-                      <IntegrationsSettings
-                        siteId={params.siteId}
-                        category="inventory"
-                        onSave={(id, config) => handleIntegrationSave('inventory', id, config)}
-                      />
-                    </div>
-
-                    <div className="border-t pt-8">
-                      <h3 className="text-lg font-semibold mb-4">🔧 Service Scheduling</h3>
-                      <IntegrationsSettings
-                        siteId={params.siteId}
-                        category="service"
-                        onSave={(id, config) => handleIntegrationSave('service', id, config)}
-                      />
-                    </div>
-
-                    <div className="border-t pt-8">
-                      <h3 className="text-lg font-semibold mb-4">🚜 Rental Management</h3>
-                      <IntegrationsSettings
-                        siteId={params.siteId}
-                        category="rentals"
-                        onSave={(id, config) => handleIntegrationSave('rentals', id, config)}
-                      />
-                    </div>
+                <div className="space-y-3">
+                  <textarea
+                    value={t.text}
+                    onChange={e => updateTestimonial(t.id, 'text', e.target.value)}
+                    rows={3} placeholder="What the customer said..."
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm resize-none"
+                  />
+                  <div className="grid grid-cols-3 gap-3">
+                    <input type="text" value={t.author}
+                      onChange={e => updateTestimonial(t.id, 'author', e.target.value)}
+                      placeholder="Customer name"
+                      className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={t.role}
+                      onChange={e => updateTestimonial(t.id, 'role', e.target.value)}
+                      placeholder="Title / Role"
+                      className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={t.company}
+                      onChange={e => updateTestimonial(t.id, 'company', e.target.value)}
+                      placeholder="Company"
+                      className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
-              )}
+              </div>
+            ))}
 
-              {activeTab === 'inventory' && (
-                <div className="p-8">
-                  <h2 className="text-2xl font-bold mb-2">Inventory Management</h2>
-                  <p className="text-gray-600 mb-6">
-                    Manage your equipment inventory
-                  </p>
-                  <InventoryManager siteId={params.siteId} />
-                </div>
-              )}
-
-              {activeTab === 'service' && (
-                <div className="p-8">
-                  <h2 className="text-2xl font-bold mb-2">Service Requests</h2>
-                  <p className="text-gray-600 mb-6">
-                    Manage service appointments and requests
-                  </p>
-                  <ServiceManager siteId={params.siteId} />
-                </div>
-              )}
-
-              {activeTab === 'rentals' && (
-                <div className="p-8">
-                  <h2 className="text-2xl font-bold mb-2">Rental Management</h2>
-                  <p className="text-gray-600 mb-6">
-                    Manage your rental equipment and bookings
-                  </p>
-                  <RentalManager siteId={params.siteId} />
-                </div>
-              )}
-
-              {activeTab === 'subscription' && (
-                <div className="p-8">
-                  <h2 className="text-2xl font-bold mb-6">Subscription & Billing</h2>
-                  
-                  <div className="mb-8">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-semibold text-green-900 mb-1">
-                            Current Plan: {subscriptionTier.charAt(0).toUpperCase() + subscriptionTier.slice(1)}
-                          </h3>
-                          <p className="text-sm text-green-700">
-                            {subscriptionTier === 'basic' && 'Includes: Homepage, Manufacturers, Contact'}
-                            {subscriptionTier === 'professional' && 'Includes: All Basic + Service Page'}
-                            {subscriptionTier === 'enterprise' && 'Includes: All Features + Inventory + Rentals'}
-                          </p>
-                        </div>
-                        <button className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700">
-                          Upgrade Plan
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <h3 className="font-semibold mb-4">Available Plans</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    {/* Basic Plan */}
-                    <div className="border rounded-lg p-6">
-                      <h4 className="font-bold text-lg mb-2">Basic</h4>
-                      <div className="text-3xl font-bold mb-4">$200<span className="text-lg text-gray-500">/mo</span></div>
-                      <ul className="space-y-2 text-sm mb-6">
-                        <li>✓ Custom Website</li>
-                        <li>✓ Homepage</li>
-                        <li>✓ Manufacturers Page</li>
-                        <li>✓ Contact Page</li>
-                        <li>✓ Basic Support</li>
-                      </ul>
-                      <button className="w-full border border-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50">
-                        Current Plan
-                      </button>
-                    </div>
-
-                    {/* Professional Plan */}
-                    <div className="border-2 border-green-600 rounded-lg p-6 relative">
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                        Popular
-                      </div>
-                      <h4 className="font-bold text-lg mb-2">Professional</h4>
-                      <div className="text-3xl font-bold mb-4">$350<span className="text-lg text-gray-500">/mo</span></div>
-                      <ul className="space-y-2 text-sm mb-6">
-                        <li>✓ Everything in Basic</li>
-                        <li>✓ Service Scheduling</li>
-                        <li>✓ Built-in Management</li>
-                        <li>✓ Priority Support</li>
-                      </ul>
-                      <button className="w-full bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700">
-                        Upgrade
-                      </button>
-                    </div>
-
-                    {/* Enterprise Plan */}
-                    <div className="border rounded-lg p-6">
-                      <h4 className="font-bold text-lg mb-2">Enterprise</h4>
-                      <div className="text-3xl font-bold mb-4">$600<span className="text-lg text-gray-500">/mo</span></div>
-                      <ul className="space-y-2 text-sm mb-6">
-                        <li>✓ Everything in Pro</li>
-                        <li>✓ Inventory Management</li>
-                        <li>✓ Rental Management</li>
-                        <li>✓ Advanced Analytics</li>
-                        <li>✓ Dedicated Support</li>
-                      </ul>
-                      <button className="w-full bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700">
-                        Upgrade
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            {testimonials.length > 0 && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={saveTestimonials}
+                  disabled={testSaving}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 text-white text-sm font-semibold rounded-lg hover:bg-slate-700 disabled:opacity-50"
+                >
+                  {testSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Save Testimonials
+                </button>
+                {testSaved && (
+                  <span className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
+                    <CheckCircle className="w-4 h-4" /> Saved
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-        </div>
+        )}
+
       </div>
     </div>
   );
