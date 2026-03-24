@@ -103,7 +103,7 @@ export default function LeadsPage() {
           amount: r.total_amount,
           status: r.status || 'pending',
           created_at: r.created_at,
-          href: '/dashboard/rentals',
+          href: `/dashboard/rentals?highlight=${r.id}`,
         })),
         ...(services || []).map((s: any): UnifiedActivity => ({
           id: s.id, type: 'service',
@@ -112,7 +112,7 @@ export default function LeadsPage() {
           detail: s.service_type || s.message || '',
           status: s.status || 'pending',
           created_at: s.created_at,
-          href: '/dashboard/service',
+          href: `/dashboard/service?highlight=${s.id}`,
         })),
         ...(orders || []).map((o: any): UnifiedActivity => ({
           id: o.id, type: 'order',
@@ -126,8 +126,14 @@ export default function LeadsPage() {
         })),
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      setItems(unified);
-      setFiltered(unified);
+      // Apply localStorage read state for non-lead items
+      const readItems = new Set(JSON.parse(localStorage.getItem('fm_read_items') || '[]'));
+      const withRead = unified.map(i => ({
+        ...i,
+        read: i.type === 'lead' ? (i.read || false) : readItems.has(i.id),
+      }));
+      setItems(withRead);
+      setFiltered(withRead);
     } catch (e) {
       console.error(e);
     } finally {
@@ -148,9 +154,29 @@ export default function LeadsPage() {
     setFiltered(f);
   }, [search, typeFilter, items]);
 
-  const markRead = async (id: string) => {
-    await supabase.from('lead_captures').update({ read: true }).eq('id', id);
-    setItems(prev => prev.map(i => i.id === id ? { ...i, read: true, status: 'read' } : i));
+  const markRead = async (id: string, type: ActivityType) => {
+    // For leads, update DB. For others, track in localStorage as read set
+    if (type === 'lead') {
+      await supabase.from('lead_captures').update({ read: true }).eq('id', id);
+    } else {
+      const key = 'fm_read_items';
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      if (!existing.includes(id)) {
+        localStorage.setItem(key, JSON.stringify([...existing, id]));
+      }
+    }
+    setItems(prev => prev.map(i => i.id === id ? { ...i, read: true, status: i.type === 'rental' ? i.status : 'read' } : i));
+  };
+
+  const markAllRead = () => {
+    const key = 'fm_read_items';
+    const nonLeadIds = items.filter(i => i.type !== 'lead' && !i.read).map(i => i.id);
+    const existing = JSON.parse(localStorage.getItem(key) || '[]');
+    localStorage.setItem(key, JSON.stringify([...new Set([...existing, ...nonLeadIds])]));
+    items.filter(i => i.type === 'lead' && !i.read).forEach(i => {
+      supabase.from('lead_captures').update({ read: true }).eq('id', i.id);
+    });
+    setItems(prev => prev.map(i => ({ ...i, read: true })));
   };
 
   const counts = {
@@ -160,7 +186,7 @@ export default function LeadsPage() {
     service: items.filter(i => i.type === 'service').length,
     order:   items.filter(i => i.type === 'order').length,
   };
-  const unread = items.filter(i => i.type === 'lead' && !i.read).length;
+  const unread = items.filter(i => !i.read).length;
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -178,7 +204,7 @@ export default function LeadsPage() {
           </button>
           <div className="flex-1">
             <h1 className="text-xl font-bold text-slate-800">Activity Feed</h1>
-            <p className="text-sm text-slate-500">{counts.all} total · {unread} unread leads</p>
+            <div className="flex items-center gap-3"><p className="text-sm text-slate-500">{counts.all} total{unread > 0 ? ` · ${unread} unread` : ''}</p>{unread > 0 && <button onClick={markAllRead} className="text-xs text-slate-500 hover:text-slate-700 underline">Mark all read</button>}</div>
           </div>
         </div>
       </div>
@@ -235,6 +261,7 @@ export default function LeadsPage() {
               return (
                 <div
                   key={`${item.type}-${item.id}`}
+                  id={`activity-${item.id}`}
                   className={`bg-white rounded-xl border transition-all ${isUnread ? 'border-blue-200 shadow-sm' : 'border-slate-200'}`}
                 >
                   <div className="p-4 flex items-start gap-4">
@@ -274,11 +301,11 @@ export default function LeadsPage() {
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {isUnread && (
                         <button
-                          onClick={() => markRead(item.id)}
-                          className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600"
-                          title="Mark as read"
+                          onClick={() => markRead(item.id, item.type)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-700 hover:bg-slate-800 rounded-lg whitespace-nowrap"
                         >
-                          <CheckCircle className="w-4 h-4" />
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          Mark Read
                         </button>
                       )}
                       <button

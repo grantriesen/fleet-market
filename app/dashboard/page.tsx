@@ -104,19 +104,20 @@ export default function DashboardPage() {
       });
 
       // Notification badge counts
+      // Service requests land in lead_captures with source='service'
       const [
         { count: newLeads },
         { count: pendingRentals },
-        { count: pendingServiceN },
+        { count: newServiceLeads },
       ] = await Promise.all([
-        supabase.from('lead_captures').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('read', false),
+        supabase.from('lead_captures').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('read', false).not('source', 'in', '("service","contact","quote_request")'),
         supabase.from('rental_bookings').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('status', 'pending'),
-        supabase.from('service_requests').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('status', 'pending'),
+        supabase.from('lead_captures').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('read', false).in('source', ['service', 'contact', 'quote_request', 'service_scheduling']),
       ]);
       setNotifications({
         leads:   newLeads       || 0,
         rentals: pendingRentals || 0,
-        service: pendingServiceN || 0,
+        service: newServiceLeads || 0,
         orders:  0,
       });
     } catch (error) {
