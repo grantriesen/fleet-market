@@ -371,7 +371,9 @@ async function generateTemplateHTML(
       availablePages,
       page,
       googleFontsUrl,
-      supabase
+      supabase,
+      '',
+      site.addons || []
     );
   }
 
@@ -385,7 +387,7 @@ async function generateTemplateHTML(
         .from('site_features').select('feature_key').eq('site_id', site.id).eq('enabled', true);
       if (features) features.forEach((f: any) => ceEnabledFeatures.add(f.feature_key));
     } catch {}
-    return renderCorporateEdgePage(
+    return await renderCorporateEdgePage(
       siteId,
       page,
       availablePages,
@@ -396,6 +398,9 @@ async function generateTemplateHTML(
       ceVis,
       content,
       manufacturers || [],
+      `/api/preview/${siteId}?page=`,
+      supabase,
+      site.addons || []
     );
   }
 
@@ -409,9 +414,12 @@ async function generateTemplateHTML(
         .from('site_features').select('feature_key').eq('site_id', site.id).eq('enabled', true);
       if (features) features.forEach((f: any) => zlFeatures.add(f.feature_key));
     } catch {}
-    return renderZenithLawnPage(
+    return await renderZenithLawnPage(
       siteId, page, availablePages, displayProducts,
       config, customizations, zlFeatures, zlVis, content,
+      `/api/preview/${siteId}?page=`,
+      supabase,
+      site.addons || []
     );
   }
 
@@ -426,7 +434,9 @@ async function generateTemplateHTML(
     } catch {}
     return await renderModernLawnPage(
       siteId, page, availablePages, displayProducts,
-      config, customizations, mlsFeatures, mlsVis, content, supabase, manufacturers || [],
+      config, customizations, mlsFeatures, mlsVis, content, supabase,
+      `/api/preview/${siteId}?page=`,
+      site.addons || []
     );
   }
 
@@ -439,9 +449,13 @@ async function generateTemplateHTML(
         .from('site_features').select('feature_key').eq('site_id', site.id).eq('enabled', true);
       if (features) features.forEach((f: any) => weFeatures.add(f.feature_key));
     } catch {}
-    return renderWarmEarthPage(
+    return await renderWarmEarthPage(
       siteId, page, availablePages, displayProducts,
       config, customizations, weFeatures, weVis, content,
+      [],
+      `/api/preview/${siteId}?page=`,
+      supabase,
+      site.addons || []
     );
   }
 
@@ -2149,7 +2163,7 @@ async function renderRentalsPageWithIntegration(
                 </div>
                 
                 <button 
-                  onclick="showRentalModal('${item.id}', '${item.title.replace(/'/g, "\\'")}', ${item.daily_rate || 0})"
+                  onclick="showRentalModal('${item.id}', '${item.title.replace(/'/g, "\\'")}', ${item.daily_rate || 0}, ${item.delivery_available ? 'true' : 'false'})"
                   style="width: 100%; background-color: var(--color-primary); color: white; padding: 0.875rem; border: none; border-radius: 0.5rem; font-weight: 600; font-size: 1rem; cursor: pointer; transition: background-color 0.2s;"
                   ${item.quantity_available === 0 ? 'disabled style="background-color: #9ca3af; cursor: not-allowed;"' : ''}
                 >
@@ -2252,7 +2266,7 @@ async function renderRentalsPageWithIntegration(
             </div>
           </div>
           
-          <div style="margin-bottom: 1rem;">
+          <div id="deliverySection" style="display: none; margin-bottom: 1rem;">
             <label style="display: flex; align-items: center; gap: 0.5rem;">
               <input type="checkbox" name="deliveryRequired" onchange="toggleDelivery(this)">
               <span style="font-weight: 600; color: #374151;">Request Delivery</span>
@@ -2277,11 +2291,13 @@ async function renderRentalsPageWithIntegration(
     </div>
     
     <script>
-      function showRentalModal(itemId, itemTitle, dailyRate) {
+      function showRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable) {
         document.getElementById('rentalModal').style.display = 'flex';
         document.getElementById('modalTitle').textContent = 'Book: ' + itemTitle;
         document.getElementById('rentalItemId').value = itemId;
         document.getElementById('rateAmount').value = dailyRate;
+        document.getElementById('deliveryAddress').style.display = 'none';
+        document.getElementById('deliverySection').style.display = deliveryAvailable ? 'block' : 'none';
         document.body.style.overflow = 'hidden';
       }
       

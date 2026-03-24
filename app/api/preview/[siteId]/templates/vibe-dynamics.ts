@@ -97,7 +97,7 @@ export async function renderVibeDynamicsPage(
       body = await vdInventoryPage(getContent, colors, siteId, supabase, displayProducts, isRealProducts, fmtPrice, vis, baseUrl);
       break;
     case 'rentals':
-      body = await vdRentalsPage(getContent, colors, siteId, supabase, enabledFeatures.has('rental_scheduling'), vis, baseUrl);
+      body = await vdRentalsPage(getContent, colors, siteId, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals'), vis, baseUrl);
       break;
     default:
       body = vdHomeSections(getContent, colors, manufacturers, sectionVisibility, siteId, displayProducts, isRealProducts, fmtPrice, enabledFeatures);
@@ -908,51 +908,165 @@ async function vdRentalsPage(
   vis: Record<string, boolean>,
   baseUrl: string = ''
 ): Promise<string> {
+  const heading = getContent('rentalsPage.heading') || 'EQUIPMENT RENTALS';
+  const subheading = getContent('rentalsPage.subheading') || 'Pro-grade equipment available daily, weekly, or monthly';
   const rentalsHeroImg = getContent('rentalsPage.heroImage');
+
   const heroHtml = `
   <section data-section="rentalsPage" class="relative overflow-hidden py-16 md:py-20" style="${rentalsHeroImg ? `background-image: url('${rentalsHeroImg}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-accent));`}">
     ${rentalsHeroImg ? `<div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4));"></div>` : ''}
     <div class="max-w-7xl mx-auto px-6 text-center relative z-10">
-      <h1 class="text-5xl md:text-6xl font-heading font-black text-white mb-4">${getContent('rentalsPage.heading') || 'EQUIPMENT RENTALS'}</h1>
-      <p class="text-xl text-white/80 max-w-2xl mx-auto">${getContent('rentalsPage.subheading') || 'Pro-grade equipment available daily, weekly, or monthly'}</p>
+      <h1 class="text-5xl md:text-6xl font-heading font-black text-white mb-4">${heading}</h1>
+      <p class="text-xl text-white/80 max-w-2xl mx-auto">${subheading}</p>
     </div>
   </section>`;
 
+  let inventorySection = '';
+  if (supabase && hasRentalScheduling) {
+    const { data: rentals } = await supabase
+      .from('rental_inventory').select('*').eq('site_id', siteId)
+      .eq('status', 'available').order('display_order');
+    if (rentals && rentals.length > 0) {
+      inventorySection = `
+      <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-6">
+          <h2 class="text-4xl font-heading font-black text-center mb-12" style="color: var(--color-secondary);">AVAILABLE EQUIPMENT</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem;">
+            ${rentals.map((item: any) => `
+            <div style="border:3px solid var(--color-secondary,#7c3aed);border-radius:1rem;overflow:hidden;background:white;">
+              <div style="aspect-ratio:4/3;overflow:hidden;position:relative;background:#f3f4f6;">
+                ${item.primary_image ? `<img src="${item.primary_image}" alt="${item.title}" loading="lazy" style="width:100%;height:100%;object-fit:cover;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;">&#x1F69C;</div>`}
+                ${!item.quantity_available || item.quantity_available === 0 ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;"><span style="background:#dc2626;color:white;padding:0.375rem 1rem;font-weight:700;font-size:0.875rem;border-radius:0.25rem;">Currently Rented</span></div>` : `<span style="position:absolute;top:0.75rem;right:0.75rem;background:var(--color-accent,#7c3aed);color:white;font-size:0.75rem;font-weight:700;padding:0.25rem 0.5rem;border-radius:9999px;">${item.quantity_available} Available</span>`}
+              </div>
+              <div style="padding:1.25rem;">
+                <span style="display:inline-block;background:rgba(124,58,237,0.1);color:var(--color-secondary,#7c3aed);font-size:0.75rem;font-weight:700;text-transform:uppercase;padding:0.2rem 0.6rem;border-radius:9999px;margin-bottom:0.5rem;">${item.category || 'Rental'}</span>
+                <h3 class="font-heading font-black" style="font-size:1rem;color:#111827;margin:0 0 0.375rem;">${item.title}</h3>
+                ${item.description ? `<p style="font-size:0.875rem;color:#6b7280;margin:0 0 0.75rem;">${item.description.substring(0,100)}</p>` : ''}
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:0.75rem;text-align:center;">
+                  ${item.daily_rate ? `<div style="background:#f3f4f6;padding:0.5rem;border-radius:0.5rem;"><p style="font-weight:800;color:var(--color-primary,#6d28d9);margin:0;font-size:0.9375rem;">$${item.daily_rate}</p><p style="font-size:0.7rem;color:#6b7280;margin:0;">Daily</p></div>` : ''}
+                  ${item.weekly_rate ? `<div style="background:#f3f4f6;padding:0.5rem;border-radius:0.5rem;"><p style="font-weight:800;color:var(--color-primary,#6d28d9);margin:0;font-size:0.9375rem;">$${item.weekly_rate}</p><p style="font-size:0.7rem;color:#6b7280;margin:0;">Weekly</p></div>` : ''}
+                  ${item.monthly_rate ? `<div style="background:#f3f4f6;padding:0.5rem;border-radius:0.5rem;"><p style="font-weight:800;color:var(--color-primary,#6d28d9);margin:0;font-size:0.9375rem;">$${item.monthly_rate}</p><p style="font-size:0.7rem;color:#6b7280;margin:0;">Monthly</p></div>` : ''}
+                </div>
+                ${item.quantity_available > 0
+                  ? `<button onclick="fmShowRentalModal('${item.id}','${item.title.replace(/'/g, "\\'")}',${item.daily_rate||0},${item.delivery_available?'true':'false'})" class="font-heading font-black" style="display:block;width:100%;padding:0.75rem;background:var(--color-primary,#6d28d9);color:white;border:none;border-radius:0.5rem;font-size:0.9375rem;cursor:pointer;">RESERVE NOW</button>`
+                  : `<button disabled style="display:block;width:100%;padding:0.75rem;background:#e5e7eb;color:#9ca3af;border:none;border-radius:0.5rem;font-size:0.9375rem;cursor:not-allowed;">UNAVAILABLE</button>`
+                }
+              </div>
+            </div>`).join('')}
+          </div>
+        </div>
+      </section>
+      
+  <div id="fmRentalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:white;border-radius:0.75rem;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 40px rgba(0,0,0,0.3);">
+      <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;background:var(--color-primary,#6d28d9);border-radius:0.75rem 0.75rem 0 0;">
+        <h3 id="fmRentalModalTitle" style="font-size:1.25rem;font-weight:700;color:white;margin:0;">Book Rental</h3>
+        <button onclick="fmCloseRentalModal()" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;line-height:1;padding:0.25rem;">&#x2715;</button>
+      </div>
+      <form id="fmRentalForm" style="padding:1.5rem;">
+        <input type="hidden" name="siteId" value="${siteId}">
+        <input type="hidden" id="fmRentalItemId" name="rentalItemId">
+        <input type="hidden" id="fmRateAmount" name="rateAmount">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+          <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Name *</label><input type="text" name="customerName" required style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
+          <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Phone *</label><input type="tel" name="customerPhone" required style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
+        </div>
+        <div style="margin-bottom:1rem;"><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Email *</label><input type="email" name="customerEmail" required style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
+        <div style="background:#f9fafb;padding:1rem;border-radius:0.5rem;margin-bottom:1rem;border:1px solid #e5e7eb;">
+          <h4 style="font-size:0.9375rem;font-weight:600;margin:0 0 0.75rem;color:#111827;">Rental Period</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0.75rem;">
+            <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Start Date *</label><input type="date" name="startDate" id="fmRentalStart" required min="${new Date().toISOString().split('T')[0]}" onchange="fmCalcRentalTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
+            <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Pickup Time *</label><select name="pickupTime" required style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;background:white;box-sizing:border-box;"><option value="">Select time</option><option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option></select></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">End Date *</label><input type="date" name="endDate" id="fmRentalEnd" required min="${new Date().toISOString().split('T')[0]}" onchange="fmCalcRentalTotal()" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
+            <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Return Time *</label><select name="returnTime" required style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;background:white;box-sizing:border-box;"><option value="">Select time</option><option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option></select></div>
+          </div>
+          <div id="fmRentalTotal" style="display:none;margin-top:0.75rem;padding:0.75rem;background:white;border-radius:0.375rem;border:1px solid #e5e7eb;">
+            <p style="font-size:0.8125rem;color:#6b7280;margin:0 0 0.25rem;">Duration: <span id="fmRentalDays">0</span> day(s)</p>
+            <p style="font-size:1.0625rem;font-weight:700;color:var(--color-primary,#6d28d9);margin:0;">Estimated Total: $<span id="fmRentalTotalAmt">0</span></p>
+          </div>
+        </div>
+        <div id="fmDeliverySection" style="display:none;margin-bottom:0.75rem;"><label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;font-weight:600;color:#374151;"><input type="checkbox" name="deliveryRequired" onchange="fmToggleDelivery(this)" style="width:1rem;height:1rem;">Request Delivery</label></div>
+        <div id="fmDeliveryAddr" style="display:none;margin-bottom:0.75rem;"><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Delivery Address</label><textarea name="deliveryAddress" rows="2" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;resize:vertical;box-sizing:border-box;" placeholder="Street address, city, state, zip"></textarea></div>
+        <div style="margin-bottom:1.25rem;"><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Special Requests</label><textarea name="notes" rows="2" style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;resize:vertical;box-sizing:border-box;" placeholder="Any special requests or notes..."></textarea></div>
+        <button type="submit" id="fmRentalSubmitBtn" style="width:100%;background:var(--color-primary,#6d28d9);color:white;padding:0.875rem;border:none;border-radius:0.375rem;font-weight:700;font-size:1rem;cursor:pointer;">Submit Rental Request</button>
+      </form>
+    </div>
+  </div>
+  <script>
+  (function() {
+    function fmShowRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable) {
+      document.getElementById('fmRentalModal').style.display = 'flex';
+      document.getElementById('fmRentalModalTitle').textContent = 'Book: ' + itemTitle;
+      document.getElementById('fmRentalForm').reset();
+      document.getElementById('fmRentalItemId').value = itemId;
+      document.getElementById('fmRateAmount').value = dailyRate;
+      document.getElementById('fmRentalTotal').style.display = 'none';
+      document.getElementById('fmDeliveryAddr').style.display = 'none';
+      document.getElementById('fmDeliverySection').style.display = deliveryAvailable ? 'block' : 'none';
+      document.body.style.overflow = 'hidden';
+    }
+    function fmCloseRentalModal() { document.getElementById('fmRentalModal').style.display = 'none'; document.body.style.overflow = ''; }
+    function fmToggleDelivery(cb) { document.getElementById('fmDeliveryAddr').style.display = cb.checked ? 'block' : 'none'; }
+    function fmCalcRentalTotal() {
+      var s = document.getElementById('fmRentalStart').value, e = document.getElementById('fmRentalEnd').value;
+      var rate = parseFloat(document.getElementById('fmRateAmount').value) || 0;
+      if (s && e && rate) {
+        var days = Math.ceil((new Date(e) - new Date(s)) / 86400000) + 1;
+        if (days > 0) { document.getElementById('fmRentalDays').textContent = days; document.getElementById('fmRentalTotalAmt').textContent = (days * rate).toFixed(2); document.getElementById('fmRentalTotal').style.display = 'block'; }
+      }
+    }
+    document.getElementById('fmRentalModal').addEventListener('click', function(e) { if (e.target === this) fmCloseRentalModal(); });
+    document.getElementById('fmRentalForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var btn = document.getElementById('fmRentalSubmitBtn');
+      btn.textContent = 'Submitting...'; btn.disabled = true;
+      var fd = new FormData(this); var data = {};
+      fd.forEach(function(v,k) { data[k]=v; });
+      data.totalAmount = document.getElementById('fmRentalTotalAmt').textContent || '0';
+      fetch('/api/rental/book/' + data.siteId, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) })
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res.error) { alert('Error: ' + res.error); btn.textContent = 'Submit Rental Request'; btn.disabled = false; }
+        else { document.getElementById('fmRentalForm').innerHTML = '<div style="text-align:center;padding:3rem 1.5rem;"><div style="font-size:3rem;margin-bottom:1rem;">&#x2705;</div><h3 style="color:var(--color-primary,#6d28d9);font-size:1.375rem;font-weight:700;margin-bottom:0.75rem;">Request Submitted!</h3><p style="color:#6b7280;">We will contact you to confirm your booking within 1 business day.</p></div>'; }
+      })
+      .catch(function() { alert('Something went wrong.'); btn.textContent = 'Submit Rental Request'; btn.disabled = false; });
+    });
+    window.fmShowRentalModal = fmShowRentalModal; window.fmCloseRentalModal = fmCloseRentalModal;
+    window.fmToggleDelivery = fmToggleDelivery; window.fmCalcRentalTotal = fmCalcRentalTotal;
+  })();
+  </script>`;
+    }
+  }
+
   const howHeading = getContent('rentalsPage.contentHeading') || 'HOW RENTALS WORK';
-  const step1Title = getContent('rentalsPage.step1Title') || '1. Request';
-  const step1Desc = getContent('rentalsPage.step1Text') || 'Fill out our rental request form with your project details and preferred dates.';
-  const step2Title = getContent('rentalsPage.step2Title') || '2. Confirm';
-  const step2Desc = getContent('rentalsPage.step2Text') || "We'll confirm availability and send you a rental agreement to review.";
-  const step3Title = getContent('rentalsPage.step3Title') || '3. Pickup/Delivery';
-  const step3Desc = getContent('rentalsPage.step3Text') || 'Pick up your equipment or schedule delivery to your job site.';
   const infoHtml = `
   <section data-section="rentalInfo" class="py-16 bg-white">
     <div class="max-w-7xl mx-auto px-6">
       <h2 class="text-4xl font-heading font-black text-center mb-12" style="color: var(--color-secondary);">${howHeading}</h2>
       <div class="grid md:grid-cols-3 gap-8">
         ${[
-          { icon: '📋', title: step1Title, desc: step1Desc },
-          { icon: '✅', title: step2Title, desc: step2Desc },
-          { icon: '🚚', title: step3Title, desc: step3Desc },
+          { icon: '📋', title: getContent('rentalsPage.step1Title') || '1. Request', desc: getContent('rentalsPage.step1Text') || 'Fill out our rental request form with your project details and preferred dates.' },
+          { icon: '✅', title: getContent('rentalsPage.step2Title') || '2. Confirm', desc: getContent('rentalsPage.step2Text') || 'We will confirm availability and send you a rental agreement to review.' },
+          { icon: '🚚', title: getContent('rentalsPage.step3Title') || '3. Pickup/Delivery', desc: getContent('rentalsPage.step3Text') || 'Pick up your equipment or schedule delivery to your job site.' },
         ].map(step => `
           <div class="bg-white rounded-2xl p-8 text-center" style="border: 3px solid var(--color-secondary);">
             <span class="text-5xl mb-4 block">${step.icon}</span>
             <h3 class="text-2xl font-heading font-black text-gray-900 mb-2">${step.title}</h3>
             <p class="text-gray-600">${step.desc}</p>
-          </div>
-        `).join('')}
+          </div>`).join('')}
       </div>
     </div>
   </section>`;
 
-  const ctaHtml = `
+  const ctaHtml = !inventorySection ? `
   <section class="py-16 text-center" style="background-color: var(--color-secondary);">
     <div class="max-w-3xl mx-auto px-6">
       <h2 class="text-4xl font-heading font-black text-white mb-4">${getContent('rentalsPage.ctaHeading') || 'Ready to Rent?'}</h2>
-      <p class="text-lg text-white/90 mb-8">${getContent('rentalsPage.pricingNote') || 'Contact us for availability and pricing on any rental equipment.'}</p>
       <a href="${baseUrl}${getContent('rentalsPage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-secondary);">${getContent('rentalsPage.ctaText') || 'Get a Quote'}</a>
     </div>
-  </section>`;
+  </section>` : '';
 
-  return heroHtml + infoHtml + ctaHtml + rentalBookingSection(siteId, colors.primary, getContent);
+  return heroHtml + (inventorySection || (infoHtml + ctaHtml));
 }
