@@ -601,7 +601,7 @@ function modalScript(p: string, siteId: string, stripeKey: string = ''): string 
     })
     .then(function(r){ return r.json(); })
     .then(function(res){
-      if (res.error) { alert(res.error); btn.textContent='Submit Request'; btn.disabled=false; }
+      if (res.error) { alert(res.error); if (btn) { btn.textContent='Pay Deposit & Confirm'; btn.disabled=false; } if (step2Btn) { step2Btn.textContent='Continue →'; step2Btn.disabled=false; } }
       else {
         var pc = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#1e3a6e';
         document.getElementById('${p}Step2').innerHTML = '<div style="text-align:center;padding:3rem 1.5rem;">'
@@ -613,7 +613,11 @@ function modalScript(p: string, siteId: string, stripeKey: string = ''): string 
         document.getElementById('${p}Step2Footer').style.display = 'none';
       }
     })
-    .catch(function(){ alert('Something went wrong. Please try again.'); btn.textContent='Submit Request'; btn.disabled=false; });
+    .catch(function(){
+      alert('Something went wrong. Please try again.');
+      if (btn) { btn.textContent='Pay Deposit & Confirm'; btn.disabled=false; }
+      if (step2Btn) { step2Btn.textContent='Continue →'; step2Btn.disabled=false; }
+    });
   }
 
   function ${p}GoStep2FromStep3() {
@@ -662,7 +666,7 @@ function modalScript(p: string, siteId: string, stripeKey: string = ''): string 
     .then(function(r){ return r.json(); })
     .then(function(res){
       if (res.error) {
-        stripeEl.innerHTML = '<div style="color:#dc2626;padding:0.75rem;background:#fef2f2;border-radius:0.375rem;">'+res.error+'</div>';
+        stripeEl.innerHTML = '<div style="color:#dc2626;padding:0.75rem;background:#fef2f2;border-radius:0.375rem;font-size:0.875rem;">'+res.error+'<br><br>Please contact the dealer to complete your booking.</div>';
         return;
       }
       st.stripeClientSecret = res.clientSecret;
