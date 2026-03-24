@@ -545,6 +545,7 @@ function modalScript(p: string, siteId: string, stripeKey: string = ''): string 
     if (taxRate > 0 && document.getElementById('${p}TotalLbl')) {
       document.getElementById('${p}TotalLbl').textContent = '$' + grandTotal.toFixed(2);
     }
+    var st = ${p}RentalState;
     var taxLine = taxRate > 0
       ? '<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:0.8125rem;color:#6b7280;"><span>Tax (' + taxRate + '%)</span><span>$' + taxAmount.toFixed(2) + '</span></div>'
         + '<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:0.9375rem;font-weight:700;color:#111827;border-top:1px solid #e5e7eb;padding-top:6px;"><span>Total</span><span>$' + grandTotal.toFixed(2) + '</span></div>'
