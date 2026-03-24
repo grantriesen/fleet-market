@@ -506,15 +506,6 @@ function modalScript(p: string, siteId: string, stripeKey: string = ''): string 
     }, pc);
     document.getElementById('${p}PickupTime').onchange = ${p}CalcTotal;
     document.getElementById('${p}ReturnTime').onchange = ${p}CalcTotal;
-    // Fetch tax rate for this site
-    fetch('/api/rental/settings/${siteId}')
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        if (d.tax_rate) { ${p}RentalState.taxRate = parseFloat(d.tax_rate) || 0; }
-        ${p}RentalState.collectDepositOnline = d.collect_deposit_online !== false;
-        ${p}RentalState.cancellationPolicy = d.cancellation_policy || '';
-      })
-      .catch(function(){});
   }
 
   function ${p}GoStep1() {
@@ -752,6 +743,18 @@ function modalScript(p: string, siteId: string, stripeKey: string = ''): string 
   window.${p}CalcTotal        = ${p}CalcTotal;
   window.${p}ToggleDelivery   = ${p}ToggleDelivery;
   window.${p}SubmitRental     = ${p}SubmitRental;
+
+  // Fetch rental settings eagerly on page load so they're ready before user opens modal
+  (function() {
+    fetch('/api/rental/settings/${siteId}')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        ${p}RentalState.taxRate = parseFloat(d.tax_rate) || 0;
+        ${p}RentalState.collectDepositOnline = d.collect_deposit_online !== false;
+        ${p}RentalState.cancellationPolicy = d.cancellation_policy || '';
+      })
+      .catch(function(){});
+  })();
 
   })();
   </script>`;

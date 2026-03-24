@@ -1532,12 +1532,12 @@ async function gvRentalsPage(
 ): Promise<string> {
   if (!supabase || !hasRentalFeature) return gvRentalsPageStatic(getContent, colors, siteId, vis);
 
-  const { data: rentals } = await supabase
-    .from('rental_inventory')
-    .select('*')
-    .eq('site_id', siteId)
-    .eq('status', 'available')
-    .order('display_order');
+  const [{ data: rentals }, { data: rentalSettings }] = await Promise.all([
+    supabase.from('rental_inventory').select('*').eq('site_id', siteId).eq('status', 'available').order('display_order'),
+    supabase.from('rental_settings').select('cancellation_policy, min_rental_hours').eq('site_id', siteId).maybeSingle(),
+  ]);
+  const cancellationPolicy: string = (rentalSettings as any)?.cancellation_policy || '';
+  const minRentalHours: number = (rentalSettings as any)?.min_rental_hours || 1;
 
   if (!rentals || rentals.length === 0) {
     return gvRentalsPageStatic(getContent, colors, siteId, vis);
