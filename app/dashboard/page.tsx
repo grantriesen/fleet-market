@@ -49,6 +49,7 @@ export default function DashboardPage() {
     totalInventory: 0, activeRentals: 0, pendingService: 0,
     totalLeads: 0, siteViews: 0, uniqueVisitors: 0,
   });
+  const [notifications, setNotifications] = useState({ leads: 0, rentals: 0, service: 0, orders: 0 });
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
 
   useEffect(() => { loadDashboard(); }, []);
@@ -100,6 +101,23 @@ export default function DashboardPage() {
         totalLeads:      leadsCount      || 0,
         siteViews:       viewsCount      || 0,
         uniqueVisitors:  uniqueIps.size,
+      });
+
+      // Notification badge counts
+      const [
+        { count: newLeads },
+        { count: pendingRentals },
+        { count: pendingServiceN },
+      ] = await Promise.all([
+        supabase.from('lead_captures').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('read', false),
+        supabase.from('rental_bookings').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('status', 'pending'),
+        supabase.from('service_requests').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('status', 'pending'),
+      ]);
+      setNotifications({
+        leads:   newLeads       || 0,
+        rentals: pendingRentals || 0,
+        service: pendingServiceN || 0,
+        orders:  0,
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -177,13 +195,13 @@ export default function DashboardPage() {
 
   // ── Quick actions — addon-gated ──
   const quickActions = [
-    { title: 'Analytics',  description: 'View detailed analytics', icon: BarChart3,    href: '/dashboard/analytics', color: 'bg-blue-500',    addon: null },
-    { title: 'My Website', description: 'Edit and customize',      icon: Globe,        href: '/dashboard/website',   color: 'bg-green-500',  addon: null },
-    { title: 'Leads',      description: 'View contacts',           icon: Mail,         href: '/dashboard/leads',     color: 'bg-indigo-500', addon: null },
-    { title: 'Orders',     description: 'View purchases',          icon: ShoppingBag,  href: '/dashboard/orders',    color: 'bg-emerald-500',addon: 'inventory' },
-    { title: 'Inventory',  description: 'Manage equipment',        icon: Package,      href: '/dashboard/inventory', color: 'bg-orange-500', addon: 'inventory' },
-    { title: 'Rentals',    description: 'Track bookings',          icon: Wrench,       href: '/dashboard/rentals',   color: 'bg-purple-500', addon: 'rentals'   },
-    { title: 'Service',    description: 'Manage requests',         icon: Calendar,     href: '/dashboard/service',   color: 'bg-red-500',    addon: 'service'   },
+    { title: 'Analytics',  description: 'View detailed analytics', icon: BarChart3,    href: '/dashboard/analytics', color: 'bg-blue-500',    addon: null,        badge: 0 },
+    { title: 'My Website', description: 'Edit and customize',      icon: Globe,        href: '/dashboard/website',   color: 'bg-green-500',  addon: null,        badge: 0 },
+    { title: 'Leads',      description: 'View contacts',           icon: Mail,         href: '/dashboard/leads',     color: 'bg-indigo-500', addon: null,        badge: notifications.leads },
+    { title: 'Orders',     description: 'View purchases',          icon: ShoppingBag,  href: '/dashboard/orders',    color: 'bg-emerald-500',addon: 'inventory', badge: notifications.orders },
+    { title: 'Inventory',  description: 'Manage equipment',        icon: Package,      href: '/dashboard/inventory', color: 'bg-orange-500', addon: 'inventory', badge: 0 },
+    { title: 'Rentals',    description: 'Track bookings',          icon: Wrench,       href: '/dashboard/rentals',   color: 'bg-purple-500', addon: 'rentals',   badge: notifications.rentals },
+    { title: 'Service',    description: 'Manage requests',         icon: Calendar,     href: '/dashboard/service',   color: 'bg-red-500',    addon: 'service',   badge: notifications.service },
   ];
 
   // Addon badge label
@@ -263,8 +281,15 @@ export default function DashboardPage() {
                           : 'border-slate-200 hover:border-blue-500 hover:bg-blue-50'
                       }`}
                     >
-                      <div className={`${action.color} w-10 h-10 rounded-lg flex items-center justify-center mb-3 transition-transform ${!isLocked && 'group-hover:scale-110'} ${isLocked && 'grayscale opacity-40'}`}>
-                        <Icon className="w-5 h-5 text-white" />
+                      <div className="relative inline-block mb-3">
+                        <div className={`${action.color} w-10 h-10 rounded-lg flex items-center justify-center transition-transform ${!isLocked && 'group-hover:scale-110'} ${isLocked && 'grayscale opacity-40'}`}>
+                          <Icon className="w-5 h-5 text-white" />
+                        </div>
+                        {!isLocked && action.badge > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm">
+                            {action.badge > 99 ? '99+' : action.badge}
+                          </span>
+                        )}
                       </div>
                       <div className="font-semibold text-slate-800 mb-1 flex items-center gap-2">
                         {action.title}

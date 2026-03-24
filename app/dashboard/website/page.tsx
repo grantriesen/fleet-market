@@ -23,6 +23,11 @@ export default function WebsiteManagementPage() {
   const [loading, setLoading] = useState(true);
   const [site, setSite] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'content' | 'design' | 'settings'>('content');
+  const [quickContent, setQuickContent] = useState({
+    businessName: '', phone: '', email: '', mainHeading: '', subheading: '', ctaText: '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     loadSite();
@@ -54,10 +59,48 @@ export default function WebsiteManagementPage() {
       }
 
       setSite(userSite);
+      // Load existing content from config_json
+      const cfg = userSite.config_json || {};
+      const content = cfg.content || {};
+      setQuickContent({
+        businessName: userSite.site_name || '',
+        phone:        content['businessInfo.phone'] || content['business.phone'] || '',
+        email:        content['businessInfo.email'] || content['business.email'] || '',
+        mainHeading:  content['hero.heading'] || content['hero.title'] || '',
+        subheading:   content['hero.subheading'] || content['hero.subtitle'] || '',
+        ctaText:      content['hero.ctaText'] || content['hero.cta'] || '',
+      });
     } catch (error) {
       console.error('Error loading site:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function saveQuickContent() {
+    if (!site) return;
+    setSaving(true);
+    try {
+      const cfg = site.config_json || {};
+      const content = { ...(cfg.content || {}) };
+      // Update the content keys
+      content['businessInfo.phone'] = quickContent.phone;
+      content['businessInfo.email'] = quickContent.email;
+      content['hero.heading']       = quickContent.mainHeading;
+      content['hero.subheading']    = quickContent.subheading;
+      content['hero.ctaText']       = quickContent.ctaText;
+      // Update site name if changed
+      const updates: any = { config_json: { ...cfg, content } };
+      if (quickContent.businessName !== site.site_name) {
+        updates.site_name = quickContent.businessName;
+      }
+      await supabase.from('sites').update(updates).eq('id', site.id);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -155,7 +198,8 @@ export default function WebsiteManagementPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Business Name</label>
                       <input
                         type="text"
-                        defaultValue={site?.site_name}
+                        value={quickContent.businessName}
+                        onChange={e => setQuickContent(p => ({...p, businessName: e.target.value}))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
                     </div>
@@ -163,6 +207,8 @@ export default function WebsiteManagementPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                       <input
                         type="tel"
+                        value={quickContent.phone}
+                        onChange={e => setQuickContent(p => ({...p, phone: e.target.value}))}
                         placeholder="(555) 123-4567"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
@@ -171,6 +217,8 @@ export default function WebsiteManagementPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                       <input
                         type="email"
+                        value={quickContent.email}
+                        onChange={e => setQuickContent(p => ({...p, email: e.target.value}))}
                         placeholder="info@example.com"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
@@ -185,6 +233,8 @@ export default function WebsiteManagementPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Main Heading</label>
                       <input
                         type="text"
+                        value={quickContent.mainHeading}
+                        onChange={e => setQuickContent(p => ({...p, mainHeading: e.target.value}))}
                         placeholder="Welcome to Your Business"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
@@ -193,6 +243,8 @@ export default function WebsiteManagementPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Subheading</label>
                       <textarea
                         rows={3}
+                        value={quickContent.subheading}
+                        onChange={e => setQuickContent(p => ({...p, subheading: e.target.value}))}
                         placeholder="Your tagline or description"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
@@ -201,6 +253,8 @@ export default function WebsiteManagementPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">CTA Button Text</label>
                       <input
                         type="text"
+                        value={quickContent.ctaText}
+                        onChange={e => setQuickContent(p => ({...p, ctaText: e.target.value}))}
                         placeholder="Get Started"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
@@ -210,12 +264,12 @@ export default function WebsiteManagementPage() {
               </div>
 
               <div className="mt-6 flex justify-end gap-3">
-                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                <button onClick={() => loadSite()} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                   Cancel
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                  <Save className="w-4 h-4" />
-                  Save Changes
+                <button onClick={saveQuickContent} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {saved ? '✓ Saved!' : 'Save Changes'}
                 </button>
               </div>
             </div>

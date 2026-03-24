@@ -1,408 +1,299 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { 
-  ArrowLeft, 
-  Mail, 
-  User,
-  Phone,
-  Calendar,
-  Download,
-  Search,
-  Filter,
-  Loader2,
-  Tag,
-  MessageSquare,
-  Wrench,
-  Truck,
-  ShoppingBag
+import {
+  ArrowLeft, Mail, User, Phone, Calendar, Search,
+  Loader2, MessageSquare, Wrench, ShoppingBag, ExternalLink,
+  ChevronRight, Filter, X, CheckCircle
 } from 'lucide-react';
 
-interface Lead {
+type ActivityType = 'lead' | 'rental' | 'service' | 'order';
+
+interface UnifiedActivity {
   id: string;
+  type: ActivityType;
+  title: string;
   name: string;
   email: string;
   phone: string;
-  source: string;
-  message?: string;
-  tags?: string[];
-  extra_data?: Record<string, any>;
+  detail: string;
+  amount?: number;
+  status: string;
   created_at: string;
+  href: string;
+  read?: boolean;
 }
 
-// Source values written by /api/submit-form
-const SOURCE_LABELS: Record<string, string> = {
-  contact_form:          'Contact Form',
-  quote_request:         'Service / Rental',
-  product_quote_request: 'Product Quote',
-  newsletter:            'Newsletter',
+const TYPE_CONFIG: Record<ActivityType, { label: string; icon: any; bg: string; color: string; border: string }> = {
+  lead:    { label: 'Lead',           icon: Mail,        bg: 'bg-blue-50',   color: 'text-blue-700',   border: 'border-blue-200' },
+  rental:  { label: 'Rental Booking', icon: Wrench,      bg: 'bg-purple-50', color: 'text-purple-700', border: 'border-purple-200' },
+  service: { label: 'Service Request',icon: Calendar,    bg: 'bg-orange-50', color: 'text-orange-700', border: 'border-orange-200' },
+  order:   { label: 'Order',          icon: ShoppingBag, bg: 'bg-green-50',  color: 'text-green-700',  border: 'border-green-200' },
 };
 
-const SOURCE_COLORS: Record<string, string> = {
-  contact_form:          'bg-blue-100 text-blue-800',
-  quote_request:         'bg-orange-100 text-orange-800',
-  product_quote_request: 'bg-emerald-100 text-emerald-800',
-  newsletter:            'bg-purple-100 text-purple-800',
+const STATUS_COLORS: Record<string, string> = {
+  pending:   'bg-amber-100 text-amber-700',
+  confirmed: 'bg-blue-100 text-blue-700',
+  active:    'bg-green-100 text-green-700',
+  completed: 'bg-slate-100 text-slate-600',
+  cancelled: 'bg-red-100 text-red-600',
+  new:       'bg-blue-100 text-blue-700',
+  read:      'bg-slate-100 text-slate-500',
 };
+
+function timeAgo(dateStr: string) {
+  const s = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (s < 60)    return 'Just now';
+  if (s < 3600)  return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 export default function LeadsPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [loading, setLoading] = useState(true);
-  const [site, setSite] = useState<any>(null);
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sourceFilter, setSourceFilter] = useState('all');
+  const [loading, setLoading]       = useState(true);
+  const [site, setSite]             = useState<any>(null);
+  const [items, setItems]           = useState<UnifiedActivity[]>([]);
+  const [filtered, setFiltered]     = useState<UnifiedActivity[]>([]);
+  const [search, setSearch]         = useState('');
+  const [typeFilter, setTypeFilter] = useState<ActivityType | 'all'>('all');
 
-  useEffect(() => {
-    loadLeads();
-  }, []);
-
-  useEffect(() => {
-    filterLeads();
-  }, [searchQuery, sourceFilter, leads]);
-
-  async function loadLeads() {
+  const load = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login');
-        return;
-      }
+      if (!user) { router.push('/login'); return; }
 
-      const { data: userSite } = await supabase
-        .from('sites')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!userSite) {
-        router.push('/onboarding');
-        return;
-      }
-
+      const { data: userSite } = await supabase.from('sites').select('*').eq('user_id', user.id).single();
+      if (!userSite) { router.push('/onboarding'); return; }
       setSite(userSite);
+      const sid = userSite.id;
 
-      const { data: leadData, error } = await supabase
-        .from('lead_captures')
-        .select('*')
-        .eq('site_id', userSite.id)
-        .order('created_at', { ascending: false });
+      const [
+        { data: leads },
+        { data: rentals },
+        { data: services },
+        { data: orders },
+      ] = await Promise.all([
+        supabase.from('lead_captures').select('*').eq('site_id', sid).order('created_at', { ascending: false }),
+        supabase.from('rental_bookings').select('*').eq('site_id', sid).order('created_at', { ascending: false }),
+        supabase.from('service_requests').select('*').eq('site_id', sid).order('created_at', { ascending: false }),
+        supabase.from('orders').select('*').eq('site_id', sid).order('created_at', { ascending: false }),
+      ]);
 
-      if (error) {
-        console.error('Error fetching lead_captures:', error);
-      }
+      const unified: UnifiedActivity[] = [
+        ...(leads || []).map((l: any): UnifiedActivity => ({
+          id: l.id, type: 'lead',
+          title: l.source ? l.source.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : 'Contact Form',
+          name: l.name || 'Unknown', email: l.email || '', phone: l.phone || '',
+          detail: l.message || l.source || '',
+          status: l.read ? 'read' : 'new',
+          created_at: l.created_at,
+          href: '/dashboard/leads',
+          read: l.read || false,
+        })),
+        ...(rentals || []).map((r: any): UnifiedActivity => ({
+          id: r.id, type: 'rental',
+          title: 'Rental Booking',
+          name: r.customer_name || 'Unknown', email: r.customer_email || '', phone: r.customer_phone || '',
+          detail: `${new Date(r.start_date).toLocaleDateString('en-US',{month:'short',day:'numeric'})} → ${new Date(r.end_date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}`,
+          amount: r.total_amount,
+          status: r.status || 'pending',
+          created_at: r.created_at,
+          href: '/dashboard/rentals',
+        })),
+        ...(services || []).map((s: any): UnifiedActivity => ({
+          id: s.id, type: 'service',
+          title: 'Service Request',
+          name: s.customer_name || s.name || 'Unknown', email: s.customer_email || s.email || '', phone: s.customer_phone || s.phone || '',
+          detail: s.service_type || s.message || '',
+          status: s.status || 'pending',
+          created_at: s.created_at,
+          href: '/dashboard/service',
+        })),
+        ...(orders || []).map((o: any): UnifiedActivity => ({
+          id: o.id, type: 'order',
+          title: 'Order',
+          name: o.customer_name || 'Unknown', email: o.customer_email || '', phone: o.customer_phone || '',
+          detail: o.product_name || `Order #${o.id.slice(0,8)}`,
+          amount: o.total_amount,
+          status: o.status || 'pending',
+          created_at: o.created_at,
+          href: '/dashboard/orders',
+        })),
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      const realLeads = (leadData || []).map((l: any) => ({
-        id: l.id,
-        name: l.name || l.customer_name || 'Unknown',
-        email: l.email || l.customer_email || '',
-        phone: l.phone || l.customer_phone || '',
-        source: l.source || 'contact_form',
-        message: l.message || '',
-        tags: l.tags || [],
-        extra_data: l.extra_data || null,
-        created_at: l.created_at,
-      }));
-
-      setLeads(realLeads);
-      setFilteredLeads(realLeads);
-      
-    } catch (error) {
-      console.error('Error loading leads:', error);
+      setItems(unified);
+      setFiltered(unified);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  function filterLeads() {
-    let filtered = [...leads];
+  useEffect(() => { load(); }, [load]);
 
-    if (sourceFilter !== 'all') {
-      filtered = filtered.filter(lead => lead.source === sourceFilter);
-    }
-
-    if (searchQuery) {
-      filtered = filtered.filter(lead =>
-        lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.phone.includes(searchQuery)
-      );
-    }
-
-    setFilteredLeads(filtered);
-  }
-
-  function exportToCSV() {
-    const headers = ['Name', 'Email', 'Phone', 'Source', 'Tags', 'Message', 'Date'];
-    const rows = filteredLeads.map(lead => [
-      lead.name,
-      lead.email,
-      lead.phone,
-      SOURCE_LABELS[lead.source] ?? lead.source,
-      (lead.tags || []).join('; '),
-      lead.message || '',
-      new Date(lead.created_at).toLocaleDateString(),
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `leads-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-green-600" />
-      </div>
+  useEffect(() => {
+    let f = [...items];
+    if (typeFilter !== 'all') f = f.filter(i => i.type === typeFilter);
+    if (search) f = f.filter(i =>
+      i.name.toLowerCase().includes(search.toLowerCase()) ||
+      i.email.toLowerCase().includes(search.toLowerCase()) ||
+      i.detail.toLowerCase().includes(search.toLowerCase())
     );
-  }
+    setFiltered(f);
+  }, [search, typeFilter, items]);
 
-  const contactCount   = leads.filter(l => l.source === 'contact_form').length;
-  const quoteCount     = leads.filter(l => l.source === 'quote_request').length;
-  const productQuoteCount = leads.filter(l => l.source === 'product_quote_request').length;
-  const newsletterCount = leads.filter(l => l.source === 'newsletter').length;
-  const thisWeekCount  = leads.filter(l => new Date(l.created_at) > new Date(Date.now() - 7 * 86400000)).length;
+  const markRead = async (id: string) => {
+    await supabase.from('lead_captures').update({ read: true }).eq('id', id);
+    setItems(prev => prev.map(i => i.id === id ? { ...i, read: true, status: 'read' } : i));
+  };
+
+  const counts = {
+    all:     items.length,
+    lead:    items.filter(i => i.type === 'lead').length,
+    rental:  items.filter(i => i.type === 'rental').length,
+    service: items.filter(i => i.type === 'service').length,
+    order:   items.filter(i => i.type === 'order').length,
+  };
+  const unread = items.filter(i => i.type === 'lead' && !i.read).length;
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Leads & Contacts</h1>
-                <p className="text-sm text-gray-500">{site?.site_name}</p>
-              </div>
-            </div>
-
-            <button
-              onClick={exportToCSV}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              Export CSV
-            </button>
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
+          <button onClick={() => router.push('/dashboard')} className="p-2 hover:bg-slate-100 rounded-lg">
+            <ArrowLeft className="w-5 h-5 text-slate-600" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-xl font-bold text-slate-800">Activity Feed</h1>
+            <p className="text-sm text-slate-500">{counts.all} total · {unread} unread leads</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <Mail className="w-5 h-5 text-blue-600" />
-              </div>
-              <p className="text-sm text-gray-600">Total Leads</p>
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{leads.length}</p>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-green-50 rounded-lg">
-                <MessageSquare className="w-5 h-5 text-green-600" />
-              </div>
-              <p className="text-sm text-gray-600">Contact Forms</p>
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{contactCount}</p>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-orange-50 rounded-lg">
-                <Wrench className="w-5 h-5 text-orange-600" />
-              </div>
-              <p className="text-sm text-gray-600">Service / Rental</p>
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{quoteCount}</p>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-emerald-50 rounded-lg">
-                <ShoppingBag className="w-5 h-5 text-emerald-600" />
-              </div>
-              <p className="text-sm text-gray-600">Product Quotes</p>
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{productQuoteCount}</p>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-purple-50 rounded-lg">
-                <Calendar className="w-5 h-5 text-purple-600" />
-              </div>
-              <p className="text-sm text-gray-600">This Week</p>
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{thisWeekCount}</p>
-          </div>
-        </div>
-
+      <div className="max-w-5xl mx-auto px-6 py-6">
         {/* Filters */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by name, email, or phone..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-gray-400" />
-              <select
-                value={sourceFilter}
-                onChange={(e) => setSourceFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+        <div className="flex flex-wrap gap-2 mb-4">
+          {(['all', 'lead', 'rental', 'service', 'order'] as const).map(t => {
+            const cfg = t === 'all' ? null : TYPE_CONFIG[t];
+            const count = counts[t];
+            const active = typeFilter === t;
+            return (
+              <button
+                key={t}
+                onClick={() => setTypeFilter(t)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                  active
+                    ? 'bg-slate-800 text-white border-slate-800'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                }`}
               >
-                <option value="all">All Sources ({leads.length})</option>
-                <option value="contact_form">Contact Form ({contactCount})</option>
-                <option value="quote_request">Service / Rental ({quoteCount})</option>
-                <option value="product_quote_request">Product Quotes ({productQuoteCount})</option>
-                <option value="newsletter">Newsletter ({newsletterCount})</option>
-              </select>
+                {cfg && <cfg.icon className="w-3.5 h-3.5" />}
+                {t === 'all' ? 'All' : TYPE_CONFIG[t].label}
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${active ? 'bg-white/20' : 'bg-slate-100'}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+          <div className="flex items-center gap-2 ml-auto">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search..." className="pl-9 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white w-48"
+              />
+              {search && <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3.5 h-3.5 text-slate-400" /></button>}
             </div>
           </div>
         </div>
 
-        {/* Leads Table */}
-        {filteredLeads.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-            <Mail className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No leads found</h3>
-            <p className="text-gray-600">
-              {searchQuery || sourceFilter !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Leads will appear here when visitors submit forms on your site'}
-            </p>
+        {/* Activity list */}
+        {filtered.length === 0 ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400">
+            <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">No activity yet</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredLeads.map((lead) => (
-                    <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-green-50 rounded-full">
-                            <User className="w-4 h-4 text-green-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{lead.name}</p>
-                            <div className="flex flex-col gap-1 mt-1">
-                              {lead.email && (
-                                <p className="text-sm text-gray-500 flex items-center gap-1">
-                                  <Mail className="w-3 h-3" />
-                                  <a href={`mailto:${lead.email}`} className="hover:text-green-600 transition-colors">
-                                    {lead.email}
-                                  </a>
-                                </p>
-                              )}
-                              {lead.phone && (
-                                <p className="text-sm text-gray-500 flex items-center gap-1">
-                                  <Phone className="w-3 h-3" />
-                                  <a href={`tel:${lead.phone}`} className="hover:text-green-600 transition-colors">
-                                    {lead.phone}
-                                  </a>
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${SOURCE_COLORS[lead.source] ?? 'bg-gray-100 text-gray-700'}`}>
-                          {SOURCE_LABELS[lead.source] ?? lead.source.replace(/_/g, ' ')}
+          <div className="space-y-2">
+            {filtered.map(item => {
+              const cfg = TYPE_CONFIG[item.type];
+              const Icon = cfg.icon;
+              const isUnread = item.type === 'lead' && !item.read;
+              return (
+                <div
+                  key={`${item.type}-${item.id}`}
+                  className={`bg-white rounded-xl border transition-all ${isUnread ? 'border-blue-200 shadow-sm' : 'border-slate-200'}`}
+                >
+                  <div className="p-4 flex items-start gap-4">
+                    {/* Type icon */}
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+                      <Icon className={`w-5 h-5 ${cfg.color}`} />
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color} ${cfg.border}`}>
+                          {cfg.label}
                         </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-600 max-w-xs">
-                          {lead.source === 'product_quote_request' && lead.extra_data?.product_title && (
-                            <p className="font-medium text-emerald-700 mb-1 flex items-center gap-1">
-                              <ShoppingBag className="w-3 h-3" />
-                              {lead.extra_data.product_title}
-                            </p>
-                          )}
-                          <p className="truncate">{lead.message || '—'}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm text-gray-900">
-                          {new Date(lead.created_at).toLocaleDateString()}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(lead.created_at).toLocaleTimeString()}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        {lead.tags && lead.tags.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {lead.tags.map((tag, index) => (
-                              <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-gray-100 text-gray-700">
-                                <Tag className="w-3 h-3" />
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-400">—</span>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status] || 'bg-slate-100 text-slate-600'}`}>
+                          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                        </span>
+                        {isUnread && <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />}
+                        <span className="text-xs text-slate-400 ml-auto">{timeAgo(item.created_at)}</span>
+                      </div>
+
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold text-slate-800">{item.name}</span>
+                        {item.amount != null && item.amount > 0 && (
+                          <span className="text-sm font-medium text-green-600">${item.amount.toFixed(2)}</span>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 mt-1 flex-wrap text-sm text-slate-500">
+                        {item.email && <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{item.email}</span>}
+                        {item.phone && <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" />{item.phone}</span>}
+                        {item.detail && <span className="truncate max-w-xs">{item.detail}</span>}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {isUnread && (
+                        <button
+                          onClick={() => markRead(item.id)}
+                          className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600"
+                          title="Mark as read"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => router.push(item.href)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg"
+                      >
+                        View <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
-
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <div className="flex items-start gap-3">
-            <Mail className="w-6 h-6 text-blue-600 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-blue-900 mb-1">Automatic Lead Capture</h3>
-              <p className="text-sm text-blue-700">
-                Every contact, service, and rental form submission on your live site is saved here automatically. 
-                You'll also receive an email notification for each new submission.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
