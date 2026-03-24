@@ -406,7 +406,7 @@ function modalScript(p: string, siteId: string, stripeKey: string = ''): string 
     itemId: '', dailyRate: 0, hourlyRate: 0, weeklyRate: 0, monthlyRate: 0,
     deliveryAvailable: false, primaryColor: 'var(--color-primary)',
     depositAmount: 0, stripeClientSecret: null, paymentIntentId: null, stripeElements: null, stripeInstance: null,
-    taxRate: 0, taxAmount: 0
+    taxRate: 0, taxAmount: 0, collectDepositOnline: true, cancellationPolicy: ''
   };
 
   var ${p}ParseTime = function(t) {
@@ -509,7 +509,11 @@ function modalScript(p: string, siteId: string, stripeKey: string = ''): string 
     // Fetch tax rate for this site
     fetch('/api/rental/settings/${siteId}')
       .then(function(r){ return r.json(); })
-      .then(function(d){ if (d.tax_rate) { ${p}RentalState.taxRate = parseFloat(d.tax_rate) || 0; } })
+      .then(function(d){
+        if (d.tax_rate) { ${p}RentalState.taxRate = parseFloat(d.tax_rate) || 0; }
+        ${p}RentalState.collectDepositOnline = d.collect_deposit_online !== false;
+        ${p}RentalState.cancellationPolicy = d.cancellation_policy || '';
+      })
       .catch(function(){});
   }
 
@@ -545,10 +549,22 @@ function modalScript(p: string, siteId: string, stripeKey: string = ''): string 
       ? '<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:0.8125rem;color:#6b7280;"><span>Tax (' + taxRate + '%)</span><span>$' + taxAmount.toFixed(2) + '</span></div>'
         + '<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:0.9375rem;font-weight:700;color:#111827;border-top:1px solid #e5e7eb;padding-top:6px;"><span>Total</span><span>$' + grandTotal.toFixed(2) + '</span></div>'
       : '';
+    var depositLine = (st.depositAmount > 0)
+      ? '<div style="margin-top:8px;padding:6px 8px;background:' + (st.collectDepositOnline ? '#fffbeb' : '#f0fdf4') + ';border-radius:6px;font-size:0.8125rem;color:' + (st.collectDepositOnline ? '#92400e' : '#166534') + ';">'
+        + (st.collectDepositOnline
+          ? '💳 A $' + st.depositAmount.toFixed(2) + ' deposit will be charged on the next step.'
+          : '📋 A $' + st.depositAmount.toFixed(2) + ' deposit is required and will be collected in person at pickup.')
+        + '</div>'
+      : '';
+    var policyLine = st.cancellationPolicy
+      ? '<div style="margin-top:8px;font-size:0.75rem;color:#6b7280;border-top:1px solid #f1f1f1;padding-top:8px;"><strong>Cancellation Policy:</strong> ' + st.cancellationPolicy + '</div>'
+      : '';
     document.getElementById('${p}BookingSummary').innerHTML = '<strong>' + document.getElementById('${p}ModalTitle').textContent + '</strong>'
       + '<div style="margin-top:6px;color:#6b7280;">' + summary + '</div>'
       + '<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:0.875rem;"><span>Subtotal</span><span>$' + subtotal.toFixed(2) + '</span></div>'
-      + taxLine;
+      + taxLine
+      + depositLine
+      + policyLine;
     document.getElementById('${p}DeliverySection').style.display = ${p}RentalState.deliveryAvailable ? 'block' : 'none';
     document.getElementById('${p}DeliveryAddr').style.display = 'none';
     document.getElementById('${p}Step1').style.display = 'none';
@@ -557,7 +573,13 @@ function modalScript(p: string, siteId: string, stripeKey: string = ''): string 
     document.getElementById('${p}Step2Footer').style.display = 'flex';
     // Update continue button label
     var toStep3Btn = document.getElementById('${p}ToStep3Btn');
-    if (toStep3Btn) toStep3Btn.textContent = ${p}RentalState.depositAmount > 0 ? 'Continue to Payment →' : 'Submit Request →';
+    if (toStep3Btn) {
+      if (${p}RentalState.depositAmount > 0 && ${p}RentalState.collectDepositOnline) {
+        toStep3Btn.textContent = 'Continue to Payment →';
+      } else {
+        toStep3Btn.textContent = 'Submit Request →';
+      }
+    }
     document.getElementById('${p}Step1Dot').style.background = '#e5e7eb';
     document.getElementById('${p}Step2Dot').style.background = '#111827';
     document.getElementById('${p}Step3Dot').style.background = '#e5e7eb';
@@ -640,6 +662,8 @@ function modalScript(p: string, siteId: string, stripeKey: string = ''): string 
     var st = ${p}RentalState;
     // If no deposit required, submit directly
     if (!st.depositAmount || st.depositAmount <= 0) { ${p}SubmitRental(null); return; }
+    // If collecting in person, skip payment step and submit with deposit noted
+    if (!st.collectDepositOnline) { ${p}SubmitRental(null); return; }
     // Show step 3
     document.getElementById('${p}Step2').style.display = 'none';
     document.getElementById('${p}Step2Footer').style.display = 'none';

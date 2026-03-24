@@ -1460,6 +1460,17 @@ function gvRentalsPageStatic(
     </div>
   </section>
 
+  ${(cancellationPolicy || minRentalHours > 1) ? `
+  <section style="padding:2rem 0 0;" data-section="rentalPolicies">
+    <div class="container" style="max-width:900px;margin:0 auto;padding:0 1.5rem;">
+      <div style="background:#f9fafb;border-radius:0.75rem;padding:1.5rem 2rem;border:1px solid #e5e7eb;display:flex;flex-wrap:wrap;gap:2rem;">
+        ${minRentalHours > 1 ? `<div><p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;margin:0 0 0.25rem;">Minimum Rental</p><p style="font-size:0.9375rem;color:#374151;margin:0;">${minRentalHours} hours</p></div>` : ''}
+        ${cancellationPolicy ? `<div style="flex:1;min-width:200px;"><p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;margin:0 0 0.25rem;">Cancellation Policy</p><p style="font-size:0.9375rem;color:#374151;margin:0;">${cancellationPolicy}</p></div>` : ''}
+      </div>
+    </div>
+  </section>
+  ` : ''}
+
   <!-- Rental Request Form -->
   <section class="py-12 bg-muted">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">

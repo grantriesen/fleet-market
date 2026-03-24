@@ -13,11 +13,11 @@ export async function GET(request: NextRequest, { params }: { params: { siteId: 
 
     const { data } = await supabase
       .from('rental_settings')
-      .select('tax_rate, min_rental_hours, cancellation_policy')
+      .select('tax_rate, min_rental_hours, cancellation_policy, collect_deposit_online')
       .eq('site_id', params.siteId)
       .maybeSingle();
 
-    return NextResponse.json(data || { tax_rate: 0, min_rental_hours: 1, cancellation_policy: '' });
+    return NextResponse.json(data || { tax_rate: 0, min_rental_hours: 1, cancellation_policy: '', collect_deposit_online: true });
   } catch (err: any) {
     return NextResponse.json({ tax_rate: 0 });
   }

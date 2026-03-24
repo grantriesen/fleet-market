@@ -101,7 +101,7 @@ export default function RentalsDashboard() {
   const [bookingFilter, setBookingFilter] = useState('');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [manualBookingOpen, setManualBookingOpen] = useState(false);
-  const [rentalSettings, setRentalSettings] = useState({ tax_rate: 0, cancellation_policy: '', min_rental_hours: 1 });
+  const [rentalSettings, setRentalSettings] = useState({ tax_rate: 0, cancellation_policy: '', min_rental_hours: 1, collect_deposit_online: true });
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [manualForm, setManualForm] = useState({
@@ -181,7 +181,7 @@ export default function RentalsDashboard() {
   useEffect(() => {
     if (!siteId) return;
     supabase.from('rental_settings').select('*').eq('site_id', siteId).maybeSingle()
-      .then(({ data }) => { if (data) setRentalSettings({ tax_rate: data.tax_rate || 0, cancellation_policy: data.cancellation_policy || '', min_rental_hours: data.min_rental_hours || 1 }); });
+      .then(({ data }) => { if (data) setRentalSettings({ tax_rate: data.tax_rate || 0, cancellation_policy: data.cancellation_policy || '', min_rental_hours: data.min_rental_hours || 1, collect_deposit_online: data.collect_deposit_online !== false }); });
   }, [siteId]);
 
   // Fleet CRUD
@@ -270,6 +270,7 @@ export default function RentalsDashboard() {
       tax_rate: rentalSettings.tax_rate,
       cancellation_policy: rentalSettings.cancellation_policy,
       min_rental_hours: rentalSettings.min_rental_hours,
+      collect_deposit_online: rentalSettings.collect_deposit_online,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'site_id' });
     setSettingsSaving(false);
@@ -740,6 +741,31 @@ export default function RentalsDashboard() {
                 />
               </div>
             </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Deposit Collection</label>
+                <p className="text-xs text-slate-400 mb-3">Choose how deposits are collected when a deposit amount is set on an item.</p>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-slate-200 hover:bg-slate-50" onClick={() => setRentalSettings(p => ({...p, collect_deposit_online: true}))}>
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${rentalSettings.collect_deposit_online ? 'border-orange-500' : 'border-slate-300'}`}>
+                      {rentalSettings.collect_deposit_online && <div className="w-2 h-2 rounded-full bg-orange-500"></div>}
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-slate-700">Collect online via card</div>
+                      <div className="text-xs text-slate-400">Customer pays deposit during booking on the site</div>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-slate-200 hover:bg-slate-50" onClick={() => setRentalSettings(p => ({...p, collect_deposit_online: false}))}>
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${!rentalSettings.collect_deposit_online ? 'border-orange-500' : 'border-slate-300'}`}>
+                      {!rentalSettings.collect_deposit_online && <div className="w-2 h-2 rounded-full bg-orange-500"></div>}
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-slate-700">Collect in person at pickup</div>
+                      <div className="text-xs text-slate-400">Customer is informed of deposit amount but pays at the location</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
             <div className="mt-6 flex items-center gap-3">
               <button onClick={saveRentalSettings} disabled={settingsSaving} className="px-6 py-2.5 text-sm font-semibold text-white rounded-lg disabled:opacity-50 flex items-center gap-2" style={{ background: FM.orange }}>
                 {settingsSaving && <Loader2 className="w-4 h-4 animate-spin" />}
