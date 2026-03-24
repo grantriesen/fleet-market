@@ -161,7 +161,6 @@ export async function GET(
         site_name,
         slug,
         subscription_tier,
-        addons,
         template:templates (
           name,
           slug,
@@ -349,9 +348,7 @@ async function generateTemplateHTML(
       availablePages,
       page,
       googleFontsUrl,
-      supabase,
-      '',
-      site.addons || []
+      supabase
     );
   }
 
@@ -371,9 +368,7 @@ async function generateTemplateHTML(
       availablePages,
       page,
       googleFontsUrl,
-      supabase,
-      '',
-      site.addons || []
+      supabase
     );
   }
 
@@ -387,7 +382,7 @@ async function generateTemplateHTML(
         .from('site_features').select('feature_key').eq('site_id', site.id).eq('enabled', true);
       if (features) features.forEach((f: any) => ceEnabledFeatures.add(f.feature_key));
     } catch {}
-    return await renderCorporateEdgePage(
+    return renderCorporateEdgePage(
       siteId,
       page,
       availablePages,
@@ -398,9 +393,6 @@ async function generateTemplateHTML(
       ceVis,
       content,
       manufacturers || [],
-      `/api/preview/${siteId}?page=`,
-      supabase,
-      site.addons || []
     );
   }
 
@@ -414,12 +406,9 @@ async function generateTemplateHTML(
         .from('site_features').select('feature_key').eq('site_id', site.id).eq('enabled', true);
       if (features) features.forEach((f: any) => zlFeatures.add(f.feature_key));
     } catch {}
-    return await renderZenithLawnPage(
+    return renderZenithLawnPage(
       siteId, page, availablePages, displayProducts,
       config, customizations, zlFeatures, zlVis, content,
-      `/api/preview/${siteId}?page=`,
-      supabase,
-      site.addons || []
     );
   }
 
@@ -434,9 +423,7 @@ async function generateTemplateHTML(
     } catch {}
     return await renderModernLawnPage(
       siteId, page, availablePages, displayProducts,
-      config, customizations, mlsFeatures, mlsVis, content, supabase,
-      `/api/preview/${siteId}?page=`,
-      site.addons || []
+      config, customizations, mlsFeatures, mlsVis, content, supabase, manufacturers || [],
     );
   }
 
@@ -449,13 +436,9 @@ async function generateTemplateHTML(
         .from('site_features').select('feature_key').eq('site_id', site.id).eq('enabled', true);
       if (features) features.forEach((f: any) => weFeatures.add(f.feature_key));
     } catch {}
-    return await renderWarmEarthPage(
+    return renderWarmEarthPage(
       siteId, page, availablePages, displayProducts,
       config, customizations, weFeatures, weVis, content,
-      [],
-      `/api/preview/${siteId}?page=`,
-      supabase,
-      site.addons || []
     );
   }
 
@@ -2089,27 +2072,17 @@ async function renderRentalsPageWithIntegration(
   colors: any,
   supabase: any
 ): Promise<string> {
-  // Check if site has rentals add-on via sites.addons array
+  // Check if site has rental_scheduling add-on
   let hasRentalFeature = false;
   if (supabase) {
-    const { data: siteRow } = await supabase
-      .from('sites')
-      .select('addons')
-      .eq('id', siteId)
+    const { data: feature } = await supabase
+      .from('site_features')
+      .select('feature_key')
+      .eq('site_id', siteId)
+      .eq('feature_key', 'rental_scheduling')
+      .eq('enabled', true)
       .single();
-    const addons: string[] = siteRow?.addons || [];
-    hasRentalFeature = addons.includes('rentals');
-    // Also check site_features table as fallback
-    if (!hasRentalFeature) {
-      const { data: feature } = await supabase
-        .from('site_features')
-        .select('feature_key')
-        .eq('site_id', siteId)
-        .eq('feature_key', 'rental_scheduling')
-        .eq('enabled', true)
-        .single();
-      hasRentalFeature = !!feature;
-    }
+    hasRentalFeature = !!feature;
   }
 
   const heading = getContent('rentalsPage.heading') || 'Equipment Rentals';
@@ -2180,200 +2153,357 @@ async function renderRentalsPageWithIntegration(
       </div>
     </section>
     
-    <!-- Rental Booking Modal -->
-    <div id="rentalModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 1rem;">
-      <div style="background: white; border-radius: 0.75rem; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px rgba(0,0,0,0.3);">
-        <div style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
-          <h3 id="modalTitle" style="font-size: 1.5rem; font-weight: 700; color: #111827;">Book Rental</h3>
-          <button onclick="closeRentalModal()" style="background: none; border: none; font-size: 1.5rem; color: #6b7280; cursor: pointer; padding: 0.25rem;">×</button>
+    <!-- Rental Booking Modal - Two Step -->
+    <div id="rentalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+      <div style="background:white;border-radius:0.875rem;max-width:520px;width:100%;max-height:92vh;overflow:hidden;box-shadow:0 24px 48px rgba(0,0,0,0.35);display:flex;flex-direction:column;">
+        <div style="padding:1.125rem 1.5rem;border-bottom:1px solid #f1f1f1;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+          <div>
+            <h3 id="modalTitle" style="font-size:1.125rem;font-weight:700;color:#111827;margin:0;line-height:1.2;"></h3>
+            <div style="display:flex;gap:0.375rem;margin-top:0.375rem;">
+              <span id="step1Dot" style="width:1.5rem;height:3px;border-radius:2px;background:#111827;"></span>
+              <span id="step2Dot" style="width:1.5rem;height:3px;border-radius:2px;background:#e5e7eb;"></span>
+            </div>
+          </div>
+          <button type="button" onclick="closeRentalModal()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:1.375rem;line-height:1;padding:0.25rem;">&#x2715;</button>
         </div>
-        
-        <form id="rentalForm" method="POST" action="/api/rental-booking" style="padding: 1.5rem;">
-          <input type="hidden" name="siteId" value="${siteId}">
-          <input type="hidden" id="rentalItemId" name="rentalItemId">
-          <input type="hidden" id="rateAmount" name="rateAmount">
-          <input type="hidden" id="hourlyRate" name="hourlyRate">
-          <input type="hidden" id="weeklyRate" name="weeklyRate">
-          <input type="hidden" id="monthlyRate" name="monthlyRate">
-          
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-            <div>
-              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Name *</label>
-              <input type="text" name="customerName" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem;">
-            </div>
-            <div>
-              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Phone *</label>
-              <input type="tel" name="customerPhone" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem;">
-            </div>
+        <!-- Step 1 -->
+        <div id="rentalStep1" style="overflow-y:auto;padding:1.25rem 1.5rem;flex:1;">
+          <input type="hidden" id="rentalStartVal">
+          <input type="hidden" id="rentalEndVal">
+          <div id="rentalDatePickerEl" style="margin-bottom:1rem;"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+            <div><label style="display:block;font-size:0.8125rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Pickup Time</label>
+            <select id="rentalPickupTime" style="width:100%;padding:0.5rem 0.625rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;background:white;box-sizing:border-box;">
+              <option value="">Select time</option><option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option>
+            </select></div>
+            <div><label style="display:block;font-size:0.8125rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Return Time</label>
+            <select id="rentalReturnTime" style="width:100%;padding:0.5rem 0.625rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;background:white;box-sizing:border-box;">
+              <option value="">Select time</option><option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option>
+            </select></div>
           </div>
-          
-          <div style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Email *</label>
-            <input type="email" name="customerEmail" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem;">
-          </div>
-          
-          <!-- Rental Period -->
-          <div style="background: #f9fafb; padding: 1.25rem; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #e5e7eb;">
-            <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #111827;">📅 Rental Period</h4>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div>
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Start Date *</label>
-                <input type="date" name="startDate" id="startDate" required min="${new Date().toISOString().split('T')[0]}" onchange="calculateTotal()" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem;">
-              </div>
-              <div>
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Pickup Time *</label>
-                <select name="pickupTime" required onchange="calculateTotal()" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem;">
-                  <option value="">Select time</option>
-                  <option value="8:00 AM">8:00 AM</option>
-                  <option value="9:00 AM">9:00 AM</option>
-                  <option value="10:00 AM">10:00 AM</option>
-                  <option value="11:00 AM">11:00 AM</option>
-                  <option value="12:00 PM">12:00 PM</option>
-                  <option value="1:00 PM">1:00 PM</option>
-                  <option value="2:00 PM">2:00 PM</option>
-                  <option value="3:00 PM">3:00 PM</option>
-                  <option value="4:00 PM">4:00 PM</option>
-                  <option value="5:00 PM">5:00 PM</option>
-                </select>
-              </div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-              <div>
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">End Date *</label>
-                <input type="date" name="endDate" id="endDate" required min="${new Date().toISOString().split('T')[0]}" onchange="calculateTotal()" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem;">
-              </div>
-              <div>
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Return Time *</label>
-                <select name="returnTime" required onchange="calculateTotal()" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem;">
-                  <option value="">Select time</option>
-                  <option value="8:00 AM">8:00 AM</option>
-                  <option value="9:00 AM">9:00 AM</option>
-                  <option value="10:00 AM">10:00 AM</option>
-                  <option value="11:00 AM">11:00 AM</option>
-                  <option value="12:00 PM">12:00 PM</option>
-                  <option value="1:00 PM">1:00 PM</option>
-                  <option value="2:00 PM">2:00 PM</option>
-                  <option value="3:00 PM">3:00 PM</option>
-                  <option value="4:00 PM">4:00 PM</option>
-                  <option value="5:00 PM">5:00 PM</option>
-                </select>
-              </div>
-            </div>
-            
-            <!-- Total Calculation -->
-            <div id="totalCalculation" style="margin-top: 1rem; padding: 0.75rem; background: white; border-radius: 0.375rem; display: none;">
-              <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">Rental Duration: <span id="rentalDays">0</span> days</p>
-              <p style="font-size: 1.125rem; font-weight: 700; color: var(--color-primary);">Estimated Total: $<span id="totalAmount">0</span></p>
+          <div id="rentalPriceSummary" style="display:none;background:#f9fafb;border-radius:0.5rem;padding:0.875rem;border:1px solid #e5e7eb;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span id="rentalDurationLbl" style="font-size:0.875rem;color:#6b7280;"></span>
+              <span id="rentalTotalLbl" style="font-size:1.125rem;font-weight:700;color:#111827;"></span>
             </div>
           </div>
-          
-          <div id="deliverySection" style="display: none; margin-bottom: 1rem;">
-            <label style="display: flex; align-items: center; gap: 0.5rem;">
-              <input type="checkbox" name="deliveryRequired" onchange="toggleDelivery(this)">
-              <span style="font-weight: 600; color: #374151;">Request Delivery</span>
-            </label>
+        </div>
+        <div id="rentalStep1Footer" style="padding:1rem 1.5rem;border-top:1px solid #f1f1f1;flex-shrink:0;">
+          <button type="button" id="rentalNextBtn" onclick="rentalGoStep2()" disabled style="width:100%;padding:0.75rem;background:#e5e7eb;color:#9ca3af;border:none;border-radius:0.5rem;font-weight:700;font-size:0.9375rem;cursor:not-allowed;">Continue to Contact Info →</button>
+        </div>
+        <!-- Step 2 -->
+        <div id="rentalStep2" style="display:none;overflow-y:auto;padding:1.25rem 1.5rem;flex:1;">
+          <div id="rentalBookingSummary" style="background:#f9fafb;border-radius:0.5rem;padding:0.75rem 1rem;margin-bottom:1rem;border:1px solid #e5e7eb;font-size:0.875rem;color:#374151;"></div>
+          <form id="rentalForm">
+            <input type="hidden" name="siteId" value="${siteId}">
+            <input type="hidden" id="rentalItemId" name="rentalItemId">
+            <input type="hidden" name="rateAmount">
+            <input type="hidden" name="hourlyRate">
+            <input type="hidden" name="weeklyRate">
+            <input type="hidden" name="monthlyRate">
+            <input type="hidden" name="startDate">
+            <input type="hidden" name="endDate">
+            <input type="hidden" name="pickupTime">
+            <input type="hidden" name="returnTime">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+              <div><label style="display:block;font-size:0.8125rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Name *</label><input type="text" name="customerName" required placeholder="Full name" style="width:100%;padding:0.5rem 0.625rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
+              <div><label style="display:block;font-size:0.8125rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Phone *</label><input type="tel" name="customerPhone" required placeholder="(555) 000-0000" style="width:100%;padding:0.5rem 0.625rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
+            </div>
+            <div style="margin-bottom:0.75rem;"><label style="display:block;font-size:0.8125rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Email *</label><input type="email" name="customerEmail" required placeholder="you@email.com" style="width:100%;padding:0.5rem 0.625rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
+            <div id="rentalDeliverySection" style="display:none;margin-bottom:0.75rem;">
+              <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;font-weight:600;color:#374151;">
+                <input type="checkbox" name="deliveryRequired" onchange="rentalToggleDelivery(this)">Request Delivery
+              </label>
+            </div>
+            <div id="rentalDeliveryAddr" style="display:none;margin-bottom:0.75rem;">
+              <label style="display:block;font-size:0.8125rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Delivery Address</label>
+              <textarea name="deliveryAddress" rows="2" placeholder="Street address, city, state, zip" style="width:100%;padding:0.5rem 0.625rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;resize:vertical;box-sizing:border-box;"></textarea>
+            </div>
+            <div><label style="display:block;font-size:0.8125rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Special Requests</label><textarea name="notes" rows="2" placeholder="Any special requests..." style="width:100%;padding:0.5rem 0.625rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;resize:vertical;box-sizing:border-box;"></textarea></div>
+          </form>
+        </div>
+        <div id="rentalStep2Footer" style="display:none;padding:1rem 1.5rem;border-top:1px solid #f1f1f1;flex-shrink:0;">
+          <div style="display:flex;gap:0.625rem;">
+            <button type="button" onclick="rentalGoStep1()" style="padding:0.75rem 1rem;background:#f9fafb;color:#374151;border:1px solid #e5e7eb;border-radius:0.5rem;font-weight:600;font-size:0.875rem;cursor:pointer;">← Back</button>
+            <button type="button" id="rentalSubmitBtn" onclick="rentalSubmit()" style="flex:1;padding:0.75rem;background:var(--color-primary);color:white;border:none;border-radius:0.5rem;font-weight:700;font-size:0.9375rem;cursor:pointer;">Submit Request</button>
           </div>
-          
-          <div id="deliveryAddress" style="display: none; margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Delivery Address</label>
-            <textarea name="deliveryAddress" rows="2" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem;" placeholder="Street address, city, state, zip"></textarea>
-          </div>
-          
-          <div style="margin-bottom: 1.5rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Special Requests</label>
-            <textarea name="notes" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem;" placeholder="Any special requests or notes..."></textarea>
-          </div>
-          
-          <button type="submit" style="width: 100%; background-color: var(--color-primary); color: white; padding: 1rem; border: none; border-radius: 0.5rem; font-weight: 600; font-size: 1.125rem; cursor: pointer;">
-            Submit Rental Request
-          </button>
-        </form>
+        </div>
       </div>
     </div>
-    
+
     <script>
-      function showRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable, hourlyRate, weeklyRate, monthlyRate) {
-        document.getElementById('rentalModal').style.display = 'flex';
-        document.getElementById('modalTitle').textContent = 'Book: ' + itemTitle;
-        document.getElementById('rentalItemId').value = itemId;
-        document.getElementById('rateAmount').value = dailyRate;
-        var hrEl = document.getElementById('hourlyRate');
-        if (hrEl) hrEl.value = hourlyRate || '';
-        var wrEl = document.getElementById('weeklyRate');
-        if (wrEl) wrEl.value = weeklyRate || '';
-        var mrEl = document.getElementById('monthlyRate');
-        if (mrEl) mrEl.value = monthlyRate || '';
-        document.getElementById('deliveryAddress').style.display = 'none';
-        document.getElementById('deliverySection').style.display = deliveryAvailable ? 'block' : 'none';
-        document.body.style.overflow = 'hidden';
-      }
+      // ── Date Picker ──────────────────────────────────────────────────────
+      // Fleet Market Rental Date Picker — put in /public/fm-rental-datepicker.js
+      (function() {
+        var DP = window.fmRentalDatePicker = {};
       
-      function closeRentalModal() {
-        document.getElementById('rentalModal').style.display = 'none';
-        document.getElementById('rentalForm').reset();
-        document.body.style.overflow = 'auto';
-      }
+        DP.state = {
+          bookedDates: [], startDate: null, endDate: null, hoverDate: null,
+          viewYear: new Date().getFullYear(), viewMonth: new Date().getMonth(),
+          containerId: null, onSelect: null, primaryColor: '#1e3a6e'
+        };
       
-      function toggleDelivery(checkbox) {
-        document.getElementById('deliveryAddress').style.display = checkbox.checked ? 'block' : 'none';
-      }
+        var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        var DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
       
-      var prParseTime = function(t) {
+        function pad(n) { return String(n).padStart(2,'0'); }
+        function dateStr(d) { return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+        function parseDate(s) { var p=s.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+        function today() { return dateStr(new Date()); }
+      
+        DP.init = function(containerId, siteId, itemId, onSelect, primaryColor) {
+          var s = DP.state;
+          s.containerId = containerId; s.onSelect = onSelect;
+          s.primaryColor = primaryColor || '#1e3a6e';
+          s.startDate = null; s.endDate = null; s.hoverDate = null; s.bookedDates = [];
+          s.viewYear = new Date().getFullYear(); s.viewMonth = new Date().getMonth();
+          DP.render();
+          if (siteId && itemId) {
+            fetch('/api/rental/availability/'+siteId+'?itemId='+itemId)
+              .then(function(r){return r.json();})
+              .then(function(data){
+                s.bookedDates = (data.bookedRanges && data.bookedRanges[itemId]) || [];
+                DP.render();
+              }).catch(function(){});
+          }
+        };
+      
+        DP.render = function() {
+          var el = document.getElementById(DP.state.containerId);
+          if (!el) return;
+          var s = DP.state, pc = s.primaryColor, today_str = today();
+          var firstDay = new Date(s.viewYear, s.viewMonth, 1).getDay();
+          var daysInMonth = new Date(s.viewYear, s.viewMonth+1, 0).getDate();
+          var prevDays = new Date(s.viewYear, s.viewMonth, 0).getDate();
+          var total = Math.ceil((firstDay+daysInMonth)/7)*7;
+      
+          // Step boxes
+          var bothSet = s.startDate && s.endDate;
+          var startOnly = s.startDate && !s.endDate;
+          var s1bg = (startOnly||bothSet) ? pc : '#f3f4f6';
+          var s1c = (startOnly||bothSet) ? 'white' : '#9ca3af';
+          var s1lbl = s.startDate ? parseDate(s.startDate).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : 'Pick-up date';
+          var s2bg = bothSet ? pc : (startOnly ? '#eff6ff' : '#f3f4f6');
+          var s2c = bothSet ? 'white' : (startOnly ? pc : '#9ca3af');
+          var s2lbl = s.endDate ? parseDate(s.endDate).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : (startOnly ? 'Click to select' : 'Return date');
+          var s2bdr = startOnly ? ('2px dashed '+pc) : '2px solid transparent';
+      
+          var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">'
+            +'<div style="padding:8px;border-radius:6px;background:'+s1bg+';text-align:center;">'
+              +'<div style="font-size:10px;font-weight:600;text-transform:uppercase;color:'+s1c+';">① Pick-up</div>'
+              +'<div style="font-size:13px;font-weight:700;color:'+s1c+';margin-top:2px;">'+s1lbl+'</div>'
+            +'</div>'
+            +'<div style="padding:8px;border-radius:6px;background:'+s2bg+';border:'+s2bdr+';text-align:center;">'
+              +'<div style="font-size:10px;font-weight:600;text-transform:uppercase;color:'+s2c+';">② Return</div>'
+              +'<div style="font-size:13px;font-weight:700;color:'+s2c+';margin-top:2px;">'+s2lbl+'</div>'
+            +'</div>'
+          +'</div>';
+      
+          if (bothSet) {
+            var days = Math.ceil((parseDate(s.endDate)-parseDate(s.startDate))/86400000)+1;
+            html += '<div style="text-align:center;margin-bottom:8px;"><span style="padding:3px 12px;background:'+pc+'18;border-radius:20px;font-size:12px;font-weight:600;color:'+pc+';">'+days+' day'+(days>1?'s':'')+'</span></div>';
+          }
+      
+          // Month nav
+          html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+            +'<button type="button" onclick="fmRentalDatePicker.prevMonth()" style="background:none;border:1px solid #e5e7eb;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:16px;color:#374151;line-height:1;">&#8249;</button>'
+            +'<span style="font-weight:700;font-size:14px;color:#111827;">'+MONTHS[s.viewMonth]+' '+s.viewYear+'</span>'
+            +'<button type="button" onclick="fmRentalDatePicker.nextMonth()" style="background:none;border:1px solid #e5e7eb;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:16px;color:#374151;line-height:1;">&#8250;</button>'
+          +'</div>';
+      
+          // Day headers
+          html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px;">'
+            + DAYS.map(function(d){return '<div style="text-align:center;font-size:11px;font-weight:600;color:#9ca3af;padding:2px 0;">'+d+'</div>';}).join('')
+          +'</div>';
+      
+          // Cells
+          html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);" onmouseleave="fmRentalDatePicker.clearHover()">';
+          for (var i=0; i<total; i++) {
+            var day, inMonth=true;
+            if (i<firstDay){day=prevDays-firstDay+i+1;inMonth=false;}
+            else if (i>=firstDay+daysInMonth){day=i-firstDay-daysInMonth+1;inMonth=false;}
+            else{day=i-firstDay+1;}
+            if (!inMonth){html+='<div></div>';continue;}
+            var ds = s.viewYear+'-'+pad(s.viewMonth+1)+'-'+pad(day);
+            var isPast=ds<today_str, isBooked=s.bookedDates.indexOf(ds)!==-1;
+            var isStart=ds===s.startDate, isEnd=ds===s.endDate, isToday=ds===today_str;
+            var inRange=s.startDate&&s.endDate&&ds>s.startDate&&ds<s.endDate;
+            var inHover=s.startDate&&!s.endDate&&s.hoverDate&&ds>=s.startDate&&ds<=s.hoverDate;
+            var st='padding:2px;text-align:center;font-size:13px;line-height:28px;user-select:none;';
+            if (isPast){st+='color:#d1d5db;cursor:not-allowed;';}
+            else if (isBooked){st+='background:#fee2e2;color:#9ca3af;cursor:not-allowed;text-decoration:line-through;border-radius:4px;';}
+            else if (isStart){st+='background:'+pc+';color:white;font-weight:700;cursor:pointer;border-radius:'+(s.endDate?'50% 0 0 50%':'50%')+';';}
+            else if (isEnd){st+='background:'+pc+';color:white;font-weight:700;cursor:pointer;border-radius:0 50% 50% 0;';}
+            else if (inRange){st+='background:'+pc+'25;color:#111827;cursor:pointer;border-radius:0;';}
+            else if (inHover){st+='background:'+pc+'12;color:#374151;cursor:pointer;border-radius:0;';}
+            else{st+='color:#111827;cursor:pointer;'+(isToday?'font-weight:700;border-bottom:2px solid '+pc+';':'');}
+            var dis=(isPast||isBooked)?'data-disabled="1"':'';
+            html+='<div '+dis+' data-date="'+ds+'" onclick="fmRentalDatePicker.pick(this)" onmouseover="fmRentalDatePicker.hover(this)" style="'+st+'">'+day+'</div>';
+          }
+          html += '</div>';
+          html += '<div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:#9ca3af;">'
+            +'<span><span style="display:inline-block;width:10px;height:10px;background:#fee2e2;border-radius:2px;vertical-align:middle;margin-right:3px;"></span>Unavailable</span>'
+            +'<span><span style="display:inline-block;width:10px;height:10px;background:'+pc+';border-radius:50%;vertical-align:middle;margin-right:3px;"></span>Selected</span>'
+          +'</div>';
+          el.innerHTML = html;
+        };
+      
+        DP.pick = function(el) {
+          if (el.getAttribute('data-disabled')) return;
+          var ds = el.getAttribute('data-date'), s = DP.state;
+          if (!s.startDate || (s.startDate && s.endDate) || ds < s.startDate) {
+            s.startDate = ds; s.endDate = null;
+          } else {
+            s.endDate = ds;
+            if (s.onSelect) s.onSelect(s.startDate, s.endDate);
+          }
+          DP.render();
+        };
+      
+        DP.hover = function(el) {
+          if (el.getAttribute('data-disabled')) return;
+          var s = DP.state;
+          if (s.startDate && !s.endDate) {
+            var ds = el.getAttribute('data-date');
+            if (ds >= s.startDate) { s.hoverDate = ds; DP.render(); }
+          }
+        };
+      
+        DP.clearHover = function() { DP.state.hoverDate = null; DP.render(); };
+        DP.prevMonth = function() { var s=DP.state; s.viewMonth--; if(s.viewMonth<0){s.viewMonth=11;s.viewYear--;} DP.render(); };
+        DP.nextMonth = function() { var s=DP.state; s.viewMonth++; if(s.viewMonth>11){s.viewMonth=0;s.viewYear++;} DP.render(); };
+      })();
+      
+
+      // ── Rental State ─────────────────────────────────────────────────────
+      var rentalState = { itemId:'', dailyRate:0, hourlyRate:0, weeklyRate:0, monthlyRate:0, deliveryAvailable:false };
+
+      function parseTime(t) {
         var m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
         if (!m) return null;
-        var h = parseInt(m[1]), mn = parseInt(m[2]), mer = m[3].toUpperCase();
-        if (mer === 'PM' && h !== 12) h += 12;
-        if (mer === 'AM' && h === 12) h = 0;
-        return h + mn / 60;
-      };
-      function calculateTotal() {
-        var startDate = document.getElementById('startDate').value;
-        var endDate   = document.getElementById('endDate').value;
-        if (!startDate || !endDate) return;
-        var dailyRate   = parseFloat(document.getElementById('rateAmount').value)  || 0;
-        var hourlyRate  = parseFloat((document.getElementById('hourlyRate')  || {}).value) || 0;
-        var weeklyRate  = parseFloat((document.getElementById('weeklyRate')  || {}).value) || 0;
-        var monthlyRate = parseFloat((document.getElementById('monthlyRate') || {}).value) || 0;
-        if (!dailyRate && !hourlyRate && !weeklyRate && !monthlyRate) return;
-        var days = Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000) + 1;
-        if (days <= 0) return;
-        var total, label;
-        if (days === 1 && hourlyRate) {
-          var form = document.getElementById('rentalForm');
-          var pickupEl = form ? form.querySelector('[name="pickupTime"]') : null;
-          var returnEl = form ? form.querySelector('[name="returnTime"]') : null;
-          var pickup = pickupEl ? pickupEl.value : '';
-          var ret = returnEl ? returnEl.value : '';
-          if (pickup && ret) {
-            var pHr = prParseTime(pickup), rHr = prParseTime(ret);
-            if (pHr !== null && rHr !== null && rHr > pHr) {
-              var duration = rHr - pHr;
-              if (duration < 4) {
-                document.getElementById('rentalDays').textContent = duration.toFixed(1) + ' hr(s) @ $' + hourlyRate + '/hr';
-                document.getElementById('totalAmount').textContent = (duration * hourlyRate).toFixed(2);
-                document.getElementById('totalCalculation').style.display = 'block';
-                return;
-              }
-            }
+        var h=parseInt(m[1]),mn=parseInt(m[2]),mer=m[3].toUpperCase();
+        if(mer==='PM'&&h!==12)h+=12; if(mer==='AM'&&h===12)h=0;
+        return h+mn/60;
+      }
+
+      function showRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable, hourlyRate, weeklyRate, monthlyRate) {
+        var st = rentalState;
+        st.itemId=itemId; st.dailyRate=dailyRate||0; st.hourlyRate=hourlyRate||0;
+        st.weeklyRate=weeklyRate||0; st.monthlyRate=monthlyRate||0; st.deliveryAvailable=!!deliveryAvailable;
+        document.getElementById('modalTitle').textContent = itemTitle;
+        document.getElementById('rentalStartVal').value = '';
+        document.getElementById('rentalEndVal').value = '';
+        document.getElementById('rentalPickupTime').value = '';
+        document.getElementById('rentalReturnTime').value = '';
+        document.getElementById('rentalPriceSummary').style.display = 'none';
+        var btn = document.getElementById('rentalNextBtn');
+        btn.disabled=true; btn.style.background='#e5e7eb'; btn.style.color='#9ca3af'; btn.style.cursor='not-allowed';
+        rentalGoStep1();
+        document.getElementById('rentalModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        fmRentalDatePicker.init('rentalDatePickerEl', '${siteId}', itemId, function(start, end) {
+          document.getElementById('rentalStartVal').value = start;
+          document.getElementById('rentalEndVal').value = end;
+          rentalCalcTotal();
+        }, getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#1e3a6e');
+      }
+
+      function rentalCalcTotal() {
+        var s=document.getElementById('rentalStartVal').value, e=document.getElementById('rentalEndVal').value;
+        var st=rentalState;
+        if(!s||!e){document.getElementById('rentalPriceSummary').style.display='none';return;}
+        var days=Math.ceil((new Date(e)-new Date(s))/86400000)+1;
+        if(days<=0)return;
+        var total,label,pickup=document.getElementById('rentalPickupTime').value,ret=document.getElementById('rentalReturnTime').value;
+        if(days===1&&st.hourlyRate&&pickup&&ret){
+          var pHr=parseTime(pickup),rHr=parseTime(ret);
+          if(pHr!==null&&rHr!==null&&rHr>pHr){
+            var dur=rHr-pHr;
+            if(dur<4){total=(dur*st.hourlyRate).toFixed(2);label=dur.toFixed(1)+' hr @ $'+st.hourlyRate+'/hr';}
+            else{total=st.dailyRate.toFixed(2);label='1 day @ $'+st.dailyRate+'/day';}
           }
         }
-        if (days >= 28 && monthlyRate) {
-          var months = Math.ceil(days / 30);
-          total = (months * monthlyRate).toFixed(2);
-          label = months + ' month(s) @ $' + monthlyRate + '/mo';
-        } else if (days >= 7 && weeklyRate) {
-          var weeks = Math.ceil(days / 7);
-          total = (weeks * weeklyRate).toFixed(2);
-          label = weeks + ' week(s) @ $' + weeklyRate + '/wk';
-        } else if (dailyRate) {
-          total = (days * dailyRate).toFixed(2);
-          label = days + ' day(s) @ $' + dailyRate + '/day';
-        } else { return; }
-        document.getElementById('rentalDays').textContent = label;
-        document.getElementById('totalAmount').textContent = total;
-        document.getElementById('totalCalculation').style.display = 'block';);
+        if(!total){
+          if(days>=28&&st.monthlyRate){var mo=Math.ceil(days/30);total=(mo*st.monthlyRate).toFixed(2);label=mo+' mo @ $'+st.monthlyRate+'/mo';}
+          else if(days>=7&&st.weeklyRate){var wk=Math.ceil(days/7);total=(wk*st.weeklyRate).toFixed(2);label=wk+' wk @ $'+st.weeklyRate+'/wk';}
+          else{total=(days*st.dailyRate).toFixed(2);label=days+' day'+(days>1?'s':'')+' @ $'+st.dailyRate+'/day';}
+        }
+        document.getElementById('rentalDurationLbl').textContent=label;
+        document.getElementById('rentalTotalLbl').textContent='$'+total;
+        document.getElementById('rentalPriceSummary').style.display='block';
+        var btn=document.getElementById('rentalNextBtn');
+        btn.disabled=false;btn.style.background='var(--color-primary)';btn.style.color='white';btn.style.cursor='pointer';
+      }
+
+      function rentalGoStep1() {
+        document.getElementById('rentalStep1').style.display='block';
+        document.getElementById('rentalStep1Footer').style.display='block';
+        document.getElementById('rentalStep2').style.display='none';
+        document.getElementById('rentalStep2Footer').style.display='none';
+        document.getElementById('step1Dot').style.background='#111827';
+        document.getElementById('step2Dot').style.background='#e5e7eb';
+      }
+
+      function rentalGoStep2() {
+        var s=document.getElementById('rentalStartVal').value, e=document.getElementById('rentalEndVal').value;
+        if(!s||!e){alert('Please select your rental dates first.');return;}
+        var sd=new Date(s),ed=new Date(e);
+        var summary=sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' → '+ed.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        var total=document.getElementById('rentalTotalLbl').textContent;
+        document.getElementById('rentalBookingSummary').innerHTML='<strong>'+document.getElementById('modalTitle').textContent+'</strong><br><span style="color:#6b7280;">'+summary+' &nbsp;·&nbsp; '+total+'</span>';
+        document.getElementById('rentalDeliverySection').style.display=rentalState.deliveryAvailable?'block':'none';
+        document.getElementById('rentalDeliveryAddr').style.display='none';
+        document.getElementById('rentalStep1').style.display='none';
+        document.getElementById('rentalStep1Footer').style.display='none';
+        document.getElementById('rentalStep2').style.display='block';
+        document.getElementById('rentalStep2Footer').style.display='flex';
+        document.getElementById('step1Dot').style.background='#e5e7eb';
+        document.getElementById('step2Dot').style.background='#111827';
+      }
+
+      function closeRentalModal() {
+        document.getElementById('rentalModal').style.display='none';
+        document.body.style.overflow='';
+      }
+
+      function rentalToggleDelivery(cb) {
+        document.getElementById('rentalDeliveryAddr').style.display=cb.checked?'block':'none';
+      }
+
+      function rentalSubmit() {
+        var form=document.getElementById('rentalForm');
+        var name=form.querySelector('[name="customerName"]').value.trim();
+        var email=form.querySelector('[name="customerEmail"]').value.trim();
+        var phone=form.querySelector('[name="customerPhone"]').value.trim();
+        if(!name||!email||!phone){alert('Please fill in your name, email, and phone.');return;}
+        var st=rentalState;
+        form.querySelector('[name="rentalItemId"]').value=st.itemId;
+        form.querySelector('[name="rateAmount"]').value=st.dailyRate;
+        form.querySelector('[name="hourlyRate"]').value=st.hourlyRate;
+        form.querySelector('[name="weeklyRate"]').value=st.weeklyRate;
+        form.querySelector('[name="monthlyRate"]').value=st.monthlyRate;
+        form.querySelector('[name="startDate"]').value=document.getElementById('rentalStartVal').value;
+        form.querySelector('[name="endDate"]').value=document.getElementById('rentalEndVal').value;
+        form.querySelector('[name="pickupTime"]').value=document.getElementById('rentalPickupTime').value;
+        form.querySelector('[name="returnTime"]').value=document.getElementById('rentalReturnTime').value;
+        var btn=document.getElementById('rentalSubmitBtn');
+        btn.textContent='Submitting...';btn.disabled=true;
+        var fd=new FormData(form),data={};fd.forEach(function(v,k){data[k]=v;});
+        data.totalAmount=document.getElementById('rentalTotalLbl')?document.getElementById('rentalTotalLbl').textContent.replace('$',''):'0';
+        fetch('/api/rental/book/'+data.siteId,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+        .then(function(r){return r.json();})
+        .then(function(res){
+          if(res.error){alert(res.error);btn.textContent='Submit Request';btn.disabled=false;}
+          else{
+            document.getElementById('rentalStep2').innerHTML='<div style="text-align:center;padding:3rem 1.5rem;"><div style="width:4rem;height:4rem;background:var(--color-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;"><svg xmlns=\'http://www.w3.org/2000/svg\' width=\'28\' height=\'28\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'white\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'M20 6 9 17l-5-5\'/></svg></div><h3 style=\'color:var(--color-primary);font-size:1.375rem;font-weight:700;margin-bottom:0.75rem;\'>Request Submitted!</h3><p style=\'color:#6b7280;\'>We will contact you to confirm your booking within 1 business day.</p></div>';
+            document.getElementById('rentalStep2Footer').style.display='none';
+          }
+        })
+        .catch(function(){alert('Something went wrong. Please try again.');btn.textContent='Submit Request';btn.disabled=false;});
+      }
+
+      document.getElementById('rentalPickupTime').addEventListener('change', rentalCalcTotal);
+      document.getElementById('rentalReturnTime').addEventListener('change', rentalCalcTotal);
     </script>
     `;
   }
