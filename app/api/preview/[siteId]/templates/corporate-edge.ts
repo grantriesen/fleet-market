@@ -971,6 +971,7 @@ async function ceRentalsPage(
         <input type="hidden" name="siteId" value="${siteId}">
         <input type="hidden" id="fmRentalItemId" name="rentalItemId">
         <input type="hidden" id="fmRateAmount" name="rateAmount">
+        <input type="hidden" id="fmHourlyRate" name="hourlyRate">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
           <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Name *</label><input type="text" name="customerName" required style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
           <div><label style="display:block;margin-bottom:0.375rem;font-size:0.875rem;font-weight:600;color:#374151;">Phone *</label><input type="tel" name="customerPhone" required style="width:100%;padding:0.625rem 0.75rem;border:1px solid #d1d5db;border-radius:0.375rem;font-size:0.875rem;box-sizing:border-box;"></div>
@@ -1011,12 +1012,14 @@ async function ceRentalsPage(
   </div>
   <script>
   (function() {
-    function fmShowRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable) {
+    function fmShowRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable, hourlyRate) {
       document.getElementById('fmRentalModal').style.display = 'flex';
       document.getElementById('fmRentalModalTitle').textContent = 'Book: ' + itemTitle;
       document.getElementById('fmRentalForm').reset();
       document.getElementById('fmRentalItemId').value = itemId;
       document.getElementById('fmRateAmount').value = dailyRate;
+      var hrEl = document.getElementById('fmHourlyRate');
+      if (hrEl) hrEl.value = hourlyRate || '';
       document.getElementById('fmRentalTotal').style.display = 'none';
       document.getElementById('fmDeliveryAddr').style.display = 'none';
       document.getElementById('fmDeliverySection').style.display = deliveryAvailable ? 'block' : 'none';
@@ -1032,15 +1035,47 @@ async function ceRentalsPage(
     function fmCalcRentalTotal() {
       var s = document.getElementById('fmRentalStart').value;
       var e = document.getElementById('fmRentalEnd').value;
-      var rate = parseFloat(document.getElementById('fmRateAmount').value) || 0;
-      if (s && e && rate) {
-        var days = Math.ceil((new Date(e) - new Date(s)) / 86400000) + 1;
-        if (days > 0) {
-          document.getElementById('fmRentalDays').textContent = days;
-          document.getElementById('fmRentalTotalAmt').textContent = (days * rate).toFixed(2);
-          document.getElementById('fmRentalTotal').style.display = 'block';
+      var dailyRate = parseFloat(document.getElementById('fmRateAmount').value) || 0;
+      var hourlyRateEl = document.getElementById('fmHourlyRate');
+      var hourlyRate = hourlyRateEl ? (parseFloat(hourlyRateEl.value) || 0) : 0;
+      if (!s || !e || !dailyRate) return;
+      var days = Math.ceil((new Date(e) - new Date(s)) / 86400000) + 1;
+      if (days <= 0) return;
+      var total, label;
+      if (days === 1 && hourlyRate) {
+        var pickupEl = document.querySelectorAll('[name="pickupTime"]')[0];
+        var returnEl = document.querySelectorAll('[name="returnTime"]')[0];
+        var pickup = pickupEl ? pickupEl.value : '';
+        var ret = returnEl ? returnEl.value : '';
+        if (pickup && ret) {
+          function parseTime(t) {
+            var m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+            if (!m) return null;
+            var h = parseInt(m[1]), mn = parseInt(m[2]), mer = m[3].toUpperCase();
+            if (mer === 'PM' && h !== 12) h += 12;
+            if (mer === 'AM' && h === 12) h = 0;
+            return h + mn / 60;
+          }
+          var pHr = parseTime(pickup), rHr = parseTime(ret);
+          if (pHr !== null && rHr !== null && rHr > pHr) {
+            var duration = rHr - pHr;
+            if (duration < 4) {
+              total = (duration * hourlyRate).toFixed(2);
+              label = duration.toFixed(1) + ' hr(s) @ $' + hourlyRate + '/hr';
+            } else {
+              total = dailyRate.toFixed(2);
+              label = '1 day @ $' + dailyRate + '/day';
+            }
+            document.getElementById('fmRentalDays').textContent = label;
+            document.getElementById('fmRentalTotalAmt').textContent = total;
+            document.getElementById('fmRentalTotal').style.display = 'block';
+            return;
+          }
         }
       }
+      document.getElementById('fmRentalDays').textContent = days + ' day(s)';
+      document.getElementById('fmRentalTotalAmt').textContent = (days * dailyRate).toFixed(2);
+      document.getElementById('fmRentalTotal').style.display = 'block';
     }
     document.getElementById('fmRentalModal').addEventListener('click', function(e) {
       if (e.target === this) fmCloseRentalModal();

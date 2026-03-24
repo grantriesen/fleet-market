@@ -412,12 +412,16 @@ export default function RentalsDashboard() {
                     {/* Quick actions */}
                     <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
                       {booking.status === 'pending' && <>
-                        <button onClick={(e) => { e.stopPropagation(); updateBookingStatus(booking.id, 'confirmed'); }} className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100">Confirm</button>
-                        <button onClick={(e) => { e.stopPropagation(); updateBookingStatus(booking.id, 'cancelled'); }} className="px-3 py-1.5 text-xs font-medium bg-red-50 text-red-600 rounded-lg hover:bg-red-100">Cancel</button>
+                        <button onClick={(e) => { e.stopPropagation(); updateBookingStatus(booking.id, 'confirmed'); }} className="px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700">✓ Confirm</button>
+                        <button onClick={(e) => { e.stopPropagation(); updateBookingStatus(booking.id, 'cancelled'); }} className="px-3 py-1.5 text-xs font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700">✕ Cancel</button>
                       </>}
-                      {booking.status === 'confirmed' && <button onClick={(e) => { e.stopPropagation(); updateBookingStatus(booking.id, 'active'); }} className="px-3 py-1.5 text-xs font-medium bg-green-50 text-green-700 rounded-lg hover:bg-green-100">Mark Picked Up</button>}
-                      {booking.status === 'active' && <button onClick={(e) => { e.stopPropagation(); updateBookingStatus(booking.id, 'returned'); }} className="px-3 py-1.5 text-xs font-medium bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100">Mark Returned</button>}
-                      {booking.status === 'returned' && <button onClick={(e) => { e.stopPropagation(); updateBookingStatus(booking.id, 'completed'); }} className="px-3 py-1.5 text-xs font-medium bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100">Complete</button>}
+                      {booking.status === 'confirmed' && <>
+                        <button onClick={(e) => { e.stopPropagation(); updateBookingStatus(booking.id, 'active'); }} className="px-3 py-1.5 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700">✓ Mark Picked Up</button>
+                        <button onClick={(e) => { e.stopPropagation(); updateBookingStatus(booking.id, 'cancelled'); }} className="px-3 py-1.5 text-xs font-semibold bg-red-50 text-red-600 rounded-lg hover:bg-red-100">✕ Cancel</button>
+                      </>
+                      }
+                      {booking.status === 'active' && <button onClick={(e) => { e.stopPropagation(); updateBookingStatus(booking.id, 'returned'); }} className="px-3 py-1.5 text-xs font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700">Mark Returned</button>}
+                      {booking.status === 'returned' && <button onClick={(e) => { e.stopPropagation(); updateBookingStatus(booking.id, 'completed'); }} className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">✓ Complete</button>}
                       <span className="ml-auto text-xs text-slate-400">Created {fmtDate(booking.created_at)}</span>
                     </div>
                   </div>
@@ -598,7 +602,10 @@ export default function RentalsDashboard() {
                   <button onClick={() => updateBookingStatus(selectedBooking.id, 'confirmed')} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700">Confirm Booking</button>
                   <button onClick={() => updateBookingStatus(selectedBooking.id, 'cancelled')} className="px-4 py-2 text-sm font-medium bg-red-50 text-red-600 rounded-lg hover:bg-red-100">Cancel</button>
                 </>}
-                {selectedBooking.status === 'confirmed' && <button onClick={() => updateBookingStatus(selectedBooking.id, 'active')} className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700">Mark Picked Up</button>}
+                {selectedBooking.status === 'confirmed' && <>
+                  <button onClick={() => updateBookingStatus(selectedBooking.id, 'active')} className="px-4 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700">✓ Mark Picked Up</button>
+                  <button onClick={() => updateBookingStatus(selectedBooking.id, 'cancelled')} className="px-4 py-2 text-sm font-semibold bg-red-50 text-red-600 rounded-lg hover:bg-red-100">✕ Cancel Booking</button>
+                </>}
                 {selectedBooking.status === 'active' && <button onClick={() => updateBookingStatus(selectedBooking.id, 'returned')} className="px-4 py-2 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700">Mark Returned</button>}
                 {selectedBooking.status === 'returned' && <button onClick={() => updateBookingStatus(selectedBooking.id, 'completed')} className="px-4 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Complete & Close</button>}
               </div>

@@ -1567,7 +1567,7 @@ async function gvRentalsPage(
                 </div>
               </div>
               ${item.quantity_available > 0
-                ? `<button onclick="gvShowRentalModal('${item.id}', '${item.title.replace(/'/g, "\\'")}', ${item.daily_rate || 0})" class="block w-full text-center cta-button rounded-md text-sm py-2 cursor-pointer border-0 w-full">Reserve Now</button>`
+                ? `<button onclick="gvShowRentalModal('${item.id}', '${item.title.replace(/'/g, "\\'")}', ${item.daily_rate || 0}, ${item.delivery_available ? 'true' : 'false'}, ${item.hourly_rate || 0})" class="block w-full text-center cta-button rounded-md text-sm py-2 cursor-pointer border-0 w-full">Reserve Now</button>`
                 : `<button disabled class="block w-full text-center bg-muted text-muted-foreground rounded-md text-sm py-2 cursor-not-allowed">Currently Unavailable</button>`
               }
             </div>
@@ -1615,6 +1615,7 @@ async function gvRentalsPage(
         <input type="hidden" name="siteId" value="${siteId}">
         <input type="hidden" id="gvRentalItemId" name="rentalItemId">
         <input type="hidden" id="gvRateAmount" name="rateAmount">
+        <input type="hidden" id="gvHourlyRate" name="hourlyRate">
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
           <div>
@@ -1672,7 +1673,7 @@ async function gvRentalsPage(
           </div>
         </div>
 
-        <div style="margin-bottom:1rem;">
+        <div id="gvDeliverySection" style="display:none;margin-bottom:1rem;">
           <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
             <input type="checkbox" name="deliveryRequired" onchange="gvToggleDelivery(this)" style="width:1rem;height:1rem;">
             <span style="font-weight:600;font-size:0.875rem;color:#374151;">Request Delivery</span>
@@ -1697,15 +1698,16 @@ async function gvRentalsPage(
 
   <script>
   (function() {
-    function gvShowRentalModal(itemId, itemTitle, dailyRate) {
+    function gvShowRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable, hourlyRate) {
       var modal = document.getElementById('gvRentalModal');
       document.getElementById('gvModalTitle').textContent = 'Book: ' + itemTitle;
-      document.getElementById('gvRentalItemId').value = itemId;
-      document.getElementById('gvRateAmount').value = dailyRate;
-      document.getElementById('gvTotalCalc').style.display = 'none';
       document.getElementById('gvRentalForm').reset();
       document.getElementById('gvRentalItemId').value = itemId;
       document.getElementById('gvRateAmount').value = dailyRate;
+      document.getElementById('gvHourlyRate').value = hourlyRate || '';
+      document.getElementById('gvTotalCalc').style.display = 'none';
+      document.getElementById('gvDeliveryAddress').style.display = 'none';
+      document.getElementById('gvDeliverySection').style.display = deliveryAvailable ? 'block' : 'none';
       modal.style.display = 'flex';
       document.body.style.overflow = 'hidden';
     }
@@ -1719,15 +1721,50 @@ async function gvRentalsPage(
     function gvCalculateTotal() {
       var start = document.getElementById('gvStartDate').value;
       var end = document.getElementById('gvEndDate').value;
-      var rate = parseFloat(document.getElementById('gvRateAmount').value) || 0;
-      if (start && end && rate) {
-        var days = Math.ceil((new Date(end) - new Date(start)) / 86400000) + 1;
-        if (days > 0) {
-          document.getElementById('gvRentalDays').textContent = days;
-          document.getElementById('gvTotalAmount').textContent = (days * rate).toFixed(2);
-          document.getElementById('gvTotalCalc').style.display = 'block';
+      var dailyRate = parseFloat(document.getElementById('gvRateAmount').value) || 0;
+      var hourlyRate = parseFloat(document.getElementById('gvHourlyRate').value) || 0;
+      if (!start || !end || !dailyRate) return;
+      var days = Math.ceil((new Date(end) - new Date(start)) / 86400000) + 1;
+      if (days <= 0) return;
+      var total, label;
+      if (days === 1 && hourlyRate) {
+        // Same-day rental — check if pickup/return times are set
+        var pickupEl = document.querySelector('[name="pickupTime"]');
+        var returnEl = document.querySelector('[name="returnTime"]');
+        var pickup = pickupEl ? pickupEl.value : '';
+        var ret = returnEl ? returnEl.value : '';
+        if (pickup && ret) {
+          // Parse times to calculate duration in hours
+          function parseTime(t) {
+            var m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+            if (!m) return null;
+            var h = parseInt(m[1]), mn = parseInt(m[2]), mer = m[3].toUpperCase();
+            if (mer === 'PM' && h !== 12) h += 12;
+            if (mer === 'AM' && h === 12) h = 0;
+            return h + mn / 60;
+          }
+          var pHr = parseTime(pickup), rHr = parseTime(ret);
+          if (pHr !== null && rHr !== null && rHr > pHr) {
+            var duration = rHr - pHr;
+            if (duration < 4) {
+              total = (duration * hourlyRate).toFixed(2);
+              label = duration.toFixed(1) + ' hr(s) @ $' + hourlyRate + '/hr';
+            } else {
+              total = dailyRate.toFixed(2);
+              label = '1 day @ $' + dailyRate + '/day';
+            }
+            document.getElementById('gvRentalDays').textContent = label;
+            document.getElementById('gvTotalAmount').textContent = total;
+            document.getElementById('gvTotalCalc').style.display = 'block';
+            return;
+          }
         }
       }
+      // Multi-day or no time set — use daily rate
+      total = (days * dailyRate).toFixed(2);
+      document.getElementById('gvRentalDays').textContent = days + ' day(s)';
+      document.getElementById('gvTotalAmount').textContent = total;
+      document.getElementById('gvTotalCalc').style.display = 'block';
     }
     document.getElementById('gvRentalModal').addEventListener('click', function(e) {
       if (e.target === this) gvCloseRentalModal();
@@ -1752,7 +1789,7 @@ async function gvRentalsPage(
           btn.textContent = 'Submit Rental Request';
           btn.disabled = false;
         } else {
-          document.getElementById('gvRentalForm').innerHTML = '<div style="text-align:center;padding:3rem 1.5rem;"><div style="font-size:3rem;margin-bottom:1rem;">✅</div><h3 style="color:var(--color-primary);font-size:1.5rem;font-weight:700;margin-bottom:0.75rem;">Request Submitted!</h3><p style="color:#6b7280;">We will contact you shortly to confirm your booking.</p></div>';
+          document.getElementById('gvRentalForm').innerHTML = '<div style="text-align:center;padding:3rem 1.5rem;"><div style="width:4rem;height:4rem;background:var(--color-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><h3 style="color:var(--color-primary);font-size:1.375rem;font-weight:700;margin-bottom:0.75rem;">Request Submitted!</h3><p style="color:#6b7280;">We will contact you to confirm your booking within 1 business day.</p></div>';
         }
       })
       .catch(function() {

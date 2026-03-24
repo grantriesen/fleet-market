@@ -2163,7 +2163,7 @@ async function renderRentalsPageWithIntegration(
                 </div>
                 
                 <button 
-                  onclick="showRentalModal('${item.id}', '${item.title.replace(/'/g, "\\'")}', ${item.daily_rate || 0}, ${item.delivery_available ? 'true' : 'false'})"
+                  onclick="showRentalModal('${item.id}', '${item.title.replace(/'/g, "\\'")}', ${item.daily_rate || 0}, ${item.delivery_available ? 'true' : 'false'}, ${item.hourly_rate || 0})"
                   style="width: 100%; background-color: var(--color-primary); color: white; padding: 0.875rem; border: none; border-radius: 0.5rem; font-weight: 600; font-size: 1rem; cursor: pointer; transition: background-color 0.2s;"
                   ${item.quantity_available === 0 ? 'disabled style="background-color: #9ca3af; cursor: not-allowed;"' : ''}
                 >
@@ -2192,6 +2192,7 @@ async function renderRentalsPageWithIntegration(
           <input type="hidden" name="siteId" value="${siteId}">
           <input type="hidden" id="rentalItemId" name="rentalItemId">
           <input type="hidden" id="rateAmount" name="rateAmount">
+          <input type="hidden" id="hourlyRate" name="hourlyRate">
           
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
             <div>
@@ -2291,11 +2292,13 @@ async function renderRentalsPageWithIntegration(
     </div>
     
     <script>
-      function showRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable) {
+      function showRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable, hourlyRate) {
         document.getElementById('rentalModal').style.display = 'flex';
         document.getElementById('modalTitle').textContent = 'Book: ' + itemTitle;
         document.getElementById('rentalItemId').value = itemId;
         document.getElementById('rateAmount').value = dailyRate;
+        var hrEl = document.getElementById('hourlyRate');
+        if (hrEl) hrEl.value = hourlyRate || '';
         document.getElementById('deliveryAddress').style.display = 'none';
         document.getElementById('deliverySection').style.display = deliveryAvailable ? 'block' : 'none';
         document.body.style.overflow = 'hidden';
@@ -2314,20 +2317,45 @@ async function renderRentalsPageWithIntegration(
       function calculateTotal() {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
-        const dailyRate = parseFloat(document.getElementById('rateAmount').value);
-        
-        if (startDate && endDate && dailyRate) {
-          const start = new Date(startDate);
-          const end = new Date(endDate);
-          const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-          
-          if (days > 0) {
-            const total = days * dailyRate;
-            document.getElementById('rentalDays').textContent = days;
-            document.getElementById('totalAmount').textContent = total.toFixed(2);
-            document.getElementById('totalCalculation').style.display = 'block';
+        const dailyRate = parseFloat(document.getElementById('rateAmount').value) || 0;
+        const hourlyRateEl = document.getElementById('hourlyRate');
+        const hourlyRate = hourlyRateEl ? (parseFloat(hourlyRateEl.value) || 0) : 0;
+        if (!startDate || !endDate || !dailyRate) return;
+        const days = Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000) + 1;
+        if (days <= 0) return;
+        if (days === 1 && hourlyRate) {
+          const pickupEl = document.querySelector('[name="pickupTime"]');
+          const returnEl = document.querySelector('[name="returnTime"]');
+          const pickup = pickupEl ? pickupEl.value : '';
+          const ret = returnEl ? returnEl.value : '';
+          if (pickup && ret) {
+            function parseTime(t) {
+              const m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+              if (!m) return null;
+              let h = parseInt(m[1]), mn = parseInt(m[2]);
+              const mer = m[3].toUpperCase();
+              if (mer === 'PM' && h !== 12) h += 12;
+              if (mer === 'AM' && h === 12) h = 0;
+              return h + mn / 60;
+            }
+            const pHr = parseTime(pickup), rHr = parseTime(ret);
+            if (pHr !== null && rHr !== null && rHr > pHr) {
+              const duration = rHr - pHr;
+              if (duration < 4) {
+                document.getElementById('rentalDays').textContent = duration.toFixed(1) + ' hr(s) @ $' + hourlyRate + '/hr';
+                document.getElementById('totalAmount').textContent = (duration * hourlyRate).toFixed(2);
+              } else {
+                document.getElementById('rentalDays').textContent = '1 day @ $' + dailyRate + '/day';
+                document.getElementById('totalAmount').textContent = dailyRate.toFixed(2);
+              }
+              document.getElementById('totalCalculation').style.display = 'block';
+              return;
+            }
           }
         }
+        document.getElementById('rentalDays').textContent = days + ' day(s)';
+        document.getElementById('totalAmount').textContent = (days * dailyRate).toFixed(2);
+        document.getElementById('totalCalculation').style.display = 'block';
       }
       
       // Handle rental form submission
@@ -2356,7 +2384,7 @@ async function renderRentalsPageWithIntegration(
             btn.textContent = 'Submit Rental Request';
             btn.disabled = false;
           } else {
-            form.closest('#rentalModal').querySelector('form').innerHTML = '<div style="text-align: center; padding: 3rem;"><h3 style="color: var(--color-primary); font-size: 1.5rem; margin-bottom: 1rem;">✅ Rental Request Submitted!</h3><p style="color: #6b7280;">We will contact you to confirm your booking.</p></div>';
+            form.closest('#rentalModal').querySelector('form').innerHTML = '<div style="text-align:center;padding:3rem 1.5rem;"><div style="width:4rem;height:4rem;background:var(--color-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><h3 style="color:var(--color-primary);font-size:1.375rem;font-weight:700;margin-bottom:0.75rem;">Request Submitted!</h3><p style="color:#6b7280;">We will contact you to confirm your booking within 1 business day.</p></div>';
           }
         })
         .catch(function() {
