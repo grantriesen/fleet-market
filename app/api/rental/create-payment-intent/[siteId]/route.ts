@@ -56,7 +56,7 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
       {
         amount: Math.round(depositAmount * 100), // cents
         currency: 'usd',
-        automatic_payment_methods: { enabled: true },
+        payment_method_types: ['card'],
         description: `Rental deposit — ${item.title}`,
         metadata: {
           site_id: siteId,
