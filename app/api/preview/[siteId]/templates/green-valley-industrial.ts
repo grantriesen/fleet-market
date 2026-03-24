@@ -1606,7 +1606,8 @@ async function gvRentalsPage(
   <!-- GVI Rental Booking Modal -->
 
   <!-- Rental Booking Modal (gv) -->
-  <script>\n// Fleet Market Rental Date Picker — put in /public/fm-rental-datepicker.js
+  <script>
+// Fleet Market Rental Date Picker — put in /public/fm-rental-datepicker.js
 (function() {
   var DP = window.fmRentalDatePicker = {};
 
@@ -1690,7 +1691,7 @@ async function gvRentalsPage(
     +'</div>';
 
     // Cells
-    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);">';
+    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);" onmouseleave="fmRentalDatePicker.clearHover()">';
     for (var i=0; i<total; i++) {
       var day, inMonth=true;
       if (i<firstDay){day=prevDays-firstDay+i+1;inMonth=false;}
@@ -1711,7 +1712,7 @@ async function gvRentalsPage(
       else if (inHover){st+='background:'+pc+'12;color:#374151;cursor:pointer;border-radius:0;';}
       else{st+='color:#111827;cursor:pointer;'+(isToday?'font-weight:700;border-bottom:2px solid '+pc+';':'');}
       var dis=(isPast||isBooked)?'data-disabled="1"':'';
-      html+='<div '+dis+' data-date="'+ds+'" onclick="fmRentalDatePicker.pick(this)" style="'+st+'">'+day+'</div>';
+      html+='<div '+dis+' data-date="'+ds+'" onclick="fmRentalDatePicker.pick(this)" onmouseover="fmRentalDatePicker.hover(this)" style="'+st+'">'+day+'</div>';
     }
     html += '</div>';
     html += '<div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:#9ca3af;">'
@@ -1746,7 +1747,8 @@ async function gvRentalsPage(
   DP.prevMonth = function() { var s=DP.state; s.viewMonth--; if(s.viewMonth<0){s.viewMonth=11;s.viewYear--;} DP.render(); };
   DP.nextMonth = function() { var s=DP.state; s.viewMonth++; if(s.viewMonth>11){s.viewMonth=0;s.viewYear++;} DP.render(); };
 })();
-\n  </script>
+
+  </script>
   <div id="gvRentalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
     <div style="background:white;border-radius:0.875rem;max-width:520px;width:100%;max-height:92vh;overflow:hidden;box-shadow:0 24px 48px rgba(0,0,0,0.35);display:flex;flex-direction:column;">
 
