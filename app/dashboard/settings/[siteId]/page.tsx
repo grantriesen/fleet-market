@@ -10,6 +10,7 @@ import {
 
 interface Testimonial {
   id: string;
+  // Primary fields (what the manager uses)
   author: string;
   role: string;
   company: string;
@@ -72,7 +73,14 @@ export default function SiteSettingsPage({ params }: { params: { siteId: string 
       try {
         const raw = content['testimonials.items'] || '[]';
         const parsed = JSON.parse(raw);
-        setTestimonials(parsed.map((t: any, i: number) => ({ ...t, id: t.id || String(i) })));
+        setTestimonials(parsed.map((t: any, i: number) => ({
+          id:      t.id      || String(i),
+          author:  t.author  || t.name   || '',
+          text:    t.text    || t.quote  || t.content || '',
+          role:    t.role    || t.title  || '',
+          company: t.company || t.location || '',
+          rating:  t.rating  || 5,
+        })));
       } catch { setTestimonials([]); }
 
     } catch (e) {
@@ -126,7 +134,19 @@ export default function SiteSettingsPage({ params }: { params: { siteId: string 
     try {
       const cfg     = site.config_json || {};
       const content = { ...(cfg.content || {}) };
-      content['testimonials.items'] = JSON.stringify(testimonials);
+      // Normalize each testimonial to include all field aliases
+      // so all 6 templates (which use different key names) can render them
+      const normalized = testimonials.map(({ id, author, role, company, text, rating }) => ({
+        // Primary fields
+        id, author, role, company, text, rating,
+        // Aliases used by different templates
+        name: author,      // GVI, CE, ZL, WE, MLS, VD all use t.name
+        quote: text,       // GVI, CE, ZL, VD use t.quote
+        content: text,     // WE, MLS use t.content
+        title: role,       // GVI, CE, VD use t.title
+        location: company, // WE uses t.location
+      }));
+      content['testimonials.items'] = JSON.stringify(normalized);
       await supabase.from('sites').update({ config_json: { ...cfg, content } }).eq('id', site.id);
       setTestSaved(true);
       setTimeout(() => setTestSaved(false), 2500);
