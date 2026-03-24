@@ -1690,7 +1690,7 @@ async function gvRentalsPage(
     +'</div>';
 
     // Cells
-    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);" onmouseleave="fmRentalDatePicker.clearHover()">';
+    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);">';
     for (var i=0; i<total; i++) {
       var day, inMonth=true;
       if (i<firstDay){day=prevDays-firstDay+i+1;inMonth=false;}
@@ -1711,7 +1711,7 @@ async function gvRentalsPage(
       else if (inHover){st+='background:'+pc+'12;color:#374151;cursor:pointer;border-radius:0;';}
       else{st+='color:#111827;cursor:pointer;'+(isToday?'font-weight:700;border-bottom:2px solid '+pc+';':'');}
       var dis=(isPast||isBooked)?'data-disabled="1"':'';
-      html+='<div '+dis+' data-date="'+ds+'" onclick="fmRentalDatePicker.pick(this)" onmouseover="fmRentalDatePicker.hover(this)" style="'+st+'">'+day+'</div>';
+      html+='<div '+dis+' data-date="'+ds+'" onclick="fmRentalDatePicker.pick(this)" style="'+st+'">'+day+'</div>';
     }
     html += '</div>';
     html += '<div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:#9ca3af;">'
