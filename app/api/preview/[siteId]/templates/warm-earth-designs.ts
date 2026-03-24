@@ -745,6 +745,7 @@ async function weRentalsPage(
       
 
   <!-- Rental Booking Modal (fm) -->
+  <script src="/fm-rental-datepicker.js"></script>
   <div id="fmRentalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
     <div style="background:white;border-radius:0.875rem;max-width:520px;width:100%;max-height:92vh;overflow:hidden;box-shadow:0 24px 48px rgba(0,0,0,0.35);display:flex;flex-direction:column;">
 
@@ -1031,8 +1032,7 @@ async function weRentalsPage(
     window.fmToggleDelivery = fmToggleDelivery;
     window.fmSubmitRental = fmSubmitRental;
   })();
-  </script>
-  <script src="/fm-rental-datepicker.js"></script>`;
+  </script>`;
     }
   }
 
