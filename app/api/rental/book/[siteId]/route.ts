@@ -91,6 +91,9 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
         delivery_required: body.deliveryRequired === 'on' || body.deliveryRequired === true,
         delivery_address: body.deliveryAddress || null,
         notes: body.notes || null,
+        payment_intent_id: body.paymentIntentId || null,
+        deposit_amount: body.depositAmount ? parseFloat(body.depositAmount) : null,
+        deposit_status: body.paymentIntentId ? 'paid' : 'pending',
       })
       .select()
       .single();

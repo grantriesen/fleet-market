@@ -110,6 +110,7 @@ export function rentalReserveButton(item: any, prefix: string, classes?: string)
     item.hourly_rate  || 0,
     item.weekly_rate  || 0,
     item.monthly_rate || 0,
+    item.deposit_required || 0,
   ].join(', ');
   if (item.quantity_available === 0) {
     return `<button disabled style="cursor:not-allowed;opacity:0.5;${classes || ''}">Currently Unavailable</button>`;
@@ -292,6 +293,7 @@ function modalHtml(p: string): string {
           <div style="display:flex;gap:0.375rem;margin-top:0.375rem;">
             <span id="${p}Step1Dot" style="width:1.5rem;height:3px;border-radius:2px;background:#111827;"></span>
             <span id="${p}Step2Dot" style="width:1.5rem;height:3px;border-radius:2px;background:#e5e7eb;"></span>
+            <span id="${p}Step3Dot" style="width:1.5rem;height:3px;border-radius:2px;background:#e5e7eb;"></span>
           </div>
         </div>
         <button type="button" onclick="${p}CloseRentalModal()" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:1.375rem;line-height:1;padding:0.25rem;">&#x2715;</button>
@@ -371,7 +373,22 @@ function modalHtml(p: string): string {
       <div id="${p}Step2Footer" style="display:none;padding:1rem 1.5rem;border-top:1px solid #f1f1f1;flex-shrink:0;">
         <div style="display:flex;gap:0.625rem;">
           <button type="button" onclick="${p}GoStep1()" style="padding:0.75rem 1rem;background:#f9fafb;color:#374151;border:1px solid #e5e7eb;border-radius:0.5rem;font-weight:600;font-size:0.875rem;cursor:pointer;">← Back</button>
-          <button type="button" id="${p}SubmitBtn" onclick="${p}SubmitRental()" style="flex:1;padding:0.75rem;background:var(--color-primary);color:white;border:none;border-radius:0.5rem;font-weight:700;font-size:0.9375rem;cursor:pointer;">Submit Request</button>
+          <button type="button" id="${p}ToStep3Btn" onclick="${p}GoStep3()" style="flex:1;padding:0.75rem;background:var(--color-primary);color:white;border:none;border-radius:0.5rem;font-weight:700;font-size:0.9375rem;cursor:pointer;">Continue →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Deposit Payment -->
+      <div id="${p}Step3" style="display:none;overflow-y:auto;padding:1.25rem 1.5rem;flex:1;">
+        <div id="${p}DepositSummary" style="background:#f9fafb;border-radius:0.5rem;padding:0.75rem 1rem;margin-bottom:1rem;border:1px solid #e5e7eb;font-size:0.875rem;color:#374151;"></div>
+        <div id="${p}StripeElements" style="margin-bottom:1rem;"></div>
+        <div id="${p}PaymentError" style="display:none;color:#dc2626;font-size:0.875rem;margin-bottom:0.75rem;padding:0.625rem;background:#fef2f2;border-radius:0.375rem;"></div>
+      </div>
+
+      <!-- Step 3 Footer -->
+      <div id="${p}Step3Footer" style="display:none;padding:1rem 1.5rem;border-top:1px solid #f1f1f1;flex-shrink:0;">
+        <div style="display:flex;gap:0.625rem;">
+          <button type="button" onclick="${p}GoStep2()" style="padding:0.75rem 1rem;background:#f9fafb;color:#374151;border:1px solid #e5e7eb;border-radius:0.5rem;font-weight:600;font-size:0.875rem;cursor:pointer;">← Back</button>
+          <button type="button" id="${p}PayBtn" onclick="${p}ConfirmPayment()" style="flex:1;padding:0.75rem;background:var(--color-primary);color:white;border:none;border-radius:0.5rem;font-weight:700;font-size:0.9375rem;cursor:pointer;">Pay Deposit & Confirm</button>
         </div>
       </div>
 
@@ -387,7 +404,8 @@ function modalScript(p: string, siteId: string): string {
 
   var ${p}RentalState = {
     itemId: '', dailyRate: 0, hourlyRate: 0, weeklyRate: 0, monthlyRate: 0,
-    deliveryAvailable: false, primaryColor: 'var(--color-primary)'
+    deliveryAvailable: false, primaryColor: 'var(--color-primary)',
+    depositAmount: 0, stripeClientSecret: null, paymentIntentId: null, stripeElements: null, stripeInstance: null
   };
 
   var ${p}ParseTime = function(t) {
@@ -445,10 +463,11 @@ function modalScript(p: string, siteId: string): string {
     btn.disabled=false; btn.style.background='var(--color-primary)'; btn.style.color='white'; btn.style.cursor='pointer';
   }
 
-  function ${p}OpenRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable, hourlyRate, weeklyRate, monthlyRate) {
+  function ${p}OpenRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable, hourlyRate, weeklyRate, monthlyRate, depositAmount) {
     var st = ${p}RentalState;
     st.itemId=itemId; st.dailyRate=dailyRate||0; st.hourlyRate=hourlyRate||0;
     st.weeklyRate=weeklyRate||0; st.monthlyRate=monthlyRate||0; st.deliveryAvailable=!!deliveryAvailable;
+    st.depositAmount=depositAmount||0; st.stripeClientSecret=null; st.paymentIntentId=null;
     document.getElementById('${p}ModalTitle').textContent = itemTitle;
     document.getElementById('${p}StartDateVal').value = '';
     document.getElementById('${p}EndDateVal').value = '';
@@ -514,8 +533,12 @@ function modalScript(p: string, siteId: string): string {
     document.getElementById('${p}Step1Footer').style.display = 'none';
     document.getElementById('${p}Step2').style.display = 'block';
     document.getElementById('${p}Step2Footer').style.display = 'flex';
+    // Update continue button label
+    var toStep3Btn = document.getElementById('${p}ToStep3Btn');
+    if (toStep3Btn) toStep3Btn.textContent = ${p}RentalState.depositAmount > 0 ? 'Continue to Payment →' : 'Submit Request →';
     document.getElementById('${p}Step1Dot').style.background = '#e5e7eb';
     document.getElementById('${p}Step2Dot').style.background = '#111827';
+    document.getElementById('${p}Step3Dot').style.background = '#e5e7eb';
   }
 
   function ${p}CloseRentalModal() {
@@ -527,7 +550,7 @@ function modalScript(p: string, siteId: string): string {
     document.getElementById('${p}DeliveryAddr').style.display = cb.checked ? 'block' : 'none';
   }
 
-  function ${p}SubmitRental() {
+  function ${p}SubmitRental(paymentIntentId) {
     var form = document.getElementById('${p}RentalForm');
     var name  = form.querySelector('[name="customerName"]').value.trim();
     var email = form.querySelector('[name="customerEmail"]').value.trim();
@@ -549,6 +572,7 @@ function modalScript(p: string, siteId: string): string {
     fd.forEach(function(v,k){ data[k]=v; });
     data.siteId = '${siteId}';
     data.totalAmount = document.getElementById('${p}TotalLbl') ? document.getElementById('${p}TotalLbl').textContent.replace('$','') : '0';
+    if (paymentIntentId) { data.paymentIntentId = paymentIntentId; data.depositAmount = ${p}RentalState.depositAmount; }
     fetch('/api/rental/book/${siteId}', {
       method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
     })
@@ -569,10 +593,108 @@ function modalScript(p: string, siteId: string): string {
     .catch(function(){ alert('Something went wrong. Please try again.'); btn.textContent='Submit Request'; btn.disabled=false; });
   }
 
+  function ${p}GoStep2FromStep3() {
+    document.getElementById('${p}Step3').style.display = 'none';
+    document.getElementById('${p}Step3Footer').style.display = 'none';
+    document.getElementById('${p}Step2').style.display = 'block';
+    document.getElementById('${p}Step2Footer').style.display = 'flex';
+    document.getElementById('${p}Step2Dot').style.background = '#111827';
+    document.getElementById('${p}Step3Dot').style.background = '#e5e7eb';
+  }
+
+  function ${p}GoStep3() {
+    var form = document.getElementById('${p}RentalForm');
+    var name  = form.querySelector('[name="customerName"]').value.trim();
+    var email = form.querySelector('[name="customerEmail"]').value.trim();
+    var phone = form.querySelector('[name="customerPhone"]').value.trim();
+    if (!name || !email || !phone) { alert('Please fill in your name, email, and phone.'); return; }
+    var st = ${p}RentalState;
+    // If no deposit required, submit directly
+    if (!st.depositAmount || st.depositAmount <= 0) { ${p}SubmitRental(null); return; }
+    // Show step 3
+    document.getElementById('${p}Step2').style.display = 'none';
+    document.getElementById('${p}Step2Footer').style.display = 'none';
+    document.getElementById('${p}Step3').style.display = 'block';
+    document.getElementById('${p}Step3Footer').style.display = 'flex';
+    document.getElementById('${p}Step2Dot').style.background = '#e5e7eb';
+    document.getElementById('${p}Step3Dot').style.background = '#111827';
+    // Update back button in step 3 to go back to step 2
+    var step3Footer = document.getElementById('${p}Step3Footer');
+    if (step3Footer) {
+      var backBtn = step3Footer.querySelector('button');
+      if (backBtn) backBtn.onclick = ${p}GoStep2FromStep3;
+    }
+    // Set deposit summary
+    document.getElementById('${p}DepositSummary').innerHTML =
+      '<strong>Deposit Required</strong><br>'
+      + '<span style="color:#6b7280;">A $' + st.depositAmount.toFixed(2) + ' deposit is required to confirm your reservation.</span>';
+    // Load Stripe and create payment intent
+    var stripeEl = document.getElementById('${p}StripeElements');
+    stripeEl.innerHTML = '<div style="text-align:center;padding:1rem;color:#6b7280;font-size:0.875rem;">Loading payment form...</div>';
+    fetch('/api/rental/create-payment-intent/${siteId}', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ rentalItemId: st.itemId, depositAmount: st.depositAmount })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (res.error) {
+        stripeEl.innerHTML = '<div style="color:#dc2626;padding:0.75rem;background:#fef2f2;border-radius:0.375rem;">'+res.error+'</div>';
+        return;
+      }
+      st.stripeClientSecret = res.clientSecret;
+      st.paymentIntentId = res.paymentIntentId;
+      // Load Stripe.js dynamically
+      if (!window.Stripe) {
+        var s = document.createElement('script');
+        s.src = 'https://js.stripe.com/v3/';
+        s.onload = function() { ${p}MountStripeElements(res.clientSecret); };
+        document.head.appendChild(s);
+      } else {
+        ${p}MountStripeElements(res.clientSecret);
+      }
+    })
+    .catch(function(){ stripeEl.innerHTML = '<div style="color:#dc2626;padding:0.75rem;">Failed to load payment form. Please try again.</div>'; });
+  }
+
+  function ${p}MountStripeElements(clientSecret) {
+    var st = ${p}RentalState;
+    var stripe = window.Stripe('${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""}');
+    st.stripeInstance = stripe;
+    var elements = stripe.elements({ clientSecret: clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: st.primaryColor } } });
+    st.stripeElements = elements;
+    var paymentEl = elements.create('payment');
+    document.getElementById('${p}StripeElements').innerHTML = '';
+    paymentEl.mount('#${p}StripeElements');
+  }
+
+  function ${p}ConfirmPayment() {
+    var st = ${p}RentalState;
+    var btn = document.getElementById('${p}PayBtn');
+    if (!st.stripeInstance || !st.stripeElements) { alert('Payment form not ready. Please wait.'); return; }
+    btn.textContent = 'Processing...'; btn.disabled = true;
+    st.stripeInstance.confirmPayment({
+      elements: st.stripeElements,
+      redirect: 'if_required',
+    })
+    .then(function(result){
+      if (result.error) {
+        document.getElementById('${p}PaymentError').textContent = result.error.message;
+        document.getElementById('${p}PaymentError').style.display = 'block';
+        btn.textContent = 'Pay Deposit & Confirm'; btn.disabled = false;
+      } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+        ${p}SubmitRental(result.paymentIntent.id);
+      }
+    });
+  }
+
   window.${p}OpenRentalModal  = ${p}OpenRentalModal;
   window.${p}CloseRentalModal = ${p}CloseRentalModal;
   window.${p}GoStep1          = ${p}GoStep1;
   window.${p}GoStep2          = ${p}GoStep2;
+  window.${p}GoStep3          = ${p}GoStep3;
+  window.${p}ConfirmPayment   = ${p}ConfirmPayment;
+  window.${p}GoStep2FromStep3 = ${p}GoStep2FromStep3;
   window.${p}CalcTotal        = ${p}CalcTotal;
   window.${p}ToggleDelivery   = ${p}ToggleDelivery;
   window.${p}SubmitRental     = ${p}SubmitRental;
