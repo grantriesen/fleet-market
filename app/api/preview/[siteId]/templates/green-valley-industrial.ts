@@ -1632,6 +1632,26 @@ async function gvRentalsPage(
     s.startDate = null; s.endDate = null; s.hoverDate = null; s.bookedDates = [];
     s.viewYear = new Date().getFullYear(); s.viewMonth = new Date().getMonth();
     DP.render();
+    // Delegated click handler on container - survives innerHTML rebuilds
+    var el = document.getElementById(containerId);
+    if (el && !el._dpBound) {
+      el._dpBound = true;
+      el.addEventListener('click', function(e) {
+        var cell = e.target.closest ? e.target.closest('[data-date]') : e.target;
+        if (!cell || !cell.getAttribute('data-date')) return;
+        if (cell.getAttribute('data-disabled')) return;
+        e.stopPropagation();
+        var ds = cell.getAttribute('data-date');
+        var st = DP.state;
+        if (!st.startDate || (st.startDate && st.endDate) || ds < st.startDate) {
+          st.startDate = ds; st.endDate = null;
+        } else {
+          st.endDate = ds;
+          if (st.onSelect) st.onSelect(st.startDate, st.endDate);
+        }
+        DP.render();
+      });
+    }
     if (siteId && itemId) {
       fetch('/api/rental/availability/'+siteId+'?itemId='+itemId)
         .then(function(r){return r.json();})
@@ -1712,7 +1732,7 @@ async function gvRentalsPage(
       else if (inHover){st+='background:'+pc+'12;color:#374151;cursor:pointer;border-radius:0;';}
       else{st+='color:#111827;cursor:pointer;'+(isToday?'font-weight:700;border-bottom:2px solid '+pc+';':'');}
       var dis=(isPast||isBooked)?'data-disabled="1"':'';
-      html+='<div '+dis+' data-date="'+ds+'" onclick="fmRentalDatePicker.pick(this)" onmouseover="fmRentalDatePicker.hover(this)" style="'+st+'">'+day+'</div>';
+      html+='<div '+dis+' data-date="'+ds+'" style="'+st+'">'+day+'</div>';
     }
     html += '</div>';
     html += '<div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:#9ca3af;">'
@@ -2037,4 +2057,4 @@ async function gvRentalsPage(
   })();
   </script>
   `;
-}
+}html+=\'<div \'+dis+\' data-date="\'+ds+\'" style="\'+st+\'">\'+day+\'</div>\';
