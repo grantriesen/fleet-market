@@ -1,4 +1,3 @@
-// ============================================
 // templates/green-valley-industrial.ts
 // Full template module for Green Valley Industrial
 //
@@ -1567,7 +1566,7 @@ async function gvRentalsPage(
                 </div>
               </div>
               ${item.quantity_available > 0
-                ? `<button onclick="gvShowRentalModal('${item.id}', '${item.title.replace(/'/g, "\\'")}', ${item.daily_rate || 0}, ${item.delivery_available ? 'true' : 'false'}, ${item.hourly_rate || 0})" class="block w-full text-center cta-button rounded-md text-sm py-2 cursor-pointer border-0 w-full">Reserve Now</button>`
+                ? `<button onclick="gvShowRentalModal('${item.id}', '${item.title.replace(/'/g, "\\'")}', ${item.daily_rate || 0}, ${item.delivery_available ? 'true' : 'false'}, ${item.hourly_rate || 0}, ${item.weekly_rate || 0}, ${item.monthly_rate || 0})" class="block w-full text-center cta-button rounded-md text-sm py-2 cursor-pointer border-0 w-full">Reserve Now</button>`
                 : `<button disabled class="block w-full text-center bg-muted text-muted-foreground rounded-md text-sm py-2 cursor-not-allowed">Currently Unavailable</button>`
               }
             </div>
@@ -1616,6 +1615,8 @@ async function gvRentalsPage(
         <input type="hidden" id="gvRentalItemId" name="rentalItemId">
         <input type="hidden" id="gvRateAmount" name="rateAmount">
         <input type="hidden" id="gvHourlyRate" name="hourlyRate">
+        <input type="hidden" id="gvWeeklyRate" name="weeklyRate">
+        <input type="hidden" id="gvMonthlyRate" name="monthlyRate">
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
           <div>
@@ -1698,13 +1699,15 @@ async function gvRentalsPage(
 
   <script>
   (function() {
-    function gvShowRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable, hourlyRate) {
+    function gvShowRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable, hourlyRate, weeklyRate, monthlyRate) {
       var modal = document.getElementById('gvRentalModal');
       document.getElementById('gvModalTitle').textContent = 'Book: ' + itemTitle;
       document.getElementById('gvRentalForm').reset();
       document.getElementById('gvRentalItemId').value = itemId;
       document.getElementById('gvRateAmount').value = dailyRate;
       document.getElementById('gvHourlyRate').value = hourlyRate || '';
+      document.getElementById('gvWeeklyRate').value = weeklyRate || '';
+      document.getElementById('gvMonthlyRate').value = monthlyRate || '';
       document.getElementById('gvTotalCalc').style.display = 'none';
       document.getElementById('gvDeliveryAddress').style.display = 'none';
       document.getElementById('gvDeliverySection').style.display = deliveryAvailable ? 'block' : 'none';
@@ -1718,51 +1721,58 @@ async function gvRentalsPage(
     function gvToggleDelivery(cb) {
       document.getElementById('gvDeliveryAddress').style.display = cb.checked ? 'block' : 'none';
     }
+    var gvParseTime = function(t) {
+      var m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!m) return null;
+      var h = parseInt(m[1]), mn = parseInt(m[2]), mer = m[3].toUpperCase();
+      if (mer === 'PM' && h !== 12) h += 12;
+      if (mer === 'AM' && h === 12) h = 0;
+      return h + mn / 60;
+    };
     function gvCalculateTotal() {
       var start = document.getElementById('gvStartDate').value;
       var end = document.getElementById('gvEndDate').value;
-      var dailyRate = parseFloat(document.getElementById('gvRateAmount').value) || 0;
-      var hourlyRate = parseFloat(document.getElementById('gvHourlyRate').value) || 0;
-      if (!start || !end || !dailyRate) return;
+      if (!start || !end) return;
+      var dailyRate   = parseFloat(document.getElementById('gvRateAmount').value)  || 0;
+      var hourlyRate  = parseFloat(document.getElementById('gvHourlyRate').value)  || 0;
+      var weeklyRate  = parseFloat(document.getElementById('gvWeeklyRate').value)  || 0;
+      var monthlyRate = parseFloat(document.getElementById('gvMonthlyRate').value) || 0;
+      if (!dailyRate && !hourlyRate && !weeklyRate && !monthlyRate) return;
       var days = Math.ceil((new Date(end) - new Date(start)) / 86400000) + 1;
       if (days <= 0) return;
       var total, label;
       if (days === 1 && hourlyRate) {
-        // Same-day rental — check if pickup/return times are set
-        var pickupEl = document.querySelector('[name="pickupTime"]');
-        var returnEl = document.querySelector('[name="returnTime"]');
+        var form = document.getElementById('gvRentalForm');
+        var pickupEl = form ? form.querySelector('[name="pickupTime"]') : null;
+        var returnEl = form ? form.querySelector('[name="returnTime"]') : null;
         var pickup = pickupEl ? pickupEl.value : '';
         var ret = returnEl ? returnEl.value : '';
         if (pickup && ret) {
-          // Parse times to calculate duration in hours
-          function parseTime(t) {
-            var m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
-            if (!m) return null;
-            var h = parseInt(m[1]), mn = parseInt(m[2]), mer = m[3].toUpperCase();
-            if (mer === 'PM' && h !== 12) h += 12;
-            if (mer === 'AM' && h === 12) h = 0;
-            return h + mn / 60;
-          }
-          var pHr = parseTime(pickup), rHr = parseTime(ret);
+          var pHr = gvParseTime(pickup), rHr = gvParseTime(ret);
           if (pHr !== null && rHr !== null && rHr > pHr) {
             var duration = rHr - pHr;
             if (duration < 4) {
-              total = (duration * hourlyRate).toFixed(2);
-              label = duration.toFixed(1) + ' hr(s) @ $' + hourlyRate + '/hr';
-            } else {
-              total = dailyRate.toFixed(2);
-              label = '1 day @ $' + dailyRate + '/day';
+              document.getElementById('gvRentalDays').textContent = duration.toFixed(1) + ' hr(s) @ $' + hourlyRate + '/hr';
+              document.getElementById('gvTotalAmount').textContent = (duration * hourlyRate).toFixed(2);
+              document.getElementById('gvTotalCalc').style.display = 'block';
+              return;
             }
-            document.getElementById('gvRentalDays').textContent = label;
-            document.getElementById('gvTotalAmount').textContent = total;
-            document.getElementById('gvTotalCalc').style.display = 'block';
-            return;
           }
         }
       }
-      // Multi-day or no time set — use daily rate
-      total = (days * dailyRate).toFixed(2);
-      document.getElementById('gvRentalDays').textContent = days + ' day(s)';
+      if (days >= 28 && monthlyRate) {
+        var months = Math.ceil(days / 30);
+        total = (months * monthlyRate).toFixed(2);
+        label = months + ' month(s) @ $' + monthlyRate + '/mo';
+      } else if (days >= 7 && weeklyRate) {
+        var weeks = Math.ceil(days / 7);
+        total = (weeks * weeklyRate).toFixed(2);
+        label = weeks + ' week(s) @ $' + weeklyRate + '/wk';
+      } else if (dailyRate) {
+        total = (days * dailyRate).toFixed(2);
+        label = days + ' day(s) @ $' + dailyRate + '/day';
+      } else { return; }
+      document.getElementById('gvRentalDays').textContent = label;
       document.getElementById('gvTotalAmount').textContent = total;
       document.getElementById('gvTotalCalc').style.display = 'block';
     }

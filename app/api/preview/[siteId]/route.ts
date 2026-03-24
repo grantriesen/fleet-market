@@ -2163,7 +2163,7 @@ async function renderRentalsPageWithIntegration(
                 </div>
                 
                 <button 
-                  onclick="showRentalModal('${item.id}', '${item.title.replace(/'/g, "\\'")}', ${item.daily_rate || 0}, ${item.delivery_available ? 'true' : 'false'}, ${item.hourly_rate || 0})"
+                  onclick="showRentalModal('${item.id}', '${item.title.replace(/'/g, "\\'")}', ${item.daily_rate || 0}, ${item.delivery_available ? 'true' : 'false'}, ${item.hourly_rate || 0}, ${item.weekly_rate || 0}, ${item.monthly_rate || 0})"
                   style="width: 100%; background-color: var(--color-primary); color: white; padding: 0.875rem; border: none; border-radius: 0.5rem; font-weight: 600; font-size: 1rem; cursor: pointer; transition: background-color 0.2s;"
                   ${item.quantity_available === 0 ? 'disabled style="background-color: #9ca3af; cursor: not-allowed;"' : ''}
                 >
@@ -2193,6 +2193,8 @@ async function renderRentalsPageWithIntegration(
           <input type="hidden" id="rentalItemId" name="rentalItemId">
           <input type="hidden" id="rateAmount" name="rateAmount">
           <input type="hidden" id="hourlyRate" name="hourlyRate">
+          <input type="hidden" id="weeklyRate" name="weeklyRate">
+          <input type="hidden" id="monthlyRate" name="monthlyRate">
           
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
             <div>
@@ -2221,7 +2223,7 @@ async function renderRentalsPageWithIntegration(
               </div>
               <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Pickup Time *</label>
-                <select name="pickupTime" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem;">
+                <select name="pickupTime" required onchange="calculateTotal()" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem;">
                   <option value="">Select time</option>
                   <option value="8:00 AM">8:00 AM</option>
                   <option value="9:00 AM">9:00 AM</option>
@@ -2244,7 +2246,7 @@ async function renderRentalsPageWithIntegration(
               </div>
               <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Return Time *</label>
-                <select name="returnTime" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem;">
+                <select name="returnTime" required onchange="calculateTotal()" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem;">
                   <option value="">Select time</option>
                   <option value="8:00 AM">8:00 AM</option>
                   <option value="9:00 AM">9:00 AM</option>
@@ -2292,13 +2294,17 @@ async function renderRentalsPageWithIntegration(
     </div>
     
     <script>
-      function showRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable, hourlyRate) {
+      function showRentalModal(itemId, itemTitle, dailyRate, deliveryAvailable, hourlyRate, weeklyRate, monthlyRate) {
         document.getElementById('rentalModal').style.display = 'flex';
         document.getElementById('modalTitle').textContent = 'Book: ' + itemTitle;
         document.getElementById('rentalItemId').value = itemId;
         document.getElementById('rateAmount').value = dailyRate;
         var hrEl = document.getElementById('hourlyRate');
         if (hrEl) hrEl.value = hourlyRate || '';
+        var wrEl = document.getElementById('weeklyRate');
+        if (wrEl) wrEl.value = weeklyRate || '';
+        var mrEl = document.getElementById('monthlyRate');
+        if (mrEl) mrEl.value = monthlyRate || '';
         document.getElementById('deliveryAddress').style.display = 'none';
         document.getElementById('deliverySection').style.display = deliveryAvailable ? 'block' : 'none';
         document.body.style.overflow = 'hidden';
@@ -2314,85 +2320,60 @@ async function renderRentalsPageWithIntegration(
         document.getElementById('deliveryAddress').style.display = checkbox.checked ? 'block' : 'none';
       }
       
+      var prParseTime = function(t) {
+        var m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+        if (!m) return null;
+        var h = parseInt(m[1]), mn = parseInt(m[2]), mer = m[3].toUpperCase();
+        if (mer === 'PM' && h !== 12) h += 12;
+        if (mer === 'AM' && h === 12) h = 0;
+        return h + mn / 60;
+      };
       function calculateTotal() {
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
-        const dailyRate = parseFloat(document.getElementById('rateAmount').value) || 0;
-        const hourlyRateEl = document.getElementById('hourlyRate');
-        const hourlyRate = hourlyRateEl ? (parseFloat(hourlyRateEl.value) || 0) : 0;
-        if (!startDate || !endDate || !dailyRate) return;
-        const days = Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000) + 1;
+        var startDate = document.getElementById('startDate').value;
+        var endDate   = document.getElementById('endDate').value;
+        if (!startDate || !endDate) return;
+        var dailyRate   = parseFloat(document.getElementById('rateAmount').value)  || 0;
+        var hourlyRate  = parseFloat((document.getElementById('hourlyRate')  || {}).value) || 0;
+        var weeklyRate  = parseFloat((document.getElementById('weeklyRate')  || {}).value) || 0;
+        var monthlyRate = parseFloat((document.getElementById('monthlyRate') || {}).value) || 0;
+        if (!dailyRate && !hourlyRate && !weeklyRate && !monthlyRate) return;
+        var days = Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000) + 1;
         if (days <= 0) return;
+        var total, label;
         if (days === 1 && hourlyRate) {
-          const pickupEl = document.querySelector('[name="pickupTime"]');
-          const returnEl = document.querySelector('[name="returnTime"]');
-          const pickup = pickupEl ? pickupEl.value : '';
-          const ret = returnEl ? returnEl.value : '';
+          var form = document.getElementById('rentalForm');
+          var pickupEl = form ? form.querySelector('[name="pickupTime"]') : null;
+          var returnEl = form ? form.querySelector('[name="returnTime"]') : null;
+          var pickup = pickupEl ? pickupEl.value : '';
+          var ret = returnEl ? returnEl.value : '';
           if (pickup && ret) {
-            function parseTime(t) {
-              const m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
-              if (!m) return null;
-              let h = parseInt(m[1]), mn = parseInt(m[2]);
-              const mer = m[3].toUpperCase();
-              if (mer === 'PM' && h !== 12) h += 12;
-              if (mer === 'AM' && h === 12) h = 0;
-              return h + mn / 60;
-            }
-            const pHr = parseTime(pickup), rHr = parseTime(ret);
+            var pHr = prParseTime(pickup), rHr = prParseTime(ret);
             if (pHr !== null && rHr !== null && rHr > pHr) {
-              const duration = rHr - pHr;
+              var duration = rHr - pHr;
               if (duration < 4) {
                 document.getElementById('rentalDays').textContent = duration.toFixed(1) + ' hr(s) @ $' + hourlyRate + '/hr';
                 document.getElementById('totalAmount').textContent = (duration * hourlyRate).toFixed(2);
-              } else {
-                document.getElementById('rentalDays').textContent = '1 day @ $' + dailyRate + '/day';
-                document.getElementById('totalAmount').textContent = dailyRate.toFixed(2);
+                document.getElementById('totalCalculation').style.display = 'block';
+                return;
               }
-              document.getElementById('totalCalculation').style.display = 'block';
-              return;
             }
           }
         }
-        document.getElementById('rentalDays').textContent = days + ' day(s)';
-        document.getElementById('totalAmount').textContent = (days * dailyRate).toFixed(2);
-        document.getElementById('totalCalculation').style.display = 'block';
-      }
-      
-      // Handle rental form submission
-      document.getElementById('rentalForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        var form = this;
-        var formData = new FormData(form);
-        var data = {};
-        formData.forEach(function(value, key) { data[key] = value; });
-        data.totalAmount = document.getElementById('totalAmount')?.textContent || '0';
-        data.rentalDays = document.getElementById('rentalDays')?.textContent || '0';
-        
-        var btn = form.querySelector('button[type=submit]');
-        btn.textContent = 'Submitting...';
-        btn.disabled = true;
-        
-        fetch('/api/rental/book/' + data.siteId, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(result) {
-          if (result.error) {
-            alert('Error: ' + result.error);
-            btn.textContent = 'Submit Rental Request';
-            btn.disabled = false;
-          } else {
-            form.closest('#rentalModal').querySelector('form').innerHTML = '<div style="text-align:center;padding:3rem 1.5rem;"><div style="width:4rem;height:4rem;background:var(--color-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><h3 style="color:var(--color-primary);font-size:1.375rem;font-weight:700;margin-bottom:0.75rem;">Request Submitted!</h3><p style="color:#6b7280;">We will contact you to confirm your booking within 1 business day.</p></div>';
-          }
-        })
-        .catch(function() {
-          alert('Something went wrong. Please try again.');
-          btn.textContent = 'Submit Rental Request';
-          btn.disabled = false;
-        });
-      });
+        if (days >= 28 && monthlyRate) {
+          var months = Math.ceil(days / 30);
+          total = (months * monthlyRate).toFixed(2);
+          label = months + ' month(s) @ $' + monthlyRate + '/mo';
+        } else if (days >= 7 && weeklyRate) {
+          var weeks = Math.ceil(days / 7);
+          total = (weeks * weeklyRate).toFixed(2);
+          label = weeks + ' week(s) @ $' + weeklyRate + '/wk';
+        } else if (dailyRate) {
+          total = (days * dailyRate).toFixed(2);
+          label = days + ' day(s) @ $' + dailyRate + '/day';
+        } else { return; }
+        document.getElementById('rentalDays').textContent = label;
+        document.getElementById('totalAmount').textContent = total;
+        document.getElementById('totalCalculation').style.display = 'block';);
     </script>
     `;
   }
