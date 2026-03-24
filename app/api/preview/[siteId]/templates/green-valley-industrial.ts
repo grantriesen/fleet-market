@@ -1632,15 +1632,18 @@ async function gvRentalsPage(
     s.startDate = null; s.endDate = null; s.hoverDate = null; s.bookedDates = [];
     s.viewYear = new Date().getFullYear(); s.viewMonth = new Date().getMonth();
     DP.render();
-    // Delegated click handler on container - survives innerHTML rebuilds
+    // Delegated click handler - survives innerHTML rebuilds
     var el = document.getElementById(containerId);
     if (el && !el._dpBound) {
       el._dpBound = true;
       el.addEventListener('click', function(e) {
-        var cell = e.target.closest ? e.target.closest('[data-date]') : e.target;
-        if (!cell || !cell.getAttribute('data-date')) return;
+        var cell = e.target;
+        while (cell && cell !== el) {
+          if (cell.getAttribute && cell.getAttribute('data-date')) break;
+          cell = cell.parentNode;
+        }
+        if (!cell || cell === el || !cell.getAttribute('data-date')) return;
         if (cell.getAttribute('data-disabled')) return;
-        e.stopPropagation();
         var ds = cell.getAttribute('data-date');
         var st = DP.state;
         if (!st.startDate || (st.startDate && st.endDate) || ds < st.startDate) {
@@ -2057,4 +2060,4 @@ async function gvRentalsPage(
   })();
   </script>
   `;
-}html+=\'<div \'+dis+\' data-date="\'+ds+\'" style="\'+st+\'">\'+day+\'</div>\';
+}
