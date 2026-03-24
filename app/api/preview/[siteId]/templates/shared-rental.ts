@@ -397,7 +397,7 @@ function modalHtml(p: string): string {
 }
 
 // ── Modal JS ───────────────────────────────────────────────────────────────
-function modalScript(p: string, siteId: string): string {
+function modalScript(p: string, siteId: string, stripeKey: string = ''): string {
   return `
   <script>
   (function() {
@@ -405,7 +405,8 @@ function modalScript(p: string, siteId: string): string {
   var ${p}RentalState = {
     itemId: '', dailyRate: 0, hourlyRate: 0, weeklyRate: 0, monthlyRate: 0,
     deliveryAvailable: false, primaryColor: 'var(--color-primary)',
-    depositAmount: 0, stripeClientSecret: null, paymentIntentId: null, stripeElements: null, stripeInstance: null
+    depositAmount: 0, stripeClientSecret: null, paymentIntentId: null, stripeElements: null, stripeInstance: null,
+    taxRate: 0, taxAmount: 0
   };
 
   var ${p}ParseTime = function(t) {
@@ -505,6 +506,11 @@ function modalScript(p: string, siteId: string): string {
     }, pc);
     document.getElementById('${p}PickupTime').onchange = ${p}CalcTotal;
     document.getElementById('${p}ReturnTime').onchange = ${p}CalcTotal;
+    // Fetch tax rate for this site
+    fetch('/api/rental/settings/${siteId}')
+      .then(function(r){ return r.json(); })
+      .then(function(d){ if (d.tax_rate) { ${p}RentalState.taxRate = parseFloat(d.tax_rate) || 0; } })
+      .catch(function(){});
   }
 
   function ${p}GoStep1() {
@@ -526,7 +532,23 @@ function modalScript(p: string, siteId: string): string {
     var summary = sd.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' → ' + ed.toLocaleDateString('en-US',{month:'short',day:'numeric'});
     if (pickup) summary += ' · ' + pickup;
     summary += ' &nbsp;·&nbsp; ' + total;
-    document.getElementById('${p}BookingSummary').innerHTML = '<strong>' + document.getElementById('${p}ModalTitle').textContent + '</strong><br><span style="color:#6b7280;">' + summary + '</span>';
+    var subtotal = document.getElementById('${p}TotalLbl') ? parseFloat(document.getElementById('${p}TotalLbl').textContent.replace('$','')) || 0 : 0;
+    var taxRate = ${p}RentalState.taxRate || 0;
+    var taxAmount = +(subtotal * taxRate / 100).toFixed(2);
+    var grandTotal = +(subtotal + taxAmount).toFixed(2);
+    ${p}RentalState.taxAmount = taxAmount;
+    // Update total display with tax
+    if (taxRate > 0 && document.getElementById('${p}TotalLbl')) {
+      document.getElementById('${p}TotalLbl').textContent = '$' + grandTotal.toFixed(2);
+    }
+    var taxLine = taxRate > 0
+      ? '<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:0.8125rem;color:#6b7280;"><span>Tax (' + taxRate + '%)</span><span>$' + taxAmount.toFixed(2) + '</span></div>'
+        + '<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:0.9375rem;font-weight:700;color:#111827;border-top:1px solid #e5e7eb;padding-top:6px;"><span>Total</span><span>$' + grandTotal.toFixed(2) + '</span></div>'
+      : '';
+    document.getElementById('${p}BookingSummary').innerHTML = '<strong>' + document.getElementById('${p}ModalTitle').textContent + '</strong>'
+      + '<div style="margin-top:6px;color:#6b7280;">' + summary + '</div>'
+      + '<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:0.875rem;"><span>Subtotal</span><span>$' + subtotal.toFixed(2) + '</span></div>'
+      + taxLine;
     document.getElementById('${p}DeliverySection').style.display = ${p}RentalState.deliveryAvailable ? 'block' : 'none';
     document.getElementById('${p}DeliveryAddr').style.display = 'none';
     document.getElementById('${p}Step1').style.display = 'none';
@@ -573,6 +595,7 @@ function modalScript(p: string, siteId: string): string {
     data.siteId = '${siteId}';
     data.totalAmount = document.getElementById('${p}TotalLbl') ? document.getElementById('${p}TotalLbl').textContent.replace('$','') : '0';
     if (paymentIntentId) { data.paymentIntentId = paymentIntentId; data.depositAmount = ${p}RentalState.depositAmount; }
+    if (${p}RentalState.taxAmount > 0) { data.taxAmount = ${p}RentalState.taxAmount; data.taxRate = ${p}RentalState.taxRate; }
     fetch('/api/rental/book/${siteId}', {
       method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
     })
@@ -659,7 +682,7 @@ function modalScript(p: string, siteId: string): string {
 
   function ${p}MountStripeElements(clientSecret) {
     var st = ${p}RentalState;
-    var stripe = window.Stripe('${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""}');
+    var stripe = window.Stripe('${stripeKey}');
     st.stripeInstance = stripe;
     var elements = stripe.elements({ clientSecret: clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: st.primaryColor } } });
     st.stripeElements = elements;
@@ -710,5 +733,6 @@ export function rentalModalBlock(
   prefix: 'gv' | 'fm',
   siteId: string,
 ): string {
-  return datepickerScript() + modalHtml(prefix) + modalScript(prefix, siteId);
+  const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
+  return datepickerScript() + modalHtml(prefix) + modalScript(prefix, siteId, stripeKey);
 }

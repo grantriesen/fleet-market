@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   Truck, Plus, Search, ChevronLeft, ChevronRight, Edit2, Trash2, Star, StarOff,
   X, Upload, Image as ImageIcon, DollarSign, ArrowUpDown, ArrowUp, ArrowDown,
-  AlertCircle, Loader2, Grid, List, FileUp, Download, Calendar, Clock,
+  AlertCircle, Loader2, Grid, List, FileUp, Download, Calendar, Clock, Settings2,
   CheckCircle, XCircle, User, Mail, Phone, Eye
 } from 'lucide-react';
 
@@ -77,7 +77,7 @@ export default function RentalsDashboard() {
 
   const [siteId, setSiteId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'fleet' | 'bookings' | 'calendar'>('fleet');
+  const [activeTab, setActiveTab] = useState<'fleet' | 'bookings' | 'calendar' | 'settings'>('fleet');
 
   // Fleet state
   const [items, setItems] = useState<RentalItem[]>([]);
@@ -101,6 +101,9 @@ export default function RentalsDashboard() {
   const [bookingFilter, setBookingFilter] = useState('');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [manualBookingOpen, setManualBookingOpen] = useState(false);
+  const [rentalSettings, setRentalSettings] = useState({ tax_rate: 0, cancellation_policy: '', min_rental_hours: 1 });
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
   const [manualForm, setManualForm] = useState({
     rental_item_id: '', customer_name: '', customer_email: '', customer_phone: '',
     start_date: '', end_date: '', pickup_time: '', return_time: '',
@@ -175,6 +178,11 @@ export default function RentalsDashboard() {
 
   useEffect(() => { if (activeTab === 'bookings' || activeTab === 'calendar') loadBookings(); }, [loadBookings, activeTab]);
   useEffect(() => { if (activeTab === 'calendar' && items.length === 0) loadItems(); }, [activeTab]);
+  useEffect(() => {
+    if (!siteId) return;
+    supabase.from('rental_settings').select('*').eq('site_id', siteId).maybeSingle()
+      .then(({ data }) => { if (data) setRentalSettings({ tax_rate: data.tax_rate || 0, cancellation_policy: data.cancellation_policy || '', min_rental_hours: data.min_rental_hours || 1 }); });
+  }, [siteId]);
 
   // Fleet CRUD
   const openAddModal = () => { setEditingItem(null); setForm({ ...EMPTY_ITEM }); setActiveFormTab('details'); setFormError(''); setModalOpen(true); };
@@ -253,6 +261,22 @@ export default function RentalsDashboard() {
     setManualSaving(false);
   };
 
+  // Rental Settings
+  const saveRentalSettings = async () => {
+    if (!siteId) return;
+    setSettingsSaving(true);
+    await supabase.from('rental_settings').upsert({
+      site_id: siteId,
+      tax_rate: rentalSettings.tax_rate,
+      cancellation_policy: rentalSettings.cancellation_policy,
+      min_rental_hours: rentalSettings.min_rental_hours,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'site_id' });
+    setSettingsSaving(false);
+    setSettingsSaved(true);
+    setTimeout(() => setSettingsSaved(false), 2000);
+  };
+
   // CSV Import
   const CSV_FIELDS = [
     { key: 'title', label: 'Title', required: true }, { key: 'description', label: 'Description' },
@@ -312,34 +336,16 @@ export default function RentalsDashboard() {
   };
 
   const isDayFullyBooked = (day: number) => {
-    if (!items.length || !bookings.length) return false;
+    if (!items.length) return false;
     const dateStr = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const activeBookings = bookings.filter(b =>
-      b.start_date <= dateStr && b.end_date >= dateStr &&
-      !['cancelled', 'completed'].includes(b.status)
-    );
-    if (!activeBookings.length) return false;
-    // Day is "fully booked" if EVERY item with availability has all its quantity booked
-    const availableItems = items.filter(i => i.status === 'available');
-    if (!availableItems.length) return false;
-    return availableItems.every(item => {
-      const itemBookings = activeBookings.filter(b => b.rental_item_id === item.id);
+    const dayBookings = bookings.filter(b => b.start_date <= dateStr && b.end_date >= dateStr && b.status !== 'cancelled');
+    if (!dayBookings.length) return false;
+    // Check if every inventory item has all its quantity booked on this day
+    return items.every(item => {
+      const itemBookings = dayBookings.filter(b => b.rental_item_id === item.id);
       const bookedQty = itemBookings.reduce((sum, b) => sum + (b.quantity || 1), 0);
       return bookedQty >= (item.quantity_available || 1);
     });
-  };
-
-  const getItemAvailabilityForDay = (day: number, itemId: string): boolean => {
-    const dateStr = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const item = items.find(i => i.id === itemId);
-    if (!item) return false;
-    const activeBookings = bookings.filter(b =>
-      b.rental_item_id === itemId &&
-      b.start_date <= dateStr && b.end_date >= dateStr &&
-      !['cancelled', 'completed'].includes(b.status)
-    );
-    const bookedQty = activeBookings.reduce((sum, b) => sum + (b.quantity || 1), 0);
-    return bookedQty >= (item.quantity_available || 1);
   };
 
   if (loading) return (<div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>);
@@ -384,7 +390,7 @@ export default function RentalsDashboard() {
 
         {/* Tabs */}
         <div className="flex gap-1 mb-6 bg-white rounded-xl border border-slate-200 p-1 w-fit">
-          {([['fleet', 'Fleet', Truck], ['bookings', 'Bookings', Calendar], ['calendar', 'Calendar', Eye]] as const).map(([key, label, Icon]) => (
+          {([['fleet', 'Fleet', Truck], ['bookings', 'Bookings', Calendar], ['calendar', 'Calendar', Eye], ['settings', 'Settings', Settings2]] as const).map(([key, label, Icon]) => (
             <button key={key} onClick={() => setActiveTab(key as any)} className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === key ? 'text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'}`} style={activeTab === key ? { background: FM.navy } : {}}>
               <Icon className="w-4 h-4" />{label}
             </button>
@@ -513,15 +519,10 @@ export default function RentalsDashboard() {
         {/* CALENDAR TAB */}
         {activeTab === 'calendar' && (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <button onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1))} className="p-2 hover:bg-slate-100 rounded-lg"><ChevronLeft className="w-5 h-5" /></button>
               <h2 className="text-lg font-bold text-slate-800">{calendarMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
               <button onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1))} className="p-2 hover:bg-slate-100 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
-            </div>
-            <div className="px-6 py-3 border-b border-slate-100 flex items-center gap-3 bg-slate-50 text-xs text-slate-500">
-              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-100 border border-red-200 inline-block"></span>Fully booked</span>
-              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-amber-50 border border-amber-200 inline-block"></span>Partially booked</span>
-              {items.length > 1 && <span className="ml-auto text-slate-400">{items.length} items in fleet</span>}
             </div>
             <div className="grid grid-cols-7">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="px-2 py-3 text-center text-xs font-semibold text-slate-400 border-b border-slate-100">{d}</div>)}
@@ -529,7 +530,7 @@ export default function RentalsDashboard() {
                 const dayBookings = day ? getBookingsForDay(day) : [];
                 const isToday = day && new Date().toDateString() === new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day).toDateString();
                 return (
-                  <div key={i} className={`min-h-[100px] border-b border-r border-slate-100 p-1.5 ${!day ? 'bg-slate-50/50' : isDayFullyBooked(day) ? 'bg-red-50' : getBookingsForDay(day).length > 0 ? 'bg-amber-50/50' : ''}`}>
+                  <div key={i} className={`min-h-[100px] border-b border-r border-slate-100 p-1.5 ${!day ? 'bg-slate-50/50' : isDayFullyBooked(day) ? 'bg-red-50' : ''}`}>
                     {day && (
                       <>
                         <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-medium ${isToday ? 'text-white' : 'text-slate-600'}`} style={isToday ? { background: FM.orange } : {}}>{day}</span>
@@ -697,6 +698,57 @@ export default function RentalsDashboard() {
           </div>
         </div>
       )}
+
+        {activeTab === 'settings' && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 max-w-lg">
+            <h2 className="text-lg font-bold text-slate-800 mb-1">Rental Settings</h2>
+            <p className="text-sm text-slate-500 mb-6">Configure tax rates and policies for your rental program.</p>
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Sales Tax Rate (%)</label>
+                <p className="text-xs text-slate-400 mb-2">Applied to rental total and deposit. Shown as a line item at checkout.</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number" min="0" max="30" step="0.01"
+                    value={rentalSettings.tax_rate}
+                    onChange={e => setRentalSettings(p => ({...p, tax_rate: parseFloat(e.target.value) || 0}))}
+                    className="w-32 px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
+                    placeholder="0.00"
+                  />
+                  <span className="text-sm text-slate-500">%</span>
+                  {rentalSettings.tax_rate > 0 && <span className="text-xs text-slate-400">(e.g. $100 rental = ${(100 * rentalSettings.tax_rate / 100).toFixed(2)} tax)</span>}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Minimum Rental Period (hours)</label>
+                <p className="text-xs text-slate-400 mb-2">Minimum number of hours for same-day rentals.</p>
+                <input
+                  type="number" min="1" max="24" step="1"
+                  value={rentalSettings.min_rental_hours}
+                  onChange={e => setRentalSettings(p => ({...p, min_rental_hours: parseInt(e.target.value) || 1}))}
+                  className="w-32 px-3 py-2.5 border border-slate-200 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Cancellation Policy</label>
+                <p className="text-xs text-slate-400 mb-2">Displayed to customers during booking. Leave blank to omit.</p>
+                <textarea
+                  value={rentalSettings.cancellation_policy}
+                  onChange={e => setRentalSettings(p => ({...p, cancellation_policy: e.target.value}))}
+                  rows={3} placeholder="e.g. Cancellations must be made 24 hours in advance for a full refund."
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm resize-none"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex items-center gap-3">
+              <button onClick={saveRentalSettings} disabled={settingsSaving} className="px-6 py-2.5 text-sm font-semibold text-white rounded-lg disabled:opacity-50 flex items-center gap-2" style={{ background: FM.orange }}>
+                {settingsSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                Save Settings
+              </button>
+              {settingsSaved && <span className="text-sm text-green-600 font-medium">✓ Saved</span>}
+            </div>
+          </div>
+        )}
 
       {/* MANUAL BOOKING MODAL */}
       {manualBookingOpen && (
