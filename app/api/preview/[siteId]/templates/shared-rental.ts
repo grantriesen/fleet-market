@@ -589,7 +589,9 @@ function modalScript(p: string, siteId: string, stripeKey: string = ''): string 
     form.querySelector('[name="pickupTime"]').value    = document.getElementById('${p}PickupTime').value;
     form.querySelector('[name="returnTime"]').value    = document.getElementById('${p}ReturnTime').value;
     var btn = document.getElementById('${p}SubmitBtn');
-    btn.textContent = 'Submitting...'; btn.disabled = true;
+    if (btn) { btn.textContent = 'Submitting...'; btn.disabled = true; }
+    var step2Btn = document.getElementById('${p}ToStep3Btn');
+    if (step2Btn) { step2Btn.textContent = 'Submitting...'; step2Btn.disabled = true; }
     var fd = new FormData(form), data = {};
     fd.forEach(function(v,k){ data[k]=v; });
     data.siteId = '${siteId}';
