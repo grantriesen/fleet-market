@@ -100,6 +100,13 @@ export default function RentalsDashboard() {
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingFilter, setBookingFilter] = useState('');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [manualBookingOpen, setManualBookingOpen] = useState(false);
+  const [manualForm, setManualForm] = useState({
+    rental_item_id: '', customer_name: '', customer_email: '', customer_phone: '',
+    start_date: '', end_date: '', pickup_time: '', return_time: '',
+    rate_amount: '', total_amount: '', notes: '', delivery_required: false, delivery_address: '',
+  });
+  const [manualSaving, setManualSaving] = useState(false);
 
   // Calendar state
   const [calendarMonth, setCalendarMonth] = useState(new Date());
@@ -206,6 +213,45 @@ export default function RentalsDashboard() {
     else { showToast(`Booking ${newStatus}`); loadBookings(); if (selectedBooking?.id === bookingId) setSelectedBooking(prev => prev ? { ...prev, ...updates } : null); }
   };
 
+  // Manual booking creation
+  const saveManualBooking = async () => {
+    if (!siteId || !manualForm.rental_item_id || !manualForm.customer_name || !manualForm.start_date || !manualForm.end_date) {
+      showToast('Please fill in all required fields', 'error'); return;
+    }
+    setManualSaving(true);
+    const selectedItem = items.find(i => i.id === manualForm.rental_item_id);
+    const days = Math.ceil((new Date(manualForm.end_date).getTime() - new Date(manualForm.start_date).getTime()) / 86400000) + 1;
+    const rate = parseFloat(manualForm.rate_amount) || selectedItem?.daily_rate || 0;
+    const total = parseFloat(manualForm.total_amount) || (rate * days);
+    const { error } = await supabase.from('rental_bookings').insert({
+      site_id: siteId,
+      rental_item_id: manualForm.rental_item_id,
+      customer_name: manualForm.customer_name,
+      customer_email: manualForm.customer_email || null,
+      customer_phone: manualForm.customer_phone || null,
+      start_date: manualForm.start_date,
+      end_date: manualForm.end_date,
+      pickup_time: manualForm.pickup_time || null,
+      return_time: manualForm.return_time || null,
+      rental_period: 'daily',
+      rate_amount: rate,
+      total_amount: total,
+      quantity: 1,
+      status: 'confirmed',
+      notes: manualForm.notes || null,
+      delivery_required: manualForm.delivery_required,
+      delivery_address: manualForm.delivery_address || null,
+    });
+    if (error) { showToast('Failed to create booking', 'error'); }
+    else {
+      showToast('Booking created');
+      setManualBookingOpen(false);
+      setManualForm({ rental_item_id: '', customer_name: '', customer_email: '', customer_phone: '', start_date: '', end_date: '', pickup_time: '', return_time: '', rate_amount: '', total_amount: '', notes: '', delivery_required: false, delivery_address: '' });
+      loadBookings();
+    }
+    setManualSaving(false);
+  };
+
   // CSV Import
   const CSV_FIELDS = [
     { key: 'title', label: 'Title', required: true }, { key: 'description', label: 'Description' },
@@ -262,6 +308,19 @@ export default function RentalsDashboard() {
   const getBookingsForDay = (day: number) => {
     const dateStr = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return bookings.filter(b => b.start_date <= dateStr && b.end_date >= dateStr && b.status !== 'cancelled');
+  };
+
+  const isDayFullyBooked = (day: number) => {
+    if (!items.length) return false;
+    const dateStr = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayBookings = bookings.filter(b => b.start_date <= dateStr && b.end_date >= dateStr && b.status !== 'cancelled');
+    if (!dayBookings.length) return false;
+    // Check if every inventory item has all its quantity booked on this day
+    return items.every(item => {
+      const itemBookings = dayBookings.filter(b => b.rental_item_id === item.id);
+      const bookedQty = itemBookings.reduce((sum, b) => sum + (b.quantity || 1), 0);
+      return bookedQty >= (item.quantity_available || 1);
+    });
   };
 
   if (loading) return (<div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>);
@@ -372,6 +431,7 @@ export default function RentalsDashboard() {
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6">
               <div className="px-5 py-4 flex flex-wrap items-center gap-3">
                 <span className="text-sm text-slate-500">{bookings.length} booking{bookings.length !== 1 ? 's' : ''}</span>
+                <button onClick={() => setManualBookingOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 text-white font-semibold rounded-lg text-sm" style={{ background: FM.orange }}><Plus className="w-4 h-4" />Add Booking</button>
                 <div className="flex gap-1 ml-auto">
                   {['', 'pending', 'confirmed', 'active', 'returned', 'completed', 'cancelled'].map(s => (
                     <button key={s} onClick={() => setBookingFilter(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${bookingFilter === s ? 'text-white' : 'text-slate-600 hover:bg-slate-50 border border-slate-200'}`} style={bookingFilter === s ? { background: FM.navy } : {}}>{s || 'All'}</button>
@@ -445,7 +505,7 @@ export default function RentalsDashboard() {
                 const dayBookings = day ? getBookingsForDay(day) : [];
                 const isToday = day && new Date().toDateString() === new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day).toDateString();
                 return (
-                  <div key={i} className={`min-h-[100px] border-b border-r border-slate-100 p-1.5 ${!day ? 'bg-slate-50/50' : ''}`}>
+                  <div key={i} className={`min-h-[100px] border-b border-r border-slate-100 p-1.5 ${!day ? 'bg-slate-50/50' : isDayFullyBooked(day) ? 'bg-red-50' : ''}`}>
                     {day && (
                       <>
                         <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-medium ${isToday ? 'text-white' : 'text-slate-600'}`} style={isToday ? { background: FM.orange } : {}}>{day}</span>
@@ -609,6 +669,52 @@ export default function RentalsDashboard() {
                 {selectedBooking.status === 'active' && <button onClick={() => updateBookingStatus(selectedBooking.id, 'returned')} className="px-4 py-2 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700">Mark Returned</button>}
                 {selectedBooking.status === 'returned' && <button onClick={() => updateBookingStatus(selectedBooking.id, 'completed')} className="px-4 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Complete & Close</button>}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MANUAL BOOKING MODAL */}
+      {manualBookingOpen && (
+        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-8 pb-8 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setManualBookingOpen(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-800">Add Manual Booking</h2>
+              <button onClick={() => setManualBookingOpen(false)} className="p-1 hover:bg-slate-100 rounded-md"><X className="w-5 h-5 text-slate-400" /></button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Equipment <span className="text-red-500">*</span></label>
+                <select value={manualForm.rental_item_id} onChange={e => setManualForm(p => ({...p, rental_item_id: e.target.value, rate_amount: String(items.find(i => i.id === e.target.value)?.daily_rate || '')}))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-white">
+                  <option value="">— Select Equipment —</option>
+                  {items.map(i => <option key={i.id} value={i.id}>{i.title}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-medium text-slate-700 mb-1">Customer Name <span className="text-red-500">*</span></label><input type="text" value={manualForm.customer_name} onChange={e => setManualForm(p => ({...p, customer_name: e.target.value}))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" placeholder="Full name" /></div>
+                <div><label className="block text-sm font-medium text-slate-700 mb-1">Phone</label><input type="tel" value={manualForm.customer_phone} onChange={e => setManualForm(p => ({...p, customer_phone: e.target.value}))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" placeholder="(555) 000-0000" /></div>
+              </div>
+              <div><label className="block text-sm font-medium text-slate-700 mb-1">Email</label><input type="email" value={manualForm.customer_email} onChange={e => setManualForm(p => ({...p, customer_email: e.target.value}))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" placeholder="customer@email.com" /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-medium text-slate-700 mb-1">Start Date <span className="text-red-500">*</span></label><input type="date" value={manualForm.start_date} onChange={e => setManualForm(p => ({...p, start_date: e.target.value}))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" /></div>
+                <div><label className="block text-sm font-medium text-slate-700 mb-1">End Date <span className="text-red-500">*</span></label><input type="date" value={manualForm.end_date} onChange={e => setManualForm(p => ({...p, end_date: e.target.value}))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-medium text-slate-700 mb-1">Pickup Time</label><select value={manualForm.pickup_time} onChange={e => setManualForm(p => ({...p, pickup_time: e.target.value}))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-white"><option value="">Select time</option>{['8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM'].map(t => <option key={t}>{t}</option>)}</select></div>
+                <div><label className="block text-sm font-medium text-slate-700 mb-1">Return Time</label><select value={manualForm.return_time} onChange={e => setManualForm(p => ({...p, return_time: e.target.value}))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-white"><option value="">Select time</option>{['8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM'].map(t => <option key={t}>{t}</option>)}</select></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-medium text-slate-700 mb-1">Rate ($/day)</label><input type="number" value={manualForm.rate_amount} onChange={e => setManualForm(p => ({...p, rate_amount: e.target.value}))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" placeholder="0.00" /></div>
+                <div><label className="block text-sm font-medium text-slate-700 mb-1">Total Amount</label><input type="number" value={manualForm.total_amount} onChange={e => setManualForm(p => ({...p, total_amount: e.target.value}))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" placeholder="Auto-calculated" /></div>
+              </div>
+              <div><label className="block text-sm font-medium text-slate-700 mb-1">Notes</label><textarea value={manualForm.notes} onChange={e => setManualForm(p => ({...p, notes: e.target.value}))} rows={2} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm resize-none" placeholder="Any notes about this booking..." /></div>
+              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={manualForm.delivery_required} onChange={e => setManualForm(p => ({...p, delivery_required: e.target.checked}))} className="rounded border-slate-300" /><span className="text-sm text-slate-700">Delivery required</span></label>
+              {manualForm.delivery_required && <div><label className="block text-sm font-medium text-slate-700 mb-1">Delivery Address</label><input type="text" value={manualForm.delivery_address} onChange={e => setManualForm(p => ({...p, delivery_address: e.target.value}))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" placeholder="Street address, city, state" /></div>}
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+              <button onClick={() => setManualBookingOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+              <button onClick={saveManualBooking} disabled={manualSaving} className="px-6 py-2.5 text-sm font-semibold text-white rounded-lg disabled:opacity-50 flex items-center gap-2" style={{ background: FM.orange }}>{manualSaving && <Loader2 className="w-4 h-4 animate-spin" />}Create Booking</button>
             </div>
           </div>
         </div>
