@@ -959,7 +959,7 @@ async function ceRentalsPage(
       </div>
     </div>
   </section>
-  ${inventoryHtml ? 
+  ${inventoryHtml ? `
 
   <div id="fmRentalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
     <div style="background:white;border-radius:0.75rem;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 40px rgba(0,0,0,0.3);">
@@ -1068,7 +1068,7 @@ async function ceRentalsPage(
     window.fmToggleDelivery = fmToggleDelivery;
     window.fmCalcRentalTotal = fmCalcRentalTotal;
   })();
-  </script> : ''}
+  </script>` : ''}
   `;
 }
 // ── Manufacturers Page ──
