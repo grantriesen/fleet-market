@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Save, Loader2, Plus, Trash2, Star,
@@ -112,12 +112,13 @@ export default function SiteSettingsPage({ params }: { params: { siteId: string 
       };
       Object.assign(content, fields);
 
-      await supabase.from('sites').update({
+      const { error: saveError } = await supabase.from('sites').update({
         site_name:   general.siteName,
         config_json: { ...cfg, content },
       }).eq('id', site.id);
+      if (saveError) throw saveError;
 
-      setSite((p: any) => ({ ...p, site_name: general.siteName }));
+      setSite((p: any) => ({ ...p, site_name: general.siteName, config_json: { ...(p.config_json || {}), content } }));
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
@@ -147,7 +148,9 @@ export default function SiteSettingsPage({ params }: { params: { siteId: string 
         location: company, // WE uses t.location
       }));
       content['testimonials.items'] = JSON.stringify(normalized);
-      await supabase.from('sites').update({ config_json: { ...cfg, content } }).eq('id', site.id);
+      const { error: testSaveError } = await supabase.from('sites').update({ config_json: { ...cfg, content } }).eq('id', site.id);
+      if (testSaveError) throw testSaveError;
+      setSite((p: any) => ({ ...p, config_json: { ...(p.config_json || {}), content } }));
       setTestSaved(true);
       setTimeout(() => setTestSaved(false), 2500);
     } catch (e) {
