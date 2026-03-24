@@ -559,7 +559,7 @@ async function zlRentals(
               ${item.monthly_rate ? `<div><p style="font-size:0.7rem;color:#6b7280;text-transform:uppercase;margin:0;">Monthly</p><p style="font-weight:600;color:#2d6a4f;margin:0;">$${item.monthly_rate}</p></div>` : ''}
             </div>
             ${item.quantity_available > 0
-              ? `<button onclick="fmShowRentalModal('${item.id}','${item.title.replace(/'/g, "\'",${item.hourly_rate||0},${item.weekly_rate||0},${item.monthly_rate||0})}',${item.daily_rate || 0},${item.delivery_available ? 'true' : 'false'})" style="display:block;width:100%;padding:0.625rem;border:1px solid #111827;background:none;border-radius:0.25rem;font-size:0.875rem;font-weight:500;cursor:pointer;">Reserve Equipment</button>`
+              ? `<button onclick="fmShowRentalModal('${item.id}','${item.title.replace(/'/g, "\\'")}',${item.daily_rate || 0},${item.delivery_available ? 'true' : 'false'},${item.hourly_rate||0},${item.weekly_rate||0},${item.monthly_rate||0})" style="display:block;width:100%;padding:0.625rem;border:1px solid #111827;background:none;border-radius:0.25rem;font-size:0.875rem;font-weight:500;cursor:pointer;">Reserve Equipment</button>`
               : `<button disabled style="display:block;width:100%;padding:0.625rem;border:1px solid #e5e7eb;background:none;border-radius:0.25rem;font-size:0.875rem;color:#9ca3af;cursor:not-allowed;">Currently Unavailable</button>`
             }
           </div>

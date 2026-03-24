@@ -911,7 +911,7 @@ async function ceRentalsPage(
                   ${item.monthly_rate ? `<div style="background:#f9fafb;padding:0.5rem;border-radius:0.25rem;"><p style="font-weight:700;color:#1e3a6e;margin:0;font-size:0.9375rem;">$${item.monthly_rate}</p><p style="font-size:0.7rem;color:#6b7280;margin:0;">Monthly</p></div>` : ''}
                 </div>
                 ${item.quantity_available > 0
-                  ? `<button onclick="fmShowRentalModal('${item.id}','${item.title.replace(/'/g,"\'",${item.hourly_rate||0},${item.weekly_rate||0},${item.monthly_rate||0})}',${item.daily_rate||0},${item.delivery_available?'true':'false'})" class="inline-flex w-full items-center justify-center px-4 py-2 border border-gray-900 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white transition-corporate rounded" style="cursor:pointer;background:none;">Reserve Now</button>`
+                  ? `<button onclick="fmShowRentalModal('${item.id}','${item.title.replace(/'/g, "\\'")}',${item.daily_rate||0},${item.delivery_available?'true':'false'},${item.hourly_rate||0},${item.weekly_rate||0},${item.monthly_rate||0})" class="inline-flex w-full items-center justify-center px-4 py-2 border border-gray-900 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white transition-corporate rounded" style="cursor:pointer;background:none;">Reserve Now</button>`
                   : `<button disabled class="inline-flex w-full items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium text-gray-400 rounded cursor-not-allowed">Currently Unavailable</button>`
                 }
               </div>
