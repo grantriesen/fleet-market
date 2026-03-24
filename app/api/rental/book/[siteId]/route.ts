@@ -23,8 +23,26 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
     const start = new Date(body.startDate);
     const end = new Date(body.endDate);
     const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    const dailyRate = parseFloat(body.rateAmount) || 0;
-    const totalAmount = days * dailyRate;
+    const dailyRate   = parseFloat(body.rateAmount)   || 0;
+    const hourlyRate  = parseFloat(body.hourlyRate)   || 0;
+    const weeklyRate  = parseFloat(body.weeklyRate)   || 0;
+    const monthlyRate = parseFloat(body.monthlyRate)  || 0;
+    // Use frontend-calculated total if provided (already accounts for blended billing)
+    // Fall back to server-side blended calc if not
+    let totalAmount = parseFloat(body.totalAmount) || 0;
+    if (!totalAmount) {
+      if (days >= 28 && monthlyRate) {
+        const fullMo = Math.max(1, Math.floor(days / 30));
+        const remDays = days - fullMo * 30;
+        const remWk = (remDays >= 7 && weeklyRate) ? Math.floor(remDays / 7) : 0;
+        totalAmount = fullMo * monthlyRate + remWk * (weeklyRate || 0) + (remDays - remWk * 7) * (dailyRate || 0);
+      } else if (days >= 7 && weeklyRate) {
+        const fullWk = Math.floor(days / 7);
+        totalAmount = fullWk * weeklyRate + (days - fullWk * 7) * (dailyRate || 0);
+      } else {
+        totalAmount = days * dailyRate;
+      }
+    }
 
     // ── Availability check ──────────────────────────────────────────────────
     // Count existing bookings that overlap the requested date range
