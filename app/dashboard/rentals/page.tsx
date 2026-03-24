@@ -174,6 +174,7 @@ export default function RentalsDashboard() {
   }, [siteId, bookingFilter]);
 
   useEffect(() => { if (activeTab === 'bookings' || activeTab === 'calendar') loadBookings(); }, [loadBookings, activeTab]);
+  useEffect(() => { if (activeTab === 'calendar' && items.length === 0) loadItems(); }, [activeTab]);
 
   // Fleet CRUD
   const openAddModal = () => { setEditingItem(null); setForm({ ...EMPTY_ITEM }); setActiveFormTab('details'); setFormError(''); setModalOpen(true); };
@@ -311,16 +312,34 @@ export default function RentalsDashboard() {
   };
 
   const isDayFullyBooked = (day: number) => {
-    if (!items.length) return false;
+    if (!items.length || !bookings.length) return false;
     const dateStr = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const dayBookings = bookings.filter(b => b.start_date <= dateStr && b.end_date >= dateStr && b.status !== 'cancelled');
-    if (!dayBookings.length) return false;
-    // Check if every inventory item has all its quantity booked on this day
-    return items.every(item => {
-      const itemBookings = dayBookings.filter(b => b.rental_item_id === item.id);
+    const activeBookings = bookings.filter(b =>
+      b.start_date <= dateStr && b.end_date >= dateStr &&
+      !['cancelled', 'completed'].includes(b.status)
+    );
+    if (!activeBookings.length) return false;
+    // Day is "fully booked" if EVERY item with availability has all its quantity booked
+    const availableItems = items.filter(i => i.status === 'available');
+    if (!availableItems.length) return false;
+    return availableItems.every(item => {
+      const itemBookings = activeBookings.filter(b => b.rental_item_id === item.id);
       const bookedQty = itemBookings.reduce((sum, b) => sum + (b.quantity || 1), 0);
       return bookedQty >= (item.quantity_available || 1);
     });
+  };
+
+  const getItemAvailabilityForDay = (day: number, itemId: string): boolean => {
+    const dateStr = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const item = items.find(i => i.id === itemId);
+    if (!item) return false;
+    const activeBookings = bookings.filter(b =>
+      b.rental_item_id === itemId &&
+      b.start_date <= dateStr && b.end_date >= dateStr &&
+      !['cancelled', 'completed'].includes(b.status)
+    );
+    const bookedQty = activeBookings.reduce((sum, b) => sum + (b.quantity || 1), 0);
+    return bookedQty >= (item.quantity_available || 1);
   };
 
   if (loading) return (<div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>);
@@ -494,10 +513,15 @@ export default function RentalsDashboard() {
         {/* CALENDAR TAB */}
         {activeTab === 'calendar' && (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
               <button onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1))} className="p-2 hover:bg-slate-100 rounded-lg"><ChevronLeft className="w-5 h-5" /></button>
               <h2 className="text-lg font-bold text-slate-800">{calendarMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
               <button onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1))} className="p-2 hover:bg-slate-100 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
+            </div>
+            <div className="px-6 py-3 border-b border-slate-100 flex items-center gap-3 bg-slate-50 text-xs text-slate-500">
+              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-100 border border-red-200 inline-block"></span>Fully booked</span>
+              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-amber-50 border border-amber-200 inline-block"></span>Partially booked</span>
+              {items.length > 1 && <span className="ml-auto text-slate-400">{items.length} items in fleet</span>}
             </div>
             <div className="grid grid-cols-7">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="px-2 py-3 text-center text-xs font-semibold text-slate-400 border-b border-slate-100">{d}</div>)}
@@ -505,7 +529,7 @@ export default function RentalsDashboard() {
                 const dayBookings = day ? getBookingsForDay(day) : [];
                 const isToday = day && new Date().toDateString() === new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day).toDateString();
                 return (
-                  <div key={i} className={`min-h-[100px] border-b border-r border-slate-100 p-1.5 ${!day ? 'bg-slate-50/50' : isDayFullyBooked(day) ? 'bg-red-50' : ''}`}>
+                  <div key={i} className={`min-h-[100px] border-b border-r border-slate-100 p-1.5 ${!day ? 'bg-slate-50/50' : isDayFullyBooked(day) ? 'bg-red-50' : getBookingsForDay(day).length > 0 ? 'bg-amber-50/50' : ''}`}>
                     {day && (
                       <>
                         <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-medium ${isToday ? 'text-white' : 'text-slate-600'}`} style={isToday ? { background: FM.orange } : {}}>{day}</span>

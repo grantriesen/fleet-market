@@ -26,6 +26,33 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
     const dailyRate = parseFloat(body.rateAmount) || 0;
     const totalAmount = days * dailyRate;
 
+    // ── Availability check ──────────────────────────────────────────────────
+    // Count existing bookings that overlap the requested date range
+    const { data: item } = await supabase
+      .from('rental_inventory')
+      .select('quantity_available')
+      .eq('id', body.rentalItemId)
+      .eq('site_id', siteId)
+      .single();
+
+    if (!item) {
+      return NextResponse.json({ error: 'Rental item not found' }, { status: 404 });
+    }
+
+    const { data: overlapping } = await supabase
+      .from('rental_bookings')
+      .select('quantity')
+      .eq('rental_item_id', body.rentalItemId)
+      .in('status', ['pending', 'confirmed', 'active'])
+      .lte('start_date', body.endDate)
+      .gte('end_date', body.startDate);
+
+    const bookedQty = (overlapping || []).reduce((sum: number, b: any) => sum + (b.quantity || 1), 0);
+    if (bookedQty >= (item.quantity_available || 1)) {
+      return NextResponse.json({ error: 'Sorry, this equipment is not available for the selected dates.' }, { status: 409 });
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     const { data, error } = await supabase
       .from('rental_bookings')
       .insert({

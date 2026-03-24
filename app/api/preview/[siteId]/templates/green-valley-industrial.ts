@@ -1610,6 +1610,7 @@ async function gvRentalsPage(
         <h3 id="gvModalTitle" style="font-size:1.25rem;font-weight:700;color:white;margin:0;">Book Rental</h3>
         <button onclick="gvCloseRentalModal()" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;line-height:1;padding:0.25rem;">&#x2715;</button>
       </div>
+      <div id="gvAvailNotice" style="padding:0.5rem 1.5rem;font-size:0.8125rem;color:#6b7280;min-height:1.25rem;"></div>
       <form id="gvRentalForm" style="padding:1.5rem;">
         <input type="hidden" name="siteId" value="${siteId}">
         <input type="hidden" id="gvRentalItemId" name="rentalItemId">
@@ -1713,6 +1714,58 @@ async function gvRentalsPage(
       document.getElementById('gvDeliverySection').style.display = deliveryAvailable ? 'block' : 'none';
       modal.style.display = 'flex';
       document.body.style.overflow = 'hidden';
+      // Fetch booked dates and disable them
+      gvLoadAvailability(itemId);
+    }
+    function gvLoadAvailability(itemId) {
+      var startEl = document.getElementById('gvStartDate');
+      var endEl = document.getElementById('gvEndDate');
+      var notice = document.getElementById('gvAvailNotice');
+      if (notice) notice.textContent = 'Checking availability...';
+      fetch('/api/rental/availability/${siteId}?itemId=' + itemId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var booked = (data.bookedRanges && data.bookedRanges[itemId]) || [];
+          window._gvBookedDates = booked;
+          if (notice) notice.textContent = booked.length ? 'Some dates are unavailable — shown in red.' : '';
+          // Attach validation to date inputs
+          [startEl, endEl].forEach(function(el) {
+            if (!el) return;
+            el.addEventListener('input', gvCheckDateAvailability);
+          });
+        })
+        .catch(function() { if (notice) notice.textContent = ''; });
+    }
+    function gvCheckDateAvailability() {
+      var booked = window._gvBookedDates || [];
+      if (!booked.length) return;
+      var startEl = document.getElementById('gvStartDate');
+      var endEl = document.getElementById('gvEndDate');
+      var notice = document.getElementById('gvAvailNotice');
+      var start = startEl ? startEl.value : '';
+      var end = endEl ? endEl.value : '';
+      var conflict = false;
+      if (start && end) {
+        var cur = new Date(start);
+        var last = new Date(end);
+        while (cur <= last) {
+          var ds = cur.toISOString().split('T')[0];
+          if (booked.indexOf(ds) !== -1) { conflict = true; break; }
+          cur.setDate(cur.getDate() + 1);
+        }
+      } else if (start) {
+        conflict = booked.indexOf(start) !== -1;
+      }
+      if (conflict) {
+        if (notice) { notice.textContent = 'These dates include unavailable days. Please choose different dates.'; notice.style.color = '#dc2626'; }
+        var submitBtn = document.getElementById('gvRentalSubmitBtn');
+        if (submitBtn) submitBtn.disabled = true;
+      } else {
+        if (notice) { notice.textContent = booked.length ? 'Some dates are unavailable — shown in red.' : ''; notice.style.color = '#6b7280'; }
+        var submitBtn = document.getElementById('gvRentalSubmitBtn');
+        if (submitBtn) submitBtn.disabled = false;
+      }
+      gvCalculateTotal();
     }
     function gvCloseRentalModal() {
       document.getElementById('gvRentalModal').style.display = 'none';
