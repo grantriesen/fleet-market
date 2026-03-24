@@ -568,7 +568,7 @@ async function zlRentals(
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:2rem;margin-bottom:2rem;">${cards}</div>
       ${pricingNote ? `<p style="font-size:0.875rem;color:#6b7280;">${pricingNote}</p>` : ''}
       
-  <!-- Rental Booking Modal -->
+
   <div id="fmRentalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
     <div style="background:white;border-radius:0.75rem;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 40px rgba(0,0,0,0.3);">
       <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;background:#2d6a4f;border-radius:0.75rem 0.75rem 0 0;">

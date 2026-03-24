@@ -960,7 +960,7 @@ async function ceRentalsPage(
     </div>
   </section>
   ${inventoryHtml ? 
-  <!-- Rental Booking Modal -->
+
   <div id="fmRentalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
     <div style="background:white;border-radius:0.75rem;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 40px rgba(0,0,0,0.3);">
       <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;background:#1e3a6e;border-radius:0.75rem 0.75rem 0 0;">
