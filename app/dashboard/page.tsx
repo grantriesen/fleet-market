@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   BarChart3, Globe, Package, Wrench, Calendar,
   Mail, Loader2, ExternalLink, TrendingUp, Users,
@@ -45,7 +45,8 @@ function hasAddon(site: Site, addon: string): boolean {
 }
 
 export default function DashboardPage() {
-  const router   = useRouter();
+  const router    = useRouter();
+  const pathname  = usePathname();
   const supabase = createClient();
 
   const [loading,        setLoading]        = useState(true);
@@ -169,15 +170,12 @@ export default function DashboardPage() {
     }
   }
 
-  // Called by destination pages via sessionStorage to signal "I've cleared my reads"
-  // Also reload stats when window regains focus (user navigates back)
+  // Reload notification counts every time the user lands on /dashboard
   useEffect(() => {
-    const handleFocus = () => {
-      if (site) loadStats(site.id);
-    };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [site]);
+    if (pathname === '/dashboard' && site) {
+      loadStats(site.id);
+    }
+  }, [pathname, site]);
 
   if (loading) {
     return (
