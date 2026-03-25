@@ -9,7 +9,7 @@ import {
   ChevronRight, Filter, X, CheckCircle, Clock, DollarSign, Tag
 } from 'lucide-react';
 
-type ActivityType = 'lead' | 'rental' | 'service' | 'order';
+type ActivityType = 'contact' | 'service' | 'inventory' | 'rental';
 
 interface UnifiedActivity {
   id: string;
@@ -26,11 +26,19 @@ interface UnifiedActivity {
   read?: boolean;
 }
 
+// Maps source values to activity buckets
+function sourceToType(source: string | null): ActivityType {
+  if (!source) return 'contact';
+  if (['quote_request', 'service', 'service_request', 'service_scheduling'].includes(source)) return 'service';
+  if (['product_quote_request', 'order', 'inventory'].includes(source)) return 'inventory';
+  return 'contact';
+}
+
 const TYPE_CONFIG: Record<ActivityType, { label: string; icon: any; bg: string; color: string; border: string; iconBg: string; iconColor: string; badgeBg: string }> = {
-  lead:    { label: 'Lead',           icon: Mail,        bg: 'bg-blue-50',   color: 'text-blue-700',   border: 'border-blue-200', iconBg: 'bg-blue-600',   iconColor: 'text-white', badgeBg: 'bg-blue-600'   },
-  rental:  { label: 'Rental Booking', icon: Wrench,      bg: 'bg-purple-50', color: 'text-purple-700', border: 'border-purple-200', iconBg: 'bg-purple-600', iconColor: 'text-white', badgeBg: 'bg-purple-600' },
-  service: { label: 'Service Request',icon: Calendar,    bg: 'bg-orange-50', color: 'text-orange-700', border: 'border-orange-200', iconBg: 'bg-orange-500', iconColor: 'text-white', badgeBg: 'bg-orange-500' },
-  order:   { label: 'Order',          icon: ShoppingBag, bg: 'bg-green-50',  color: 'text-green-700',  border: 'border-green-200', iconBg: 'bg-emerald-600',iconColor: 'text-white', badgeBg: 'bg-emerald-600'},
+  contact:   { label: 'Contact Form',    icon: Mail,        bg: 'bg-blue-50',   color: 'text-blue-700',   border: 'border-blue-200',  iconBg: 'bg-blue-600',   iconColor: 'text-white', badgeBg: 'bg-blue-600'   },
+  service:   { label: 'Service Request', icon: Calendar,    bg: 'bg-orange-50', color: 'text-orange-700', border: 'border-orange-200', iconBg: 'bg-orange-500', iconColor: 'text-white', badgeBg: 'bg-orange-500' },
+  inventory: { label: 'Inventory Lead',  icon: ShoppingBag, bg: 'bg-green-50',  color: 'text-green-700',  border: 'border-green-200',  iconBg: 'bg-emerald-600',iconColor: 'text-white', badgeBg: 'bg-emerald-600'},
+  rental:    { label: 'Rental Booking',  icon: Wrench,      bg: 'bg-purple-50', color: 'text-purple-700', border: 'border-purple-200', iconBg: 'bg-purple-600', iconColor: 'text-white', badgeBg: 'bg-purple-600' },
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -87,7 +95,7 @@ export default function LeadsPage() {
 
       const unified: UnifiedActivity[] = [
         ...(leads || []).map((l: any): UnifiedActivity => ({
-          id: l.id, type: 'lead',
+          id: l.id, type: sourceToType(l.source),
           title: l.source ? l.source.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : 'Contact Form',
           name: l.name || 'Unknown', email: l.email || '', phone: l.phone || '',
           detail: l.message || l.source || '',
@@ -116,7 +124,7 @@ export default function LeadsPage() {
           href: `/dashboard/service?highlight=${s.id}`,
         })),
         ...(orders || []).map((o: any): UnifiedActivity => ({
-          id: o.id, type: 'order',
+          id: o.id, type: 'inventory',
           title: 'Order',
           name: o.customer_name || 'Unknown', email: o.customer_email || '', phone: o.customer_phone || '',
           detail: o.product_name || `Order #${o.id.slice(0,8)}`,
@@ -156,15 +164,16 @@ export default function LeadsPage() {
   }, [search, typeFilter, items]);
 
   const markRead = async (id: string, type: ActivityType) => {
-    // Leads: update DB read flag. Everything else: localStorage
-    if (type === 'lead') {
-      await supabase.from('lead_captures').update({ read: true }).eq('id', id);
-    } else {
+    // contact/service/inventory come from lead_captures — update DB
+    // rental comes from rental_bookings — track in localStorage
+    if (type === 'rental') {
       const key = 'fm_read_items';
       const existing = JSON.parse(localStorage.getItem(key) || '[]');
       if (!existing.includes(id)) {
         localStorage.setItem(key, JSON.stringify([...existing, id]));
       }
+    } else {
+      await supabase.from('lead_captures').update({ read: true }).eq('id', id);
     }
     setItems(prev => prev.map(i => i.id === id ? {
       ...i,
@@ -176,21 +185,21 @@ export default function LeadsPage() {
 
   const markAllRead = () => {
     const key = 'fm_read_items';
-    const nonLeadIds = items.filter(i => i.type !== 'lead' && !i.read).map(i => i.id);
+    const rentalIds = items.filter(i => i.type === 'rental' && !i.read).map(i => i.id);
     const existing = JSON.parse(localStorage.getItem(key) || '[]');
-    localStorage.setItem(key, JSON.stringify([...new Set([...existing, ...nonLeadIds])]));
-    items.filter(i => i.type === 'lead' && !i.read).forEach(i => {
+    localStorage.setItem(key, JSON.stringify([...new Set([...existing, ...rentalIds])]));
+    items.filter(i => i.type !== 'rental' && !i.read).forEach(i => {
       supabase.from('lead_captures').update({ read: true }).eq('id', i.id);
     });
     setItems(prev => prev.map(i => ({ ...i, read: true })));
   };
 
   const counts = {
-    all:     items.length,
-    lead:    items.filter(i => i.type === 'lead').length,
-    rental:  items.filter(i => i.type === 'rental').length,
-    service: items.filter(i => i.type === 'service').length,
-    order:   items.filter(i => i.type === 'order').length,
+    all:       items.length,
+    contact:   items.filter(i => i.type === 'contact').length,
+    service:   items.filter(i => i.type === 'service').length,
+    inventory: items.filter(i => i.type === 'inventory').length,
+    rental:    items.filter(i => i.type === 'rental').length,
   };
   const unread = items.filter(i => !i.read).length;
 
@@ -227,7 +236,7 @@ export default function LeadsPage() {
       <div className="max-w-5xl mx-auto px-6 py-6">
         {/* Filters */}
         <div className="flex flex-wrap gap-2 mb-4">
-          {(['all', 'lead', 'rental', 'service', 'order'] as const).map(t => {
+          {(['all', 'contact', 'service', 'inventory', 'rental'] as const).map(t => {
             const cfg = t === 'all' ? null : TYPE_CONFIG[t];
             const count = counts[t];
             const active = typeFilter === t;
@@ -314,6 +323,7 @@ export default function LeadsPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
+
                       <button
                         onClick={() => { setSelectedItem(item); if (isUnread) markRead(item.id, item.type); }}
                         className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg"
@@ -333,16 +343,17 @@ export default function LeadsPage() {
         const cfg = TYPE_CONFIG[selectedItem.type];
         const Icon = cfg.icon;
         const statusOptions: Record<ActivityType, string[]> = {
-          lead:    ['new', 'read'],
-          rental:  ['pending', 'confirmed', 'active', 'completed', 'cancelled'],
-          service: ['pending', 'confirmed', 'completed', 'cancelled'],
-          order:   ['pending', 'paid', 'fulfilled', 'canceled', 'refunded'],
+          contact:   ['new', 'read'],
+          service:   ['new', 'pending', 'confirmed', 'completed', 'cancelled'],
+          inventory: ['new', 'pending', 'confirmed', 'completed', 'cancelled'],
+          rental:    ['pending', 'confirmed', 'active', 'completed', 'cancelled'],
         };
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedItem(null)} />
             <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden">
-              {/* Modal header */}
+
+              {/* Header */}
               <div className={`px-6 py-4 flex items-center gap-3 ${cfg.iconBg}`}>
                 <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
                   <Icon className="w-5 h-5 text-white" />
@@ -356,57 +367,53 @@ export default function LeadsPage() {
                 </button>
               </div>
 
-              {/* Modal body */}
+              {/* Body */}
               <div className="flex-1 overflow-y-auto p-6 space-y-5">
 
-                {/* Contact info */}
-                <div className="space-y-3">
+                {/* Contact */}
+                <div className="space-y-2">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Contact</p>
-                  <div className="grid grid-cols-1 gap-2">
-                    {selectedItem.email && (
-                      <a href={`mailto:${selectedItem.email}`} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-blue-50 transition-colors group">
-                        <Mail className="w-4 h-4 text-slate-400 group-hover:text-blue-500 flex-shrink-0" />
-                        <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 truncate">{selectedItem.email}</span>
-                      </a>
-                    )}
-                    {selectedItem.phone && (
-                      <a href={`tel:${selectedItem.phone}`} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-green-50 transition-colors group">
-                        <Phone className="w-4 h-4 text-slate-400 group-hover:text-green-500 flex-shrink-0" />
-                        <span className="text-sm font-medium text-slate-700 group-hover:text-green-600">{selectedItem.phone}</span>
-                      </a>
-                    )}
-                  </div>
+                  {selectedItem.email && (
+                    <a href={`mailto:${selectedItem.email}`} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-blue-50 transition-colors group">
+                      <Mail className="w-4 h-4 text-slate-400 group-hover:text-blue-500 flex-shrink-0" />
+                      <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 truncate">{selectedItem.email}</span>
+                    </a>
+                  )}
+                  {selectedItem.phone && (
+                    <a href={`tel:${selectedItem.phone}`} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-green-50 transition-colors group">
+                      <Phone className="w-4 h-4 text-slate-400 group-hover:text-green-500 flex-shrink-0" />
+                      <span className="text-sm font-medium text-slate-700 group-hover:text-green-600">{selectedItem.phone}</span>
+                    </a>
+                  )}
                 </div>
 
                 {/* Details */}
-                {(selectedItem.detail || selectedItem.amount) && (
-                  <div className="space-y-3">
+                {(selectedItem.detail || (selectedItem.amount != null && selectedItem.amount > 0)) && (
+                  <div className="space-y-2">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Details</p>
-                    <div className="space-y-2">
-                      {selectedItem.amount != null && selectedItem.amount > 0 && (
-                        <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl">
-                          <DollarSign className="w-4 h-4 text-green-600 flex-shrink-0" />
-                          <span className="text-sm font-semibold text-green-700">${selectedItem.amount.toFixed(2)}</span>
-                        </div>
-                      )}
-                      {selectedItem.detail && (
-                        <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
-                          <MessageSquare className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
-                          <p className="text-sm text-slate-700 leading-relaxed">{selectedItem.detail}</p>
-                        </div>
-                      )}
-                    </div>
+                    {selectedItem.amount != null && selectedItem.amount > 0 && (
+                      <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl">
+                        <DollarSign className="w-4 h-4 text-green-600 flex-shrink-0" />
+                        <span className="text-sm font-semibold text-green-700">${selectedItem.amount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {selectedItem.detail && (
+                      <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
+                        <MessageSquare className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-slate-700 leading-relaxed">{selectedItem.detail}</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* Meta */}
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Info</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl">
                       <Tag className="w-4 h-4 text-slate-400 flex-shrink-0" />
                       <div>
-                        <p className="text-xs text-slate-400">Type</p>
+                        <p className="text-xs text-slate-400">Source</p>
                         <p className="text-sm font-medium text-slate-700">{selectedItem.title}</p>
                       </div>
                     </div>
@@ -420,25 +427,21 @@ export default function LeadsPage() {
                   </div>
                 </div>
 
-                {/* Status controls */}
-                <div className="space-y-3">
+                {/* Status */}
+                <div className="space-y-2">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status</p>
                   <div className="flex flex-wrap gap-2">
                     {statusOptions[selectedItem.type].map(s => (
                       <button
                         key={s}
                         onClick={async () => {
-                          if (selectedItem.type === 'lead') {
+                          if (selectedItem.type !== 'rental') {
                             await supabase.from('lead_captures').update({ read: s !== 'new', status: s }).eq('id', selectedItem.id);
-                          } else if (selectedItem.type === 'rental') {
+                          } else {
                             await supabase.from('rental_bookings').update({ status: s }).eq('id', selectedItem.id);
-                          } else if (selectedItem.type === 'service') {
-                            await supabase.from('service_requests').update({ status: s }).eq('id', selectedItem.id);
-                          } else if (selectedItem.type === 'order') {
-                            await supabase.from('orders').update({ status: s }).eq('id', selectedItem.id);
                           }
                           setItems(prev => prev.map(i => i.id === selectedItem.id ? { ...i, status: s, read: s !== 'new' } : i));
-                          setSelectedItem(prev => prev ? { ...prev, status: s } : prev);
+                          setSelectedItem(prev => prev ? { ...prev, status: s, read: s !== 'new' } : prev);
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-colors ${
                           selectedItem.status === s
@@ -453,7 +456,7 @@ export default function LeadsPage() {
                 </div>
               </div>
 
-              {/* Modal footer */}
+              {/* Footer */}
               <div className="px-6 py-4 border-t border-slate-100 flex justify-between items-center gap-3">
                 {!selectedItem.read && (
                   <button
