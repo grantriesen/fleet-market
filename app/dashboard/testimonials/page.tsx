@@ -24,6 +24,7 @@ interface Testimonial {
   quote: string;   // canonical field — also written as "content"
   name: string;
   title: string;   // canonical field — also written as "role" / "rating" alias ignored for title
+  company: string; // used by GVI and Corporate Edge
 }
 
 interface Site {
@@ -46,6 +47,7 @@ function normalize(raw: Record<string, string>): Testimonial {
     quote: raw.quote || raw.content || '',
     name: raw.name || '',
     title: raw.title || raw.role || '',
+    company: raw.company || '',
   };
 }
 
@@ -62,6 +64,8 @@ function serialize(t: Testimonial): Record<string, string> {
     role: t.title,
     // rating alias — templates that use rating expect a number string; keep empty
     rating: '',
+    // company used by GVI and Corporate Edge
+    company: t.company,
   };
 }
 
@@ -115,9 +119,9 @@ export default function TestimonialsPage() {
       // Seed with 3 empty testimonials if none exist
       if (!contentRow?.value) {
         setTestimonials([
-          { id: generateId(), quote: '', name: '', title: '' },
-          { id: generateId(), quote: '', name: '', title: '' },
-          { id: generateId(), quote: '', name: '', title: '' },
+          { id: generateId(), quote: '', name: '', title: '', company: '' },
+          { id: generateId(), quote: '', name: '', title: '', company: '' },
+          { id: generateId(), quote: '', name: '', title: '', company: '' },
         ]);
       }
     } finally {
@@ -129,7 +133,7 @@ export default function TestimonialsPage() {
   function addTestimonial() {
     setTestimonials(prev => [
       ...prev,
-      { id: generateId(), quote: '', name: '', title: '' },
+      { id: generateId(), quote: '', name: '', title: '', company: '' },
     ]);
   }
 
@@ -187,12 +191,16 @@ export default function TestimonialsPage() {
 
       const value = JSON.stringify(toSave);
 
+      // Delete existing row then insert fresh — avoids needing a unique constraint
+      await supabase
+        .from('site_content')
+        .delete()
+        .eq('site_id', site.id)
+        .eq('field_key', FIELD_KEY);
+
       const { error } = await supabase
         .from('site_content')
-        .upsert(
-          { site_id: site.id, field_key: FIELD_KEY, value },
-          { onConflict: 'site_id,field_key' }
-        );
+        .insert({ site_id: site.id, field_key: FIELD_KEY, value });
 
       if (error) throw error;
       setSaveStatus('success');
@@ -368,6 +376,21 @@ export default function TestimonialsPage() {
                           className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                         />
                       </div>
+                    </div>
+
+                    {/* Company */}
+                    <div>
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                        <Briefcase className="w-3.5 h-3.5" />
+                        Company
+                      </label>
+                      <input
+                        type="text"
+                        value={t.company}
+                        onChange={e => updateField(t.id, 'company', e.target.value)}
+                        placeholder="Acme Landscaping"
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                      />
                     </div>
 
                     {/* Star preview */}
