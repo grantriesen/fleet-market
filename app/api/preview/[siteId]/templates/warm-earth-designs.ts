@@ -460,18 +460,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
   // Testimonials
   if (vis.testimonials !== false) {
     let testimonials: any[] = [];
-    const t1q = gc('testimonials.testimonial1Quote'), t1a = gc('testimonials.testimonial1Author'), t1l = gc('testimonials.testimonial1Location');
-    const t2q = gc('testimonials.testimonial2Quote'), t2a = gc('testimonials.testimonial2Author'), t2l = gc('testimonials.testimonial2Location');
-    const t3q = gc('testimonials.testimonial3Quote'), t3a = gc('testimonials.testimonial3Author'), t3l = gc('testimonials.testimonial3Location');
-    if (t1q || t2q || t3q) {
-      testimonials = [
-        t1q ? { content: t1q, name: t1a || '', location: t1l || '', rating: 5 } : null,
-        t2q ? { content: t2q, name: t2a || '', location: t2l || '', rating: 5 } : null,
-        t3q ? { content: t3q, name: t3a || '', location: t3l || '', rating: 5 } : null,
-      ].filter(Boolean) as any[];
-    } else {
-      try { testimonials = JSON.parse(gc('testimonials.items') || '[]'); } catch {}
-    }
+    try { testimonials = JSON.parse(gc('testimonials.items') || '[]'); } catch {}
     if (!testimonials.length) testimonials = [
       { name: 'Robert M.', location: 'Timber Creek', content: 'They helped me find the perfect tractor for my 40 acres.', rating: 5 },
       { name: 'Sarah T.', location: 'Pine Ridge', content: 'The rental program saved us thousands.', rating: 5 },
@@ -490,7 +479,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
             <blockquote style="flex:1;font-size:0.9375rem;color:${C.mutedFg};line-height:1.8;margin:0 0 1.5rem;font-style:italic;">"${t.content}"</blockquote>
             <div style="border-top:1px solid #d4b896;padding-top:1rem;">
               <p style="font-weight:600;color:${C.fg};margin:0;font-size:0.9375rem;">${t.name}</p>
-              <p style="font-size:0.8125rem;color:${C.mutedFg};margin:0.125rem 0 0;">${t.location || ''}</p>
+              <p style="font-size:0.8125rem;color:${C.mutedFg};margin:0.125rem 0 0;">${t.location || t.title || ''}</p>
             </div>
           </div>`).join('')}
         </div>

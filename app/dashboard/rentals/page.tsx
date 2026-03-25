@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Truck, Plus, Search, ChevronLeft, ChevronRight, Edit2, Trash2, Star, StarOff,
   X, Upload, Image as ImageIcon, DollarSign, ArrowUpDown, ArrowUp, ArrowDown,
@@ -72,6 +72,7 @@ const EMPTY_ITEM = {
 export default function RentalsDashboard() {
   const supabase = createClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
@@ -177,6 +178,14 @@ export default function RentalsDashboard() {
   }, [siteId, bookingFilter]);
 
   useEffect(() => { if (activeTab === 'bookings' || activeTab === 'calendar') loadBookings(); }, [loadBookings, activeTab]);
+  useEffect(() => {
+    const highlightId = searchParams?.get('highlight');
+    if (highlightId && bookings.length > 0) {
+      setActiveTab('bookings');
+      const found = bookings.find(b => b.id === highlightId);
+      if (found) setSelectedBooking(found);
+    }
+  }, [searchParams, bookings]);
   useEffect(() => { if (activeTab === 'calendar' && items.length === 0) loadItems(); }, [activeTab]);
   useEffect(() => {
     if (!siteId) return;

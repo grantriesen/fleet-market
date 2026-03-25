@@ -514,19 +514,7 @@ function vdHomeSections(
   if (vis.testimonials !== false) {
     const cardBgs = ['var(--color-primary)', 'var(--color-secondary)', 'var(--color-accent)'];
     let testimonials: any[] = [];
-    // Build from individual config fields first
-    const t1q = getContent('testimonials.testimonial1Quote'), t1a = getContent('testimonials.testimonial1Author'), t1r = getContent('testimonials.testimonial1Role');
-    const t2q = getContent('testimonials.testimonial2Quote'), t2a = getContent('testimonials.testimonial2Author'), t2r = getContent('testimonials.testimonial2Role');
-    const t3q = getContent('testimonials.testimonial3Quote'), t3a = getContent('testimonials.testimonial3Author'), t3r = getContent('testimonials.testimonial3Role');
-    if (t1q || t2q || t3q) {
-      testimonials = [
-        t1q ? { quote: t1q, name: t1a || '', title: t1r || '' } : null,
-        t2q ? { quote: t2q, name: t2a || '', title: t2r || '' } : null,
-        t3q ? { quote: t3q, name: t3a || '', title: t3r || '' } : null,
-      ].filter(Boolean) as any[];
-    } else {
-      try { testimonials = JSON.parse(getContent('testimonials.items') || '[]'); } catch {}
-    }
+    try { testimonials = JSON.parse(getContent('testimonials.items') || '[]'); } catch {}
     if (!testimonials.length) testimonials = [
       { quote: "VibePower set us up with an EGO battery fleet that changed our business.", name: 'Carlos Rivera', title: 'Owner', company: 'Rivera Lawn & Garden' },
       { quote: "Fast service, great selection, and the staff actually knows what they're talking about.", name: 'Jessica Nguyen', title: 'Operations Manager', company: 'Sunshine Property Care' },

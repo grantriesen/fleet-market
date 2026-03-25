@@ -1131,12 +1131,6 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
           </div>
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={() => router.push(`/dashboard/settings/${params.siteId}`)}
-            className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50"
-          >
-            ⚙️ Settings
-          </button>
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400 hidden lg:block">Save to update preview</span>
             <button

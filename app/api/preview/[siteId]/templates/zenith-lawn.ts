@@ -315,7 +315,7 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
             <blockquote class="text-2xl md:text-3xl font-light leading-relaxed text-neutral-900 mb-8">"${t.quote}"</blockquote>
             <div>
               <p class="text-sm font-medium">${t.name || ''}</p>
-              <p class="text-sm text-neutral-500">${t.company || ''}</p>
+              <p class="text-sm text-neutral-500">${t.title || t.company || ''}</p>
             </div>
           </div>
         </div>
