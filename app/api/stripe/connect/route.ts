@@ -1,6 +1,8 @@
 // app/api/stripe/connect/route.ts
 // Creates a Stripe Connect account + Account Link for dealer onboarding
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
 import Stripe from 'stripe';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
