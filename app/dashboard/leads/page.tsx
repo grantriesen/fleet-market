@@ -122,7 +122,7 @@ export default function LeadsPage() {
           amount: o.total_amount,
           status: o.status || 'pending',
           created_at: o.created_at,
-          href: '/dashboard/orders',
+          href: `/dashboard/orders?highlight=${o.id}`,
         })),
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 

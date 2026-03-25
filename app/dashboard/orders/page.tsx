@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ShoppingBag, Package, CheckCircle, XCircle, Clock, Loader2, ExternalLink } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
 interface Order {
   id: string;
@@ -26,9 +28,10 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   refunded:  { label: 'Refunded',  color: '#dc2626', bg: '#fef2f2', icon: XCircle       },
 };
 
-export default function OrdersPage() {
+function OrdersPageInner() {
   const router = useRouter();
   const supabase = createClient();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [site, setSite] = useState<any>(null);
@@ -52,7 +55,14 @@ export default function OrdersPage() {
         .eq('site_id', userSite.id)
         .order('created_at', { ascending: false });
 
-      setOrders(orderData || []);
+      const loaded = orderData || [];
+      setOrders(loaded);
+      // Auto-select from ?highlight= param
+      const highlightId = searchParams?.get('highlight') || new URLSearchParams(window.location.search).get('highlight');
+      if (highlightId) {
+        const found = loaded.find((o: any) => o.id === highlightId);
+        if (found) setSelectedOrder(found);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -205,5 +215,13 @@ export default function OrdersPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-green-600" /></div>}>
+      <OrdersPageInner />
+    </Suspense>
   );
 }

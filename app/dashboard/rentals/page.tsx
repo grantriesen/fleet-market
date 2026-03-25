@@ -181,19 +181,22 @@ function RentalsDashboard() {
     query = query.order('created_at', { ascending: false });
     const { data, error } = await query;
     if (error) showToast('Failed to load bookings', 'error');
-    else setBookings(data || []);
+    else {
+      const loaded = data || [];
+      setBookings(loaded);
+      // Auto-open booking from ?highlight= param (set after data is ready)
+      const params = new URLSearchParams(window.location.search);
+      const highlightId = params.get('highlight');
+      if (highlightId) {
+        const found = loaded.find((b: any) => b.id === highlightId);
+        if (found) { setActiveTab('bookings'); setSelectedBooking(found); }
+      }
+    }
     setBookingsLoading(false);
   }, [siteId, bookingFilter]);
 
   useEffect(() => { if (activeTab === 'bookings' || activeTab === 'calendar') loadBookings(); }, [loadBookings, activeTab]);
-  useEffect(() => {
-    const highlightId = searchParams?.get('highlight');
-    if (highlightId && bookings.length > 0) {
-      setActiveTab('bookings');
-      const found = bookings.find(b => b.id === highlightId);
-      if (found) setSelectedBooking(found);
-    }
-  }, [searchParams, bookings]);
+
   useEffect(() => { if (activeTab === 'calendar' && items.length === 0) loadItems(); }, [activeTab]);
   useEffect(() => {
     if (!siteId) return;

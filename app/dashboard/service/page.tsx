@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import {
   Calendar, Clock, User, Phone, Mail, Wrench, AlertCircle,
@@ -113,6 +113,7 @@ function fmtDateLocal(dateStr: string, opts?: Intl.DateTimeFormatOptions): strin
 // ============================================
 export default function ServiceDashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
@@ -173,8 +174,15 @@ export default function ServiceDashboard() {
       const res = await fetch('/api/service/appointments');
       if (res.ok) {
         const data = await res.json();
-        setAppointments(data.appointments || []);
+        const loaded = data.appointments || [];
+        setAppointments(loaded);
         setCounts(data.counts || counts);
+        // Auto-open from ?highlight= param
+        const highlightId = new URLSearchParams(window.location.search).get('highlight');
+        if (highlightId) {
+          const found = loaded.find((a: any) => a.id === highlightId);
+          if (found) { setSelectedAppt(found); setView('queue'); }
+        }
       }
 
       // Load service types
