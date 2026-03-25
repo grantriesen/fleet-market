@@ -49,7 +49,7 @@ export default function DashboardPage() {
     totalInventory: 0, activeRentals: 0, pendingService: 0,
     totalLeads: 0, siteViews: 0, uniqueVisitors: 0,
   });
-  const [notifications, setNotifications] = useState({ leads: 0, rentals: 0, service: 0, orders: 0 });
+  const [notifications, setNotifications] = useState({ contact: 0, service: 0, inventory: 0, rentals: 0 });
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
 
   useEffect(() => { loadDashboard(); }, []);
@@ -103,22 +103,27 @@ export default function DashboardPage() {
         uniqueVisitors:  uniqueIps.size,
       });
 
-      // Notification badge counts
-      // Service requests land in lead_captures with source='service'
+      // Notification badge counts — aligned with 4 lead type buckets
+      const CONTACT_SOURCES   = ['contact_form', 'contact'];
+      const SERVICE_SOURCES   = ['quote_request', 'service', 'service_request', 'service_scheduling'];
+      const INVENTORY_SOURCES = ['product_quote_request', 'order', 'inventory'];
+
       const [
-        { count: newLeads },
+        { count: unreadContact },
+        { count: unreadService },
+        { count: unreadInventory },
         { count: pendingRentals },
-        { count: newServiceLeads },
       ] = await Promise.all([
-        supabase.from('lead_captures').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('read', false).not('source', 'in', '("service","contact","quote_request")'),
+        supabase.from('lead_captures').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('read', false).in('source', CONTACT_SOURCES),
+        supabase.from('lead_captures').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('read', false).in('source', SERVICE_SOURCES),
+        supabase.from('lead_captures').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('read', false).in('source', INVENTORY_SOURCES),
         supabase.from('rental_bookings').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('status', 'pending'),
-        supabase.from('lead_captures').select('*', { count: 'exact', head: true }).eq('site_id', siteId).eq('read', false).in('source', ['service', 'contact', 'quote_request', 'service_scheduling']),
       ]);
       setNotifications({
-        leads:   newLeads       || 0,
-        rentals: pendingRentals || 0,
-        service: newServiceLeads || 0,
-        orders:  0,
+        contact:   unreadContact   || 0,
+        service:   unreadService   || 0,
+        inventory: unreadInventory || 0,
+        rentals:   pendingRentals  || 0,
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -196,14 +201,13 @@ export default function DashboardPage() {
 
   // ── Quick actions — addon-gated ──
   const quickActions = [
-    { title: 'Analytics',  description: 'View detailed analytics', icon: BarChart3,    href: '/dashboard/analytics', color: 'bg-blue-500',    addon: null,        badge: 0 },
-    { title: 'My Website', description: 'Edit and customize',      icon: Globe,        href: '/dashboard/website',   color: 'bg-green-500',  addon: null,        badge: 0 },
-    { title: 'Leads',         description: 'View contacts',           icon: Mail,           href: '/dashboard/leads',         color: 'bg-indigo-500', addon: null,        badge: notifications.leads },
-    { title: 'Testimonials',  description: 'Manage customer reviews', icon: MessageSquare,  href: '/dashboard/testimonials',  color: 'bg-pink-500',   addon: null,        badge: 0 },
-    { title: 'Orders',        description: 'View purchases',          icon: ShoppingBag,    href: '/dashboard/orders',        color: 'bg-emerald-500',addon: 'inventory', badge: notifications.orders },
-    { title: 'Inventory',  description: 'Manage equipment',        icon: Package,      href: '/dashboard/inventory', color: 'bg-orange-500', addon: 'inventory', badge: 0 },
-    { title: 'Rentals',    description: 'Track bookings',          icon: Wrench,       href: '/dashboard/rentals',   color: 'bg-purple-500', addon: 'rentals',   badge: notifications.rentals },
-    { title: 'Service',    description: 'Manage requests',         icon: Calendar,     href: '/dashboard/service',   color: 'bg-red-500',    addon: 'service',   badge: notifications.service },
+    { title: 'Analytics',    description: 'View detailed analytics', icon: BarChart3,    href: '/dashboard/analytics',   color: 'bg-blue-500',    addon: null,        badge: 0 },
+    { title: 'My Website',   description: 'Edit and customize',      icon: Globe,        href: '/dashboard/website',     color: 'bg-green-500',   addon: null,        badge: 0 },
+    { title: 'Leads',        description: 'Contact form submissions', icon: Mail,         href: '/dashboard/leads',       color: 'bg-indigo-500',  addon: null,        badge: notifications.contact },
+    { title: 'Testimonials', description: 'Manage customer reviews',  icon: MessageSquare,href: '/dashboard/testimonials',color: 'bg-pink-500',    addon: null,        badge: 0 },
+    { title: 'Inventory',    description: 'Manage equipment',         icon: Package,      href: '/dashboard/inventory',   color: 'bg-orange-500',  addon: 'inventory', badge: notifications.inventory },
+    { title: 'Rentals',      description: 'Track bookings',           icon: Wrench,       href: '/dashboard/rentals',     color: 'bg-purple-500',  addon: 'rentals',   badge: notifications.rentals },
+    { title: 'Service',      description: 'Manage service requests',  icon: Calendar,     href: '/dashboard/service',     color: 'bg-red-500',     addon: 'service',   badge: notifications.service },
   ];
 
   // Addon badge label
