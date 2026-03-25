@@ -1350,7 +1350,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                             <h3 className="font-bold text-blue-900 text-lg mb-2">Manage Inventory</h3>
                             <p className="text-sm text-blue-700 mb-4">Add products, update stock levels, upload images, and manage your equipment catalog from the Settings page.</p>
                             <button
-                              onClick={() => router.push(`/dashboard/settings/${params.siteId}?tab=inventory`)}
+                              onClick={() => router.push('/dashboard/inventory')}
                               className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
                             >
                               Open Inventory Settings →
@@ -1371,7 +1371,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                           <h3 className="font-bold text-[#0C1B33] text-lg mb-2">Manage Services</h3>
                           <p className="text-sm text-[#1E3A6E] mb-4">Configure your service offerings and descriptions that display on your service page.</p>
                           <button
-                            onClick={() => router.push(`/dashboard/settings/${params.siteId}?tab=service`)}
+                            onClick={() => router.push('/dashboard/service')}
                             className="bg-[#1E3A6E] text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-[#152C54] transition-colors inline-flex items-center gap-2"
                           >
                             Open Service Settings →
@@ -1421,7 +1421,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                             <h3 className="font-bold text-orange-900 text-lg mb-2">Manage Rentals</h3>
                             <p className="text-sm text-orange-700 mb-4">Add rental equipment, set daily/weekly rates, manage availability calendar, and track rental bookings.</p>
                             <button
-                              onClick={() => router.push(`/dashboard/settings/${params.siteId}?tab=rentals`)}
+                              onClick={() => router.push('/dashboard/rentals')}
                               className="bg-orange-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-orange-700 transition-colors inline-flex items-center gap-2"
                             >
                               Open Rentals Settings →
@@ -1506,7 +1506,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                             Add, edit, or remove customer testimonials from Settings.
                           </p>
                           <button
-                            onClick={() => router.push(`/dashboard/settings/${params.siteId}?tab=testimonials`)}
+                            onClick={() => router.push('/dashboard/testimonials')}
                             className="bg-pink-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pink-700 transition-colors inline-flex items-center gap-2"
                           >
                             Manage Testimonials →
@@ -1558,7 +1558,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                             Add products to your inventory to display in this section.
                           </p>
                           <button
-                            onClick={() => router.push(`/dashboard/settings/${params.siteId}?tab=inventory`)}
+                            onClick={() => router.push('/dashboard/inventory')}
                             className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
                           >
                             Manage Inventory →
