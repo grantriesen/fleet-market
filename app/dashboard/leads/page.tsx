@@ -152,6 +152,12 @@ export default function LeadsPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Mark all lead_captures as read when this page is visited
+  useEffect(() => {
+    if (!site) return;
+    supabase.from('lead_captures').update({ read: true }).eq('site_id', site.id).eq('read', false);
+  }, [site]);
+
   useEffect(() => {
     let f = [...items];
     if (typeFilter !== 'all') f = f.filter(i => i.type === typeFilter);

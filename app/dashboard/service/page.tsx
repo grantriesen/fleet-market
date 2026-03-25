@@ -161,6 +161,13 @@ function ServiceDashboard() {
 
   useEffect(() => { setMounted(true); loadData(); }, []);
 
+  // Mark service-related lead_captures as read when this page is visited
+  useEffect(() => {
+    if (!site) return;
+    const SERVICE_SOURCES = ['quote_request', 'service', 'service_request', 'service_scheduling'];
+    supabase.from('lead_captures').update({ read: true }).eq('site_id', site.id).eq('read', false).in('source', SERVICE_SOURCES);
+  }, [site]);
+
   async function loadData() {
     try {
       const { data: { user } } = await supabase.auth.getUser();

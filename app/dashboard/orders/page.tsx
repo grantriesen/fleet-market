@@ -39,6 +39,13 @@ function OrdersPageInner() {
 
   useEffect(() => { loadOrders(); }, []);
 
+  // Mark inventory-related lead_captures as read when this page is visited
+  useEffect(() => {
+    if (!site) return;
+    const INVENTORY_SOURCES = ['product_quote_request', 'order', 'inventory'];
+    supabase.from('lead_captures').update({ read: true }).eq('site_id', site.id).eq('read', false).in('source', INVENTORY_SOURCES);
+  }, [site]);
+
   async function loadOrders() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
