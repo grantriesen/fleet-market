@@ -1,7 +1,7 @@
 // app/dashboard/service/page.tsx
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import {
@@ -111,7 +111,7 @@ function fmtDateLocal(dateStr: string, opts?: Intl.DateTimeFormatOptions): strin
 // ============================================
 // MAIN COMPONENT
 // ============================================
-export default function ServiceDashboard() {
+function ServiceDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -1513,5 +1513,13 @@ function ServiceTypeForm({ form, setForm, onSave, onCancel, saving }: any) {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function ServicePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>}>
+      <ServiceDashboard />
+    </Suspense>
   );
 }
