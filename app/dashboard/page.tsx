@@ -35,6 +35,11 @@ interface ActivityItem {
 }
 
 // Simple helper — replaces hasFeature/SubscriptionTier entirely
+// Source arrays — used for both fetching counts and clearing on click
+const CONTACT_SOURCES   = ['contact_form', 'contact'];
+const SERVICE_SOURCES   = ['quote_request', 'service', 'service_request', 'service_scheduling'];
+const INVENTORY_SOURCES = ['product_quote_request', 'order', 'inventory'];
+
 function hasAddon(site: Site, addon: string): boolean {
   return Array.isArray(site.addons) && site.addons.includes(addon);
 }
@@ -104,10 +109,6 @@ export default function DashboardPage() {
       });
 
       // Notification badge counts — aligned with 4 lead type buckets
-      const CONTACT_SOURCES   = ['contact_form', 'contact'];
-      const SERVICE_SOURCES   = ['quote_request', 'service', 'service_request', 'service_scheduling'];
-      const INVENTORY_SOURCES = ['product_quote_request', 'order', 'inventory'];
-
       const [
         { count: unreadContact },
         { count: unreadService },
@@ -168,6 +169,15 @@ export default function DashboardPage() {
     }
   }
 
+  // Clear a notification bucket optimistically + mark DB rows read in background
+  async function clearNotification(key: 'contact' | 'service' | 'inventory' | 'rentals') {
+    if (!site) return;
+    setNotifications(prev => ({ ...prev, [key]: 0 }));
+    if (key === 'rentals') return; // rentals use status not read flag
+    const sources = key === 'contact' ? CONTACT_SOURCES : key === 'service' ? SERVICE_SOURCES : INVENTORY_SOURCES;
+    await supabase.from('lead_captures').update({ read: true }).eq('site_id', site.id).in('source', sources).eq('read', false);
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -201,13 +211,13 @@ export default function DashboardPage() {
 
   // ── Quick actions — addon-gated ──
   const quickActions = [
-    { title: 'Analytics',    description: 'View detailed analytics', icon: BarChart3,    href: '/dashboard/analytics',   color: 'bg-blue-500',    addon: null,        badge: 0 },
-    { title: 'My Website',   description: 'Edit and customize',      icon: Globe,        href: '/dashboard/website',     color: 'bg-green-500',   addon: null,        badge: 0 },
-    { title: 'Leads',        description: 'Contact form submissions', icon: Mail,         href: '/dashboard/leads',       color: 'bg-indigo-500',  addon: null,        badge: notifications.contact },
-    { title: 'Testimonials', description: 'Manage customer reviews',  icon: MessageSquare,href: '/dashboard/testimonials',color: 'bg-pink-500',    addon: null,        badge: 0 },
-    { title: 'Inventory',    description: 'Manage equipment',         icon: Package,      href: '/dashboard/inventory',   color: 'bg-orange-500',  addon: 'inventory', badge: notifications.inventory },
-    { title: 'Rentals',      description: 'Track bookings',           icon: Wrench,       href: '/dashboard/rentals',     color: 'bg-purple-500',  addon: 'rentals',   badge: notifications.rentals },
-    { title: 'Service',      description: 'Manage service requests',  icon: Calendar,     href: '/dashboard/service',     color: 'bg-red-500',     addon: 'service',   badge: notifications.service },
+    { title: 'Analytics',    description: 'View detailed analytics', icon: BarChart3,    href: '/dashboard/analytics',   color: 'bg-blue-500',    addon: null,        notify: null },
+    { title: 'My Website',   description: 'Edit and customize',      icon: Globe,        href: '/dashboard/website',     color: 'bg-green-500',   addon: null,        notify: null },
+    { title: 'Leads',        description: 'Contact form submissions', icon: Mail,         href: '/dashboard/leads',       color: 'bg-indigo-500',  addon: null,        notify: notifications.contact   > 0 ? 'contact'   as const : null },
+    { title: 'Testimonials', description: 'Manage customer reviews',  icon: MessageSquare,href: '/dashboard/testimonials',color: 'bg-pink-500',    addon: null,        notify: null },
+    { title: 'Inventory',    description: 'Manage equipment',         icon: Package,      href: '/dashboard/inventory',   color: 'bg-orange-500',  addon: 'inventory', notify: notifications.inventory > 0 ? 'inventory' as const : null },
+    { title: 'Rentals',      description: 'Track bookings',           icon: Wrench,       href: '/dashboard/rentals',     color: 'bg-purple-500',  addon: 'rentals',   notify: notifications.rentals  > 0 ? 'rentals'   as const : null },
+    { title: 'Service',      description: 'Manage service requests',  icon: Calendar,     href: '/dashboard/service',     color: 'bg-red-500',     addon: 'service',   notify: notifications.service  > 0 ? 'service'   as const : null },
   ];
 
   // Addon badge label
@@ -280,7 +290,10 @@ export default function DashboardPage() {
                   return (
                     <button
                       key={action.title}
-                      onClick={() => router.push(isLocked ? `/dashboard/upgrade?feature=${action.addon}` : action.href)}
+                      onClick={() => {
+                        if (!isLocked && action.notify) clearNotification(action.notify);
+                        router.push(isLocked ? `/dashboard/upgrade?feature=${action.addon}` : action.href);
+                      }}
                       className={`relative w-full p-4 rounded-lg border-2 transition-all text-left group ${
                         isLocked
                           ? 'border-slate-200 bg-slate-50 hover:border-slate-300'
@@ -291,10 +304,8 @@ export default function DashboardPage() {
                         <div className={`${action.color} w-10 h-10 rounded-lg flex items-center justify-center transition-transform ${!isLocked && 'group-hover:scale-110'} ${isLocked && 'grayscale opacity-40'}`}>
                           <Icon className="w-5 h-5 text-white" />
                         </div>
-                        {!isLocked && action.badge > 0 && (
-                          <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm">
-                            {action.badge > 99 ? '99+' : action.badge}
-                          </span>
+                        {!isLocked && action.notify && (
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full ring-2 ring-white" />
                         )}
                       </div>
                       <div className="font-semibold text-slate-800 mb-1 flex items-center gap-2">
