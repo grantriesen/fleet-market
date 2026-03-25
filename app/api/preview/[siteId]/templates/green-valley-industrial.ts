@@ -449,14 +449,14 @@ function gvHomeSections(
             ${getContent('hero.subheading')}
           </p>
           <div class="flex flex-wrap gap-4">
-            <a href="${getContent('hero.ctaLink') || `${baseUrl}inventory`}"
+            <a href="${getContent('hero.ctaButton.destination') ? (getContent('hero.ctaButton.destination') === '__custom' ? getContent('hero.ctaButton.destination_url') : `${baseUrl}${getContent('hero.ctaButton.destination')}`) : `${baseUrl}inventory`}"
               class="cta-button rounded-md">
-              ${getContent('hero.ctaButton') || 'View Inventory'}
+              ${getContent('hero.ctaButton.text') || getContent('hero.ctaButton') || 'View Inventory'}
             </a>
-            ${(getContent('hero.secondaryButton') || getContent('hero.secondaryLink')) ? `
-            <a href="${baseUrl}${getContent('hero.secondaryLink') || 'contact'}"
+            ${(getContent('hero.secondaryButton.text') || getContent('hero.secondaryButton')) ? `
+            <a href="${getContent('hero.secondaryButton.destination') === '__custom' ? getContent('hero.secondaryButton.destination_url') : `${baseUrl}${getContent('hero.secondaryButton.destination') || 'contact'}`}"
               class="bg-transparent border-2 border-white text-white hover:bg-white hover:text-primary font-bold uppercase tracking-wider px-8 py-3 rounded-md transition-colors text-sm">
-              ${getContent('hero.secondaryButton') || 'Contact Us'}
+              ${getContent('hero.secondaryButton.text') || getContent('hero.secondaryButton') || 'Contact Us'}
             </a>` : `
             <a href="${baseUrl}contact"
               class="bg-transparent border-2 border-white text-white hover:bg-white hover:text-primary font-bold uppercase tracking-wider px-8 py-3 rounded-md transition-colors text-sm">
@@ -622,13 +622,13 @@ function gvHomeSections(
           ${getContent('cta.subheading')}
         </p>
         <div class="flex flex-wrap justify-center gap-4">
-          <a href="${getContent('cta.primaryLink') || `${baseUrl}inventory`}"
+          <a href="${getContent('cta.primaryButton.destination') ? (getContent('cta.primaryButton.destination') === '__custom' ? getContent('cta.primaryButton.destination_url') : `${baseUrl}${getContent('cta.primaryButton.destination')}`) : `${baseUrl}inventory`}"
             class="bg-primary text-white font-bold uppercase tracking-wider px-8 py-4 rounded-md hover:opacity-90 transition-opacity">
-            ${getContent('cta.primaryButton') || 'Browse Inventory'}
+            ${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || 'Browse Inventory'}
           </a>
-          <a href="${getContent('cta.secondaryLink') || `${baseUrl}contact`}"
+          <a href="${getContent('cta.secondaryButton.destination') ? (getContent('cta.secondaryButton.destination') === '__custom' ? getContent('cta.secondaryButton.destination_url') : `${baseUrl}${getContent('cta.secondaryButton.destination')}`) : `${baseUrl}contact`}"
             class="bg-transparent border-2 border-white text-white hover:bg-white hover:text-secondary font-bold uppercase tracking-wider px-8 py-4 rounded-md transition-colors">
-            ${getContent('cta.secondaryButton') || 'Contact Us'}
+            ${getContent('cta.secondaryButton.text') || getContent('cta.secondaryButton') || 'Contact Us'}
           </a>
         </div>
       </div>
