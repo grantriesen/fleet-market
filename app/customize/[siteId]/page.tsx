@@ -8,6 +8,112 @@ import { GuidedTourOverlay, CompletionChecklist, getTourSteps, getCompletionChec
 
 type Tab = 'content' | 'design' | 'pages';
 
+// ── ButtonFieldWidget — standalone to prevent focus loss on re-render ──
+interface ButtonFieldWidgetProps {
+  fieldKey: string;
+  field: any;
+  content: Record<string, string>;
+  updateContent: (key: string, value: string) => void;
+  templateConfig: any;
+}
+
+function ButtonFieldWidget({ fieldKey, field, content, updateContent, templateConfig }: ButtonFieldWidgetProps) {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+  const btnTextKey = `${fieldKey}.text`;
+  const btnDestKey = `${fieldKey}.destination`;
+  const btnTextVal = content[btnTextKey] !== undefined ? content[btnTextKey] : (field.defaultText || field.default || '');
+  const btnDestVal = content[btnDestKey] !== undefined ? content[btnDestKey] : (field.defaultDestination || '');
+  const bfPages = templateConfig?.pages || [];
+  const selectedPage = bfPages.find((p: any) => p.slug === btnDestVal);
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-2">
+        {field.label}
+        {(field.helpText || field.help) && (
+          <span className="text-xs text-gray-500 block mt-1">{field.helpText || field.help}</span>
+        )}
+      </label>
+      <div className="flex gap-1.5 items-stretch">
+        <input
+          type="text"
+          value={btnTextVal}
+          onChange={(e) => updateContent(btnTextKey, e.target.value)}
+          className="flex-1 px-3 py-2 border rounded text-sm"
+          placeholder={field.defaultText || field.default || 'Button label'}
+        />
+        <div className="relative flex-shrink-0" ref={dropdownRef}>
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            title={selectedPage ? `Links to: ${selectedPage.name}` : 'Set link destination'}
+            className={`h-full px-2.5 border rounded flex items-center justify-center transition-colors ${selectedPage || btnDestVal ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-300 bg-white text-gray-400 hover:text-gray-600 hover:border-gray-400'}`}
+          >
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+          </button>
+          {open && (
+            <div className="absolute right-0 top-full mt-1 z-50 bg-white border rounded shadow-lg min-w-[160px]">
+              <div className="py-1">
+                <button
+                  type="button"
+                  onClick={() => { updateContent(btnDestKey, ''); setOpen(false); }}
+                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${!btnDestVal ? 'font-semibold text-blue-600' : 'text-gray-500'}`}
+                >
+                  No link
+                </button>
+                <div className="border-t my-1" />
+                {bfPages.map((p: any) => (
+                  <button
+                    key={p.slug}
+                    type="button"
+                    onClick={() => { updateContent(btnDestKey, p.slug); setOpen(false); }}
+                    className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${btnDestVal === p.slug ? 'font-semibold text-blue-600' : 'text-gray-700'}`}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+                <div className="border-t my-1" />
+                <button
+                  type="button"
+                  onClick={() => { updateContent(btnDestKey, '__custom'); setOpen(false); }}
+                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${btnDestVal === '__custom' ? 'font-semibold text-blue-600' : 'text-gray-500'}`}
+                >
+                  Custom URL...
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      {btnDestVal === '__custom' && (
+        <input
+          type="text"
+          value={content[`${btnDestKey}_url`] || ''}
+          onChange={(e) => updateContent(`${btnDestKey}_url`, e.target.value)}
+          className="w-full px-3 py-2 border rounded mt-2 text-sm"
+          placeholder="https://example.com"
+        />
+      )}
+      {selectedPage && !open && (
+        <p className="text-xs text-blue-500 mt-1">→ {selectedPage.name}</p>
+      )}
+    </div>
+  );
+}
+
 export default function CustomizePage({ params }: { params: { siteId: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -527,104 +633,6 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
     }
   };
 
-  // ── ButtonField widget (needs hooks so defined as inner component) ──
-  const ButtonFieldWidget = ({ fieldKey, field }: { fieldKey: string; field: any }) => {
-    const [open, setOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-      if (!open) return;
-      const handler = (e: MouseEvent) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-          setOpen(false);
-        }
-      };
-      document.addEventListener('mousedown', handler);
-      return () => document.removeEventListener('mousedown', handler);
-    }, [open]);
-    const btnTextKey = `${fieldKey}.text`;
-    const btnDestKey = `${fieldKey}.destination`;
-    const btnTextVal = content[btnTextKey] !== undefined ? content[btnTextKey] : (field.defaultText || field.default || '');
-    const btnDestVal = content[btnDestKey] !== undefined ? content[btnDestKey] : (field.defaultDestination || '');
-    const bfPages = templateConfig?.pages || [];
-    const selectedPage = bfPages.find((p: any) => p.slug === btnDestVal);
-    return (
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          {field.label}
-          {(field.helpText || field.help) && (
-            <span className="text-xs text-gray-500 block mt-1">{field.helpText || field.help}</span>
-          )}
-        </label>
-        <div className="flex gap-1.5 items-stretch">
-          <input
-            type="text"
-            value={btnTextVal}
-            onChange={(e) => updateContent(btnTextKey, e.target.value)}
-            className="flex-1 px-3 py-2 border rounded text-sm"
-            placeholder={field.defaultText || field.default || 'Button label'}
-          />
-          <div className="relative flex-shrink-0" ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => setOpen(!open)}
-              title={selectedPage ? `Links to: ${selectedPage.name}` : 'Set link destination'}
-              className={`h-full px-2.5 border rounded flex items-center justify-center transition-colors ${selectedPage || btnDestVal ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-300 bg-white text-gray-400 hover:text-gray-600 hover:border-gray-400'}`}
-            >
-              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-              </svg>
-            </button>
-            {open && (
-              <div className="absolute right-0 top-full mt-1 z-50 bg-white border rounded shadow-lg min-w-[160px]">
-                <div className="py-1">
-                  <button
-                    type="button"
-                    onClick={() => { updateContent(btnDestKey, ''); setOpen(false); }}
-                    className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${!btnDestVal ? 'font-semibold text-blue-600' : 'text-gray-500'}`}
-                  >
-                    No link
-                  </button>
-                  <div className="border-t my-1" />
-                  {bfPages.map((p: any) => (
-                    <button
-                      key={p.slug}
-                      type="button"
-                      onClick={() => { updateContent(btnDestKey, p.slug); setOpen(false); }}
-                      className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${btnDestVal === p.slug ? 'font-semibold text-blue-600' : 'text-gray-700'}`}
-                    >
-                      {p.name}
-                    </button>
-                  ))}
-                  <div className="border-t my-1" />
-                  <button
-                    type="button"
-                    onClick={() => { updateContent(btnDestKey, '__custom'); setOpen(false); }}
-                    className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${btnDestVal === '__custom' ? 'font-semibold text-blue-600' : 'text-gray-500'}`}
-                  >
-                    Custom URL...
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        {btnDestVal === '__custom' && (
-          <input
-            type="text"
-            value={content[`${btnDestKey}_url`] || ''}
-            onChange={(e) => updateContent(`${btnDestKey}_url`, e.target.value)}
-            className="w-full px-3 py-2 border rounded mt-2 text-sm"
-            placeholder="https://example.com"
-          />
-        )}
-        {selectedPage && !open && (
-          <p className="text-xs text-blue-500 mt-1">→ {selectedPage.name}</p>
-        )}
-      </div>
-    );
-  };
-
   // Render field based on type
   const renderField = (sectionKey: string, field: any) => {
     const fieldKey = `${sectionKey}.${field.key}`;
@@ -817,7 +825,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
       }
 
       case 'buttonField':
-        return <ButtonFieldWidget key={field.key} fieldKey={fieldKey} field={field} />;
+        return <ButtonFieldWidget key={field.key} fieldKey={fieldKey} field={field} content={content} updateContent={updateContent} templateConfig={templateConfig} />;
 
       default:
         // Render any unknown field types as text inputs so nothing gets dropped
