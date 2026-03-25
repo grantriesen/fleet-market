@@ -34,12 +34,12 @@ interface ActivityItem {
   time: string;
 }
 
-// Simple helper — replaces hasFeature/SubscriptionTier entirely
-// Source arrays — used for both fetching counts and clearing on click
+// Source arrays for notification bucketing
 const CONTACT_SOURCES   = ['contact_form', 'contact'];
 const SERVICE_SOURCES   = ['quote_request', 'service', 'service_request', 'service_scheduling'];
 const INVENTORY_SOURCES = ['product_quote_request', 'order', 'inventory'];
 
+// Simple helper — replaces hasFeature/SubscriptionTier entirely
 function hasAddon(site: Site, addon: string): boolean {
   return Array.isArray(site.addons) && site.addons.includes(addon);
 }
@@ -169,14 +169,15 @@ export default function DashboardPage() {
     }
   }
 
-  // Clear a notification bucket optimistically + mark DB rows read in background
-  async function clearNotification(key: 'contact' | 'service' | 'inventory' | 'rentals') {
-    if (!site) return;
-    setNotifications(prev => ({ ...prev, [key]: 0 }));
-    if (key === 'rentals') return; // rentals use status not read flag
-    const sources = key === 'contact' ? CONTACT_SOURCES : key === 'service' ? SERVICE_SOURCES : INVENTORY_SOURCES;
-    await supabase.from('lead_captures').update({ read: true }).eq('site_id', site.id).in('source', sources).eq('read', false);
-  }
+  // Called by destination pages via sessionStorage to signal "I've cleared my reads"
+  // Also reload stats when window regains focus (user navigates back)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (site) loadStats(site.id);
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [site]);
 
   if (loading) {
     return (
@@ -211,13 +212,13 @@ export default function DashboardPage() {
 
   // ── Quick actions — addon-gated ──
   const quickActions = [
-    { title: 'Analytics',    description: 'View detailed analytics', icon: BarChart3,    href: '/dashboard/analytics',   color: 'bg-blue-500',    addon: null,        notify: null },
-    { title: 'My Website',   description: 'Edit and customize',      icon: Globe,        href: '/dashboard/website',     color: 'bg-green-500',   addon: null,        notify: null },
-    { title: 'Leads',        description: 'Contact form submissions', icon: Mail,         href: '/dashboard/leads',       color: 'bg-indigo-500',  addon: null,        notify: notifications.contact   > 0 ? 'contact'   as const : null },
-    { title: 'Testimonials', description: 'Manage customer reviews',  icon: MessageSquare,href: '/dashboard/testimonials',color: 'bg-pink-500',    addon: null,        notify: null },
-    { title: 'Inventory',    description: 'Manage equipment',         icon: Package,      href: '/dashboard/inventory',   color: 'bg-orange-500',  addon: 'inventory', notify: notifications.inventory > 0 ? 'inventory' as const : null },
-    { title: 'Rentals',      description: 'Track bookings',           icon: Wrench,       href: '/dashboard/rentals',     color: 'bg-purple-500',  addon: 'rentals',   notify: notifications.rentals  > 0 ? 'rentals'   as const : null },
-    { title: 'Service',      description: 'Manage service requests',  icon: Calendar,     href: '/dashboard/service',     color: 'bg-red-500',     addon: 'service',   notify: notifications.service  > 0 ? 'service'   as const : null },
+    { title: 'Analytics',    description: 'View detailed analytics', icon: BarChart3,    href: '/dashboard/analytics',   color: 'bg-blue-500',    addon: null,        notify: false },
+    { title: 'My Website',   description: 'Edit and customize',      icon: Globe,        href: '/dashboard/website',     color: 'bg-green-500',   addon: null,        notify: false },
+    { title: 'Leads',        description: 'Contact form submissions', icon: Mail,         href: '/dashboard/leads',       color: 'bg-indigo-500',  addon: null,        notify: notifications.contact   > 0 },
+    { title: 'Testimonials', description: 'Manage customer reviews',  icon: MessageSquare,href: '/dashboard/testimonials',color: 'bg-pink-500',    addon: null,        notify: false },
+    { title: 'Inventory',    description: 'Manage equipment',         icon: Package,      href: '/dashboard/inventory',   color: 'bg-orange-500',  addon: 'inventory', notify: notifications.inventory > 0 },
+    { title: 'Rentals',      description: 'Track bookings',           icon: Wrench,       href: '/dashboard/rentals',     color: 'bg-purple-500',  addon: 'rentals',   notify: notifications.rentals  > 0 },
+    { title: 'Service',      description: 'Manage service requests',  icon: Calendar,     href: '/dashboard/service',     color: 'bg-red-500',     addon: 'service',   notify: notifications.service  > 0 },
   ];
 
   // Addon badge label
@@ -290,10 +291,7 @@ export default function DashboardPage() {
                   return (
                     <button
                       key={action.title}
-                      onClick={() => {
-                        if (!isLocked && action.notify) clearNotification(action.notify);
-                        router.push(isLocked ? `/dashboard/upgrade?feature=${action.addon}` : action.href);
-                      }}
+                      onClick={() => router.push(isLocked ? `/dashboard/upgrade?feature=${action.addon}` : action.href)}
                       className={`relative w-full p-4 rounded-lg border-2 transition-all text-left group ${
                         isLocked
                           ? 'border-slate-200 bg-slate-50 hover:border-slate-300'
