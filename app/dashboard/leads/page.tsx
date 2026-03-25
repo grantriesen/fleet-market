@@ -26,11 +26,11 @@ interface UnifiedActivity {
   read?: boolean;
 }
 
-const TYPE_CONFIG: Record<ActivityType, { label: string; icon: any; bg: string; color: string; border: string }> = {
-  lead:    { label: 'Lead',           icon: Mail,        bg: 'bg-blue-50',   color: 'text-blue-700',   border: 'border-blue-200' },
-  rental:  { label: 'Rental Booking', icon: Wrench,      bg: 'bg-purple-50', color: 'text-purple-700', border: 'border-purple-200' },
-  service: { label: 'Service Request',icon: Calendar,    bg: 'bg-orange-50', color: 'text-orange-700', border: 'border-orange-200' },
-  order:   { label: 'Order',          icon: ShoppingBag, bg: 'bg-green-50',  color: 'text-green-700',  border: 'border-green-200' },
+const TYPE_CONFIG: Record<ActivityType, { label: string; icon: any; bg: string; color: string; border: string; iconBg: string; iconColor: string; badgeBg: string }> = {
+  lead:    { label: 'Lead',           icon: Mail,        bg: 'bg-blue-50',   color: 'text-blue-700',   border: 'border-blue-200', iconBg: 'bg-blue-600',   iconColor: 'text-white', badgeBg: 'bg-blue-600'   },
+  rental:  { label: 'Rental Booking', icon: Wrench,      bg: 'bg-purple-50', color: 'text-purple-700', border: 'border-purple-200', iconBg: 'bg-purple-600', iconColor: 'text-white', badgeBg: 'bg-purple-600' },
+  service: { label: 'Service Request',icon: Calendar,    bg: 'bg-orange-50', color: 'text-orange-700', border: 'border-orange-200', iconBg: 'bg-orange-500', iconColor: 'text-white', badgeBg: 'bg-orange-500' },
+  order:   { label: 'Order',          icon: ShoppingBag, bg: 'bg-green-50',  color: 'text-green-700',  border: 'border-green-200', iconBg: 'bg-emerald-600',iconColor: 'text-white', badgeBg: 'bg-emerald-600'},
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -155,7 +155,7 @@ export default function LeadsPage() {
   }, [search, typeFilter, items]);
 
   const markRead = async (id: string, type: ActivityType) => {
-    // For leads, update DB. For others, track in localStorage as read set
+    // Leads: update DB read flag. Everything else: localStorage
     if (type === 'lead') {
       await supabase.from('lead_captures').update({ read: true }).eq('id', id);
     } else {
@@ -165,7 +165,12 @@ export default function LeadsPage() {
         localStorage.setItem(key, JSON.stringify([...existing, id]));
       }
     }
-    setItems(prev => prev.map(i => i.id === id ? { ...i, read: true, status: i.type === 'rental' ? i.status : 'read' } : i));
+    setItems(prev => prev.map(i => i.id === id ? {
+      ...i,
+      read: true,
+      // Preserve meaningful statuses (pending/confirmed/etc), only reset 'new'
+      status: i.status === 'new' ? 'read' : i.status,
+    } : i));
   };
 
   const markAllRead = () => {
@@ -204,8 +209,17 @@ export default function LeadsPage() {
           </button>
           <div className="flex-1">
             <h1 className="text-xl font-bold text-slate-800">Activity Feed</h1>
-            <div className="flex items-center gap-3"><p className="text-sm text-slate-500">{counts.all} total{unread > 0 ? ` · ${unread} unread` : ''}</p>{unread > 0 && <button onClick={markAllRead} className="text-xs text-slate-500 hover:text-slate-700 underline">Mark all read</button>}</div>
+            <p className="text-sm text-slate-500">{counts.all} total{unread > 0 ? ` · ${unread} unread` : ''}</p>
           </div>
+          {unread > 0 && (
+            <button
+              onClick={markAllRead}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors whitespace-nowrap"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Mark all read
+            </button>
+          )}
         </div>
       </div>
 
@@ -257,7 +271,7 @@ export default function LeadsPage() {
             {filtered.map(item => {
               const cfg = TYPE_CONFIG[item.type];
               const Icon = cfg.icon;
-              const isUnread = item.type === 'lead' && !item.read;
+              const isUnread = !item.read;
               return (
                 <div
                   key={`${item.type}-${item.id}`}
@@ -266,14 +280,14 @@ export default function LeadsPage() {
                 >
                   <div className="p-4 flex items-start gap-4">
                     {/* Type icon */}
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
-                      <Icon className={`w-5 h-5 ${cfg.color}`} />
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${cfg.iconBg}`}>
+                      <Icon className={`w-5 h-5 ${cfg.iconColor}`} />
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color} ${cfg.border}`}>
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full text-white tracking-wide ${cfg.badgeBg}`}>
                           {cfg.label}
                         </span>
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status] || 'bg-slate-100 text-slate-600'}`}>
