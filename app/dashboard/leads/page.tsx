@@ -155,7 +155,15 @@ export default function LeadsPage() {
   // Mark all lead_captures as read when this page is visited
   useEffect(() => {
     if (!site) return;
-    supabase.from('lead_captures').update({ read: true }).eq('site_id', site.id).eq('read', false);
+    console.log('[read] site.id =', site.id);
+    supabase
+      .from('lead_captures')
+      .update({ read: true })
+      .eq('site_id', site.id)
+      .eq('read', false)
+      .then(({ data, error, count }) => {
+        console.log('[read] update result:', { data, error, count });
+      });
   }, [site]);
 
   useEffect(() => {
