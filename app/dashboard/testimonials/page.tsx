@@ -89,7 +89,7 @@ export default function TestimonialsPage() {
 
       const { data: siteData, error: siteErr } = await supabase
         .from('sites')
-        .select('id, site_name, slug, template')
+        .select('id, site_name, slug')
         .eq('user_id', user.id)
         .maybeSingle();
 
