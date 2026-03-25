@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Mail, User, Phone, Calendar, Search,
   Loader2, MessageSquare, Wrench, ShoppingBag, ExternalLink,
-  ChevronRight, Filter, X, CheckCircle
+  ChevronRight, Filter, X, CheckCircle, Clock, DollarSign, Tag
 } from 'lucide-react';
 
 type ActivityType = 'lead' | 'rental' | 'service' | 'order';
@@ -61,6 +61,7 @@ export default function LeadsPage() {
   const [filtered, setFiltered]     = useState<UnifiedActivity[]>([]);
   const [search, setSearch]         = useState('');
   const [typeFilter, setTypeFilter] = useState<ActivityType | 'all'>('all');
+  const [selectedItem, setSelectedItem] = useState<UnifiedActivity | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -313,17 +314,8 @@ export default function LeadsPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {isUnread && (
-                        <button
-                          onClick={() => markRead(item.id, item.type)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-700 hover:bg-slate-800 rounded-lg whitespace-nowrap"
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          Mark Read
-                        </button>
-                      )}
                       <button
-                        onClick={() => router.push(item.href)}
+                        onClick={() => { setSelectedItem(item); if (isUnread) markRead(item.id, item.type); }}
                         className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg"
                       >
                         View <ChevronRight className="w-4 h-4" />
@@ -335,6 +327,157 @@ export default function LeadsPage() {
             })}
           </div>
         )}
+
+      {/* ── Detail Modal ── */}
+      {selectedItem && (() => {
+        const cfg = TYPE_CONFIG[selectedItem.type];
+        const Icon = cfg.icon;
+        const statusOptions: Record<ActivityType, string[]> = {
+          lead:    ['new', 'read'],
+          rental:  ['pending', 'confirmed', 'active', 'completed', 'cancelled'],
+          service: ['pending', 'confirmed', 'completed', 'cancelled'],
+          order:   ['pending', 'paid', 'fulfilled', 'canceled', 'refunded'],
+        };
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedItem(null)} />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden">
+              {/* Modal header */}
+              <div className={`px-6 py-4 flex items-center gap-3 ${cfg.iconBg}`}>
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-white/70 uppercase tracking-wide">{cfg.label}</p>
+                  <p className="font-bold text-white truncate">{selectedItem.name}</p>
+                </div>
+                <button onClick={() => setSelectedItem(null)} className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors">
+                  <X className="w-4 h-4 text-white" />
+                </button>
+              </div>
+
+              {/* Modal body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-5">
+
+                {/* Contact info */}
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Contact</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    {selectedItem.email && (
+                      <a href={`mailto:${selectedItem.email}`} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-blue-50 transition-colors group">
+                        <Mail className="w-4 h-4 text-slate-400 group-hover:text-blue-500 flex-shrink-0" />
+                        <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 truncate">{selectedItem.email}</span>
+                      </a>
+                    )}
+                    {selectedItem.phone && (
+                      <a href={`tel:${selectedItem.phone}`} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-green-50 transition-colors group">
+                        <Phone className="w-4 h-4 text-slate-400 group-hover:text-green-500 flex-shrink-0" />
+                        <span className="text-sm font-medium text-slate-700 group-hover:text-green-600">{selectedItem.phone}</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Details */}
+                {(selectedItem.detail || selectedItem.amount) && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Details</p>
+                    <div className="space-y-2">
+                      {selectedItem.amount != null && selectedItem.amount > 0 && (
+                        <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl">
+                          <DollarSign className="w-4 h-4 text-green-600 flex-shrink-0" />
+                          <span className="text-sm font-semibold text-green-700">${selectedItem.amount.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {selectedItem.detail && (
+                        <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
+                          <MessageSquare className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-slate-700 leading-relaxed">{selectedItem.detail}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Meta */}
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Info</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl">
+                      <Tag className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-slate-400">Type</p>
+                        <p className="text-sm font-medium text-slate-700">{selectedItem.title}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl">
+                      <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-slate-400">Received</p>
+                        <p className="text-sm font-medium text-slate-700">{timeAgo(selectedItem.created_at)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status controls */}
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status</p>
+                  <div className="flex flex-wrap gap-2">
+                    {statusOptions[selectedItem.type].map(s => (
+                      <button
+                        key={s}
+                        onClick={async () => {
+                          if (selectedItem.type === 'lead') {
+                            await supabase.from('lead_captures').update({ read: s !== 'new', status: s }).eq('id', selectedItem.id);
+                          } else if (selectedItem.type === 'rental') {
+                            await supabase.from('rental_bookings').update({ status: s }).eq('id', selectedItem.id);
+                          } else if (selectedItem.type === 'service') {
+                            await supabase.from('service_requests').update({ status: s }).eq('id', selectedItem.id);
+                          } else if (selectedItem.type === 'order') {
+                            await supabase.from('orders').update({ status: s }).eq('id', selectedItem.id);
+                          }
+                          setItems(prev => prev.map(i => i.id === selectedItem.id ? { ...i, status: s, read: s !== 'new' } : i));
+                          setSelectedItem(prev => prev ? { ...prev, status: s } : prev);
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-colors ${
+                          selectedItem.status === s
+                            ? `${cfg.iconBg} text-white`
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal footer */}
+              <div className="px-6 py-4 border-t border-slate-100 flex justify-between items-center gap-3">
+                {!selectedItem.read && (
+                  <button
+                    onClick={async () => {
+                      await markRead(selectedItem.id, selectedItem.type);
+                      setSelectedItem(prev => prev ? { ...prev, read: true } : prev);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Mark as Read
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedItem(null)}
+                  className="ml-auto px-4 py-2 text-sm font-semibold text-white bg-slate-800 hover:bg-slate-900 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       </div>
     </div>
   );
