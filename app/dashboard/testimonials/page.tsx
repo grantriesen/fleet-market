@@ -200,7 +200,7 @@ export default function TestimonialsPage() {
 
       const { error } = await supabase
         .from('site_content')
-        .insert({ site_id: site.id, field_key: FIELD_KEY, value });
+        .insert({ site_id: site.id, field_key: FIELD_KEY, value, field_type: 'json' });
 
       if (error) throw error;
       setSaveStatus('success');
