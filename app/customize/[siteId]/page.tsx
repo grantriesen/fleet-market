@@ -1448,7 +1448,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                             Add manufacturer logos, descriptions, and links. Showcase which brands you're an authorized dealer for.
                           </p>
                           <button
-                            onClick={() => router.push(`/dashboard/settings/${params.siteId}?tab=manufacturers`)}
+                            onClick={() => router.push('/dashboard/manufacturers')}
                             className="bg-purple-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-purple-700 transition-colors inline-flex items-center gap-2"
                           >
                             Open Manufacturers Settings →
@@ -1532,7 +1532,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                             Add manufacturer logos, descriptions, and links from Settings.
                           </p>
                           <button
-                            onClick={() => router.push(`/dashboard/settings/${params.siteId}?tab=manufacturers`)}
+                            onClick={() => router.push('/dashboard/manufacturers')}
                             className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors inline-flex items-center gap-2"
                           >
                             Manage Manufacturers →
