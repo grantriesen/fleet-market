@@ -431,6 +431,19 @@ function getCtaSectionStyle(getContent: (key: string) => string, fallbackBg: str
   return `padding: 5rem 0; ${fallbackBg} color: white; text-align: center;`;
 }
 
+// ── Helper: resolve a buttonField destination to a preview URL ──────────────
+function resolveButtonHref(
+  getContent: (key: string) => string,
+  fieldKey: string,
+  defaultPage: string,
+  siteId: string
+): string {
+  const dest = getContent(`${fieldKey}.destination`);
+  if (!dest) return `/api/preview/${siteId}?page=${defaultPage}`;
+  if (dest === '__custom') return getContent(`${fieldKey}.destination_url`) || `/api/preview/${siteId}?page=${defaultPage}`;
+  return `/api/preview/${siteId}?page=${dest}`;
+}
+
 function renderGreenValleyHome(
   getContent: (key: string) => string,
   colors: any,
@@ -450,7 +463,7 @@ function renderGreenValleyHome(
           <h1 style="color: white; font-size: 3.5rem; margin-bottom: 1.5rem; font-weight: 900;">${getContent('hero.heading')}</h1>
           <p style="font-size: 1.25rem; margin-bottom: 2rem; color: rgba(255,255,255,0.9);">${getContent('hero.subheading')}</p>
           <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <a href="/api/preview/${siteId}?page=contact" style="background-color: var(--color-secondary); color: white; padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${getContent('hero.ctaButton')}</a>
+            <a href="${resolveButtonHref(getContent, 'hero.ctaButton', 'contact', siteId)}" style="background-color: var(--color-secondary); color: white; padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${getContent('hero.ctaButton.text') || getContent('hero.ctaButton')}</a>
           </div>
         </div>
       </div>
@@ -533,7 +546,7 @@ function renderGreenValleyHome(
       <div class="container">
         <h2 style="color: white; font-size: 2.5rem; margin-bottom: 1.5rem;">${getContent('cta.heading')}</h2>
         <p style="font-size: 1.25rem; margin-bottom: 2rem; color: rgba(255,255,255,0.9); max-width: 700px; margin-left: auto; margin-right: auto;">${getContent('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background: white; color: var(--color-primary); padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 1.125rem;">${getContent('cta.button')}</a>
+        <a href="${resolveButtonHref(getContent, 'cta.primaryButton', 'inventory', siteId)}" style="display: inline-block; background: white; color: var(--color-primary); padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 1.125rem;">${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || getContent('cta.button')}</a>
       </div>
     </section>
     `;
@@ -563,7 +576,7 @@ function renderModernLawnHome(
         <div style="max-width: 500px;">
           <h1 style="font-size: 3rem; margin-bottom: 1.5rem; color: var(--color-primary); font-weight: 700;">${getContent('hero.heading')}</h1>
           <p style="font-size: 1.125rem; margin-bottom: 2rem; color: #6b7280;">${getContent('hero.subheading')}</p>
-          <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background-color: var(--color-primary); color: white; padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${getContent('hero.ctaButton')}</a>
+          <a href="${resolveButtonHref(getContent, 'hero.ctaButton', 'contact', siteId)}" style="display: inline-block; background-color: var(--color-primary); color: white; padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${getContent('hero.ctaButton.text') || getContent('hero.ctaButton')}</a>
         </div>
       </div>
       <!-- Right Side - Image -->
@@ -651,7 +664,7 @@ function renderModernLawnHome(
       <div class="container" style="text-align: center;">
         <h2 style="color: white; font-size: 2.5rem; margin-bottom: 1.5rem;">${getContent('cta.heading')}</h2>
         <p style="font-size: 1.125rem; margin-bottom: 2rem; color: rgba(255,255,255,0.9); max-width: 600px; margin-left: auto; margin-right: auto;">${getContent('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background: white; color: var(--color-primary); padding: 1rem 2.5rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${getContent('cta.button')}</a>
+        <a href="${resolveButtonHref(getContent, 'cta.primaryButton', 'inventory', siteId)}" style="display: inline-block; background: white; color: var(--color-primary); padding: 1rem 2.5rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || getContent('cta.button')}</a>
       </div>
     </section>
     `;
@@ -770,7 +783,7 @@ function renderCorporateEdgeHome(
       <div class="container" style="padding-top: 5rem; padding-bottom: 5rem;">
         <h2 style="color: white; font-size: 2.25rem; margin-bottom: 1.25rem; font-weight: 700; letter-spacing: -0.02em;">${getContent('cta.headline')}</h2>
         <p style="font-size: 1.0625rem; margin-bottom: 2.5rem; color: rgba(255,255,255,0.9); max-width: 640px; margin-left: auto; margin-right: auto; line-height: 1.7;">${getContent('cta.subheadline')}</p>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background: var(--color-secondary); color: white; padding: 1rem 2.5rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 1rem;">${getContent('cta.button')}</a>
+        <a href="${resolveButtonHref(getContent, 'cta.primaryButton', 'inventory', siteId)}" style="display: inline-block; background: var(--color-secondary); color: white; padding: 1rem 2.5rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 1rem;">${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || getContent('cta.button')}</a>
       </div>
     </section>
     `;
@@ -803,7 +816,7 @@ function renderVibeDynamicsHome(
           <h2 style="color: var(--color-accent); font-size: 2rem; margin-bottom: 1rem; font-weight: 700;">${getContent('hero.subtitle')}</h2>
           <p style="font-size: 1.125rem; margin-bottom: 2rem; color: rgba(255,255,255,0.9);">${getContent('hero.description')}</p>
           <div style="display: flex; gap: 1rem;">
-            <a href="/api/preview/${siteId}?page=contact" style="background: linear-gradient(135deg, var(--color-secondary), var(--color-accent)); color: white; padding: 1.25rem 2.5rem; border-radius: 9999px; text-decoration: none; font-weight: 700; font-size: 1.125rem;">${getContent('hero.ctaPrimary')}</a>
+            <a href="${resolveButtonHref(getContent, 'hero.ctaButton', 'contact', siteId)}" style="background: linear-gradient(135deg, var(--color-secondary), var(--color-accent)); color: white; padding: 1.25rem 2.5rem; border-radius: 9999px; text-decoration: none; font-weight: 700; font-size: 1.125rem;">${getContent('hero.ctaButton.text') || getContent('hero.ctaPrimary') || getContent('hero.ctaButton')}</a>
           </div>
         </div>
       </div>
@@ -934,7 +947,7 @@ function renderVibeDynamicsHome(
       <div class="container" style="position: relative; z-index: 10;">
         <h2 style="color: white; font-size: 3.5rem; margin-bottom: 1.5rem; font-weight: 900; text-transform: uppercase;">${getContent('cta.heading')}</h2>
         <p style="font-size: 1.25rem; margin-bottom: 2rem; color: rgba(255,255,255,0.95); max-width: 600px; margin-left: auto; margin-right: auto; font-weight: 600;">${getContent('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background: white; color: var(--color-primary); padding: 1.25rem 3rem; border-radius: 9999px; text-decoration: none; font-weight: 900; font-size: 1.25rem; text-transform: uppercase; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">${getContent('cta.button')}</a>
+        <a href="${resolveButtonHref(getContent, 'cta.primaryButton', 'inventory', siteId)}" style="display: inline-block; background: white; color: var(--color-primary); padding: 1.25rem 3rem; border-radius: 9999px; text-decoration: none; font-weight: 900; font-size: 1.25rem; text-transform: uppercase; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || getContent('cta.button')}</a>
       </div>
     </section>
     `;
@@ -963,7 +976,7 @@ function renderZenithLawnHome(
         <div style="max-width: 600px;">
           <h1 style="font-size: 3rem; line-height: 1.3; margin-bottom: 2rem; color: #171717; font-weight: 300; letter-spacing: -0.02em;">${getContent('hero.heading')}</h1>
           <p style="font-size: 1.125rem; margin-bottom: 3rem; color: #737373; font-weight: 300; line-height: 1.8;">${getContent('hero.subheading')}</p>
-          <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; color: #171717; padding: 1rem 2rem; text-decoration: none; font-weight: 400; border: 1px solid #d4d4d4; transition: all 0.3s;">${getContent('hero.ctaButton')}</a>
+          <a href="${resolveButtonHref(getContent, 'hero.ctaButton', 'contact', siteId)}" style="display: inline-block; color: #171717; padding: 1rem 2rem; text-decoration: none; font-weight: 400; border: 1px solid #d4d4d4; transition: all 0.3s;">${getContent('hero.ctaButton.text') || getContent('hero.ctaButton')}</a>
         </div>
       </div>
     </section>
@@ -1025,7 +1038,7 @@ function renderZenithLawnHome(
     <section data-section="cta" style="padding: 8rem 0; border-top: 1px solid #e5e5e5; text-align: center;">
       <div class="container" style="max-width: 600px;">
         <h2 style="font-size: 2rem; margin-bottom: 2rem; color: #171717; font-weight: 300;">${getContent('cta.heading')}</h2>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; color: #171717; padding: 1rem 2rem; text-decoration: none; font-weight: 400; border: 1px solid #d4d4d4;">${getContent('cta.button')}</a>
+        <a href="${resolveButtonHref(getContent, 'cta.primaryButton', 'inventory', siteId)}" style="display: inline-block; color: #171717; padding: 1rem 2rem; text-decoration: none; font-weight: 400; border: 1px solid #d4d4d4;">${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || getContent('cta.button')}</a>
       </div>
     </section>
     `;
@@ -1056,8 +1069,8 @@ function renderWarmEarthHome(
           <h1 style="color: #fef3c7; font-size: 3rem; margin-bottom: 1.5rem; font-weight: 700; line-height: 1.2; font-family: 'Merriweather', serif;">${getContent('hero.heading')}</h1>
           <p style="font-size: 1.125rem; margin-bottom: 2rem; color: rgba(254, 243, 199, 0.9); line-height: 1.7;">${getContent('hero.subheading')}</p>
           <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <a href="/api/preview/${siteId}?page=contact" style="background-color: var(--color-accent); color: white; padding: 1rem 2rem; border-radius: 9999px; text-decoration: none; font-weight: 600;">${getContent('hero.ctaPrimary')}</a>
-            <a href="/api/preview/${siteId}?page=inventory" style="background-color: transparent; border: 2px solid var(--color-accent); color: var(--color-accent); padding: 1rem 2rem; border-radius: 9999px; text-decoration: none; font-weight: 600;">${getContent('hero.ctaSecondary')}</a>
+            <a href="${resolveButtonHref(getContent, 'hero.ctaButton', 'contact', siteId)}" style="background-color: var(--color-accent); color: white; padding: 1rem 2rem; border-radius: 9999px; text-decoration: none; font-weight: 600;">${getContent('hero.ctaButton.text') || getContent('hero.ctaPrimary') || getContent('hero.ctaButton')}</a>
+            <a href="${resolveButtonHref(getContent, 'hero.secondaryButton', 'inventory', siteId)}" style="background-color: transparent; border: 2px solid var(--color-accent); color: var(--color-accent); padding: 1rem 2rem; border-radius: 9999px; text-decoration: none; font-weight: 600;">${getContent('hero.secondaryButton.text') || getContent('hero.ctaSecondary') || getContent('hero.secondaryButton')}</a>
           </div>
         </div>
       </div>
@@ -1146,7 +1159,7 @@ function renderWarmEarthHome(
       <div class="container">
         <h2 style="color: #fef3c7; font-size: 2.5rem; margin-bottom: 1.5rem; font-family: 'Merriweather', serif; font-weight: 700;">${getContent('cta.heading')}</h2>
         <p style="font-size: 1.125rem; margin-bottom: 2rem; color: rgba(254, 243, 199, 0.9); max-width: 700px; margin-left: auto; margin-right: auto; line-height: 1.7;">${getContent('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background: var(--color-accent); color: white; padding: 1rem 2.5rem; border-radius: 9999px; text-decoration: none; font-weight: 600; font-size: 1.125rem;">${getContent('cta.button')}</a>
+        <a href="${resolveButtonHref(getContent, 'cta.primaryButton', 'inventory', siteId)}" style="display: inline-block; background: var(--color-accent); color: white; padding: 1rem 2.5rem; border-radius: 9999px; text-decoration: none; font-weight: 600; font-size: 1.125rem;">${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || getContent('cta.button')}</a>
       </div>
     </section>
     `;
