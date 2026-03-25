@@ -1511,6 +1511,140 @@ async function renderServicePageWithIntegration(
 }
 
 // Rentals Page with Integration Support
+async function renderInventoryPageWithIntegration(
+  siteId: string,
+  config: any,
+  getContent: (key: string) => string,
+  colors: any,
+  supabase: any
+): Promise<string> {
+  const heading    = getContent('inventoryPage.heading')    || 'Equipment Inventory';
+  const subheading = getContent('inventoryPage.subheading') || 'Browse our complete selection of equipment.';
+  const heroImage  = getContent('inventoryPage.heroImage');
+  const ctaHeading = getContent('inventoryPage.ctaHeading') || "Don\'t see what you\'re looking for?";
+  const ctaText    = getContent('inventoryPage.ctaText')    || "Contact us and we\'ll help you find the right equipment.";
+  const ctaButton  = getContent('inventoryPage.ctaButton.text') || getContent('inventoryPage.ctaButton') || 'Contact Us';
+  const ctaDest    = getContent('inventoryPage.ctaButton.destination') || getContent('inventoryPage.ctaLink') || 'contact';
+  const ctaHref    = ctaDest === '__custom' ? getContent('inventoryPage.ctaButton.destination_url') : ctaDest;
+
+  const { data: inventory } = await supabase
+    .from('inventory_items')
+    .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, featured, status, hours')
+    .eq('site_id', siteId)
+    .eq('status', 'available')
+    .order('featured', { ascending: false })
+    .order('display_order')
+    .limit(50);
+
+  const items = inventory || [];
+
+  const fmtPrice = (v: number | null) => {
+    if (!v) return 'Contact for Price';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
+  };
+
+  const categories = [...new Set(items.map((p: any) => p.category).filter(Boolean))] as string[];
+  const conditions  = [...new Set(items.map((p: any) => p.condition).filter(Boolean))] as string[];
+
+  const itemCards = items.map((item: any) => {
+    const pd = JSON.stringify({
+      id: item.id, title: item.title || '', description: item.description || '',
+      price: item.price || null, sale_price: item.sale_price || null,
+      primary_image: item.primary_image || null, category: item.category || '',
+      model: item.model || '', slug: item.slug || ''
+    }).replace(/"/g, '&quot;');
+    return `
+      <div class="inv-card" data-category="${item.category || ''}" data-condition="${item.condition || ''}"
+        style="background:white;border-radius:0.75rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);cursor:pointer;"
+        onclick="fmOpenProduct(${pd})">
+        ${item.primary_image
+          ? `<div style="aspect-ratio:4/3;overflow:hidden;"><img src="${item.primary_image}" alt="${item.title}" loading="lazy" style="width:100%;height:100%;object-fit:cover;"></div>`
+          : `<div style="aspect-ratio:4/3;background:linear-gradient(135deg,${colors.primary},${colors.accent});opacity:0.7;"></div>`
+        }
+        <div style="padding:1rem;">
+          <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:0.25rem;">${[item.category, item.model, item.year].filter(Boolean).join(' · ')}</p>
+          <h3 style="font-size:1.125rem;font-weight:700;color:#111827;margin-bottom:0.5rem;line-height:1.3;">${item.title}</h3>
+          ${item.hours ? `<p style="font-size:0.75rem;color:#9ca3af;margin-bottom:0.5rem;">${item.hours} hours</p>` : ''}
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:0.75rem;border-top:1px solid #f3f4f6;">
+            <span style="font-size:1.25rem;font-weight:700;color:${colors.primary};">${fmtPrice(item.price)}</span>
+            <span style="font-size:0.875rem;font-weight:600;color:${colors.secondary};">Details →</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    ${renderPageHero(heading, subheading, colors, heroImage, 'inventoryPage')}
+
+    ${categories.length > 1 || conditions.length > 1 ? `
+    <section style="padding:1rem 0;background:#f9fafb;border-bottom:2px solid #e5e7eb;position:sticky;top:64px;z-index:30;">
+      <div class="container" style="display:flex;flex-wrap:wrap;gap:1rem;align-items:center;">
+        ${categories.length > 1 ? `
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <label style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Category</label>
+          <select id="catFilter" style="padding:0.5rem 0.75rem;border:2px solid #e5e7eb;border-radius:0.5rem;font-size:0.875rem;">
+            <option value="all">All Equipment</option>
+            ${categories.map((cat: string) => `<option value="${cat}">${cat}</option>`).join('')}
+          </select>
+        </div>` : ''}
+        ${conditions.length > 1 ? `
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <label style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Condition</label>
+          <select id="condFilter" style="padding:0.5rem 0.75rem;border:2px solid #e5e7eb;border-radius:0.5rem;font-size:0.875rem;">
+            <option value="all">All Conditions</option>
+            ${conditions.map((c: string) => `<option value="${c}">${c.charAt(0).toUpperCase() + c.slice(1)}</option>`).join('')}
+          </select>
+        </div>` : ''}
+      </div>
+    </section>` : ''}
+
+    <section style="padding:4rem 0;">
+      <div class="container">
+        ${items.length === 0 ? `
+          <div style="text-align:center;padding:4rem;color:#9ca3af;">
+            <div style="font-size:4rem;margin-bottom:1rem;">📦</div>
+            <h2 style="font-size:1.5rem;font-weight:700;color:#374151;margin-bottom:0.5rem;">No Equipment Listed Yet</h2>
+            <p style="margin-bottom:1.5rem;">Check back soon — we\'re adding inventory regularly.</p>
+            <a href="contact" style="display:inline-block;background-color:${colors.primary};color:white;padding:0.75rem 1.5rem;border-radius:0.375rem;font-weight:600;text-decoration:none;">Contact Us</a>
+          </div>
+        ` : `
+          <p style="color:#6b7280;margin-bottom:1.5rem;" id="invCount">Showing <strong>${items.length}</strong> items</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem;" id="invGrid">
+            ${itemCards}
+          </div>
+        `}
+        <div style="margin-top:3rem;background:#f9fafb;border-radius:0.75rem;padding:2rem;text-align:center;">
+          <h2 style="font-size:1.5rem;font-weight:700;color:${colors.primary};margin-bottom:0.5rem;">${ctaHeading}</h2>
+          <p style="color:#6b7280;margin-bottom:1.5rem;">${ctaText}</p>
+          <a href="${ctaHref}" style="display:inline-block;background-color:${colors.primary};color:white;padding:0.75rem 1.5rem;border-radius:0.375rem;font-weight:600;text-decoration:none;">${ctaButton}</a>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      (function(){
+        var cat  = document.getElementById('catFilter');
+        var cond = document.getElementById('condFilter');
+        var cards = document.querySelectorAll('.inv-card');
+        var countEl = document.getElementById('invCount');
+        function filter(){
+          var c = cat ? cat.value : 'all';
+          var d = cond ? cond.value : 'all';
+          var n = 0;
+          cards.forEach(function(el){
+            var ok = (c==='all'||el.getAttribute('data-category')===c) && (d==='all'||el.getAttribute('data-condition')===d);
+            el.style.display = ok ? '' : 'none';
+            if(ok) n++;
+          });
+          if(countEl) countEl.innerHTML = 'Showing <strong>'+n+'</strong> items';
+        }
+        if(cat)  cat.addEventListener('change', filter);
+        if(cond) cond.addEventListener('change', filter);
+      })();
+    </script>
+  `;
+}
+
 async function renderRentalsPageWithIntegration(
   siteId: string,
   config: any,
