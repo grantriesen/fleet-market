@@ -58,16 +58,22 @@ export default function SiteSettingsPage({ params }: { params: { siteId: string 
       if (!s) { router.push('/dashboard'); return; }
       setSite(s);
 
-      const cfg    = s.config_json || {};
-      const content = cfg.content  || {};
+      // Load content from site_content table
+      const { data: contentRows } = await supabase
+        .from('site_content')
+        .select('field_key, value')
+        .eq('site_id', s.id);
+
+      const content: Record<string, string> = {};
+      (contentRows || []).forEach((row: any) => { content[row.field_key] = row.value; });
 
       setGeneral({
         siteName:     s.site_name || '',
-        businessName: content['businessInfo.businessName'] || content['business.name'] || s.site_name || '',
-        address:      content['businessInfo.address']      || content['business.address'] || '',
-        phone:        content['businessInfo.phone']        || content['business.phone']   || '',
-        email:        content['businessInfo.email']        || content['business.email']   || '',
-        website:      content['businessInfo.website']      || content['business.website'] || '',
+        businessName: content['businessInfo.businessName'] || s.site_name || '',
+        address:      content['businessInfo.address']      || '',
+        phone:        content['businessInfo.phone']        || '',
+        email:        content['businessInfo.email']        || '',
+        website:      content['businessInfo.website']      || '',
       });
 
       try {
@@ -94,31 +100,33 @@ export default function SiteSettingsPage({ params }: { params: { siteId: string 
     if (!site) return;
     setSaving(true);
     try {
-      const cfg     = site.config_json || {};
-      const content = { ...(cfg.content || {}) };
+      // Update site_name on sites table
+      const { error: nameError } = await supabase.from('sites')
+        .update({ site_name: general.siteName })
+        .eq('id', site.id);
+      if (nameError) throw nameError;
 
-      // Write all business info keys that different templates read
+      // Upsert each content field into site_content table
       const fields: Record<string, string> = {
         'businessInfo.businessName': general.businessName,
-        'business.name':             general.businessName,
         'businessInfo.address':      general.address,
-        'business.address':          general.address,
         'businessInfo.phone':        general.phone,
-        'business.phone':            general.phone,
         'businessInfo.email':        general.email,
-        'business.email':            general.email,
         'businessInfo.website':      general.website,
-        'business.website':          general.website,
       };
-      Object.assign(content, fields);
 
-      const { error: saveError } = await supabase.from('sites').update({
-        site_name:   general.siteName,
-        config_json: { ...cfg, content },
-      }).eq('id', site.id);
-      if (saveError) throw saveError;
+      const upserts = Object.entries(fields).map(([field_key, value]) => ({
+        site_id: site.id,
+        field_key,
+        value,
+      }));
 
-      setSite((p: any) => ({ ...p, site_name: general.siteName, config_json: { ...(p.config_json || {}), content } }));
+      const { error: contentError } = await supabase
+        .from('site_content')
+        .upsert(upserts, { onConflict: 'site_id,field_key' });
+      if (contentError) throw contentError;
+
+      setSite((p: any) => ({ ...p, site_name: general.siteName }));
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
@@ -133,24 +141,21 @@ export default function SiteSettingsPage({ params }: { params: { siteId: string 
     if (!site) return;
     setTestSaving(true);
     try {
-      const cfg     = site.config_json || {};
-      const content = { ...(cfg.content || {}) };
-      // Normalize each testimonial to include all field aliases
-      // so all 6 templates (which use different key names) can render them
+      // Normalize each testimonial with all field aliases
       const normalized = testimonials.map(({ id, author, role, company, text, rating }) => ({
-        // Primary fields
         id, author, role, company, text, rating,
-        // Aliases used by different templates
-        name: author,      // GVI, CE, ZL, WE, MLS, VD all use t.name
-        quote: text,       // GVI, CE, ZL, VD use t.quote
-        content: text,     // WE, MLS use t.content
-        title: role,       // GVI, CE, VD use t.title
-        location: company, // WE uses t.location
+        name: author, quote: text, content: text, title: role, location: company,
       }));
-      content['testimonials.items'] = JSON.stringify(normalized);
-      const { error: testSaveError } = await supabase.from('sites').update({ config_json: { ...cfg, content } }).eq('id', site.id);
+
+      const { error: testSaveError } = await supabase
+        .from('site_content')
+        .upsert({
+          site_id: site.id,
+          field_key: 'testimonials.items',
+          value: JSON.stringify(normalized),
+        }, { onConflict: 'site_id,field_key' });
       if (testSaveError) throw testSaveError;
-      setSite((p: any) => ({ ...p, config_json: { ...(p.config_json || {}), content } }));
+
       setTestSaved(true);
       setTimeout(() => setTestSaved(false), 2500);
     } catch (e) {
