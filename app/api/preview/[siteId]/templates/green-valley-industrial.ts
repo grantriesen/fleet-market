@@ -449,14 +449,14 @@ function gvHomeSections(
             ${getContent('hero.subheading')}
           </p>
           <div class="flex flex-wrap gap-4">
-            <a href="${getContent('hero.ctaButton.destination') ? (getContent('hero.ctaButton.destination') === '__custom' ? getContent('hero.ctaButton.destination_url') : `${baseUrl}${getContent('hero.ctaButton.destination')}`) : `${baseUrl}inventory`}"
+            <a href="${getContent('hero.ctaLink') || `${baseUrl}inventory`}"
               class="cta-button rounded-md">
-              ${getContent('hero.ctaButton.text') || getContent('hero.ctaButton') || 'View Inventory'}
+              ${getContent('hero.ctaButton') || 'View Inventory'}
             </a>
-            ${(getContent('hero.secondaryButton.text') || getContent('hero.secondaryButton')) ? `
-            <a href="${getContent('hero.secondaryButton.destination') === '__custom' ? getContent('hero.secondaryButton.destination_url') : `${baseUrl}${getContent('hero.secondaryButton.destination') || 'contact'}`}"
+            ${(getContent('hero.secondaryButton') || getContent('hero.secondaryLink')) ? `
+            <a href="${baseUrl}${getContent('hero.secondaryLink') || 'contact'}"
               class="bg-transparent border-2 border-white text-white hover:bg-white hover:text-primary font-bold uppercase tracking-wider px-8 py-3 rounded-md transition-colors text-sm">
-              ${getContent('hero.secondaryButton.text') || getContent('hero.secondaryButton') || 'Contact Us'}
+              ${getContent('hero.secondaryButton') || 'Contact Us'}
             </a>` : `
             <a href="${baseUrl}contact"
               class="bg-transparent border-2 border-white text-white hover:bg-white hover:text-primary font-bold uppercase tracking-wider px-8 py-3 rounded-md transition-colors text-sm">
@@ -622,13 +622,13 @@ function gvHomeSections(
           ${getContent('cta.subheading')}
         </p>
         <div class="flex flex-wrap justify-center gap-4">
-          <a href="${getContent('cta.primaryButton.destination') ? (getContent('cta.primaryButton.destination') === '__custom' ? getContent('cta.primaryButton.destination_url') : `${baseUrl}${getContent('cta.primaryButton.destination')}`) : `${baseUrl}inventory`}"
+          <a href="${getContent('cta.primaryLink') || `${baseUrl}inventory`}"
             class="bg-primary text-white font-bold uppercase tracking-wider px-8 py-4 rounded-md hover:opacity-90 transition-opacity">
-            ${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || 'Browse Inventory'}
+            ${getContent('cta.primaryButton') || 'Browse Inventory'}
           </a>
-          <a href="${getContent('cta.secondaryButton.destination') ? (getContent('cta.secondaryButton.destination') === '__custom' ? getContent('cta.secondaryButton.destination_url') : `${baseUrl}${getContent('cta.secondaryButton.destination')}`) : `${baseUrl}contact`}"
+          <a href="${getContent('cta.secondaryLink') || `${baseUrl}contact`}"
             class="bg-transparent border-2 border-white text-white hover:bg-white hover:text-secondary font-bold uppercase tracking-wider px-8 py-4 rounded-md transition-colors">
-            ${getContent('cta.secondaryButton.text') || getContent('cta.secondaryButton') || 'Contact Us'}
+            ${getContent('cta.secondaryButton') || 'Contact Us'}
           </a>
         </div>
       </div>
@@ -1014,7 +1014,7 @@ function gvServicePage(
             <div><label class="block text-sm font-semibold text-foreground mb-1">Email *</label><input type="email" id="sf-email" required class="w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none"></div>
             <div><label class="block text-sm font-semibold text-foreground mb-1">Equipment Details</label><input type="text" id="sf-equipment" placeholder="e.g., Toro Grandstand 52&quot;" class="w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none"></div>
             <div><label class="block text-sm font-semibold text-foreground mb-1">Notes</label><textarea id="sf-notes" rows="3" placeholder="Describe the issue..." class="w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none resize-y"></textarea></div>
-            <button id="sf-submit" class="w-full cta-button rounded-md text-center">${getContent('servicePage.ctaButton') || 'Schedule Service'}</button>
+            <button id="sf-submit" class="w-full cta-button rounded-md text-center">${getContent('servicePage.ctaButton.text') || getContent('servicePage.ctaButton') || 'Schedule Service'}</button>
           </div>
         </div>
       </div>
@@ -1042,7 +1042,7 @@ function gvServicePage(
   <script>
     (function() {
       var siteId = '${siteId}';
-      var ctaLabel = '${(getContent('servicePage.ctaButton') || 'Schedule Service').replace(/'/g, "\\'")}';
+      var ctaLabel = '${(getContent('servicePage.ctaButton.text') || getContent('servicePage.ctaButton') || 'Schedule Service').replace(/'/g, "\\'")}';
       var appUrl = '';
       var selectedService = null;
 
@@ -1162,7 +1162,7 @@ function gvServicePage(
             </div>
             <div><label class="block text-sm font-semibold text-foreground mb-1">Email *</label><input type="email" name="customerEmail" required class="w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none"></div>
             <div><label class="block text-sm font-semibold text-foreground mb-1">Describe the Issue *</label><textarea name="customerNotes" required rows="4" placeholder="Please describe the problem..." class="w-full px-3 py-2 border-2 border-border rounded-md bg-background text-foreground focus:border-primary focus:outline-none resize-y"></textarea></div>
-            <button type="submit" class="w-full cta-button rounded-md text-center">${getContent('servicePage.ctaButton') || 'Submit Service Request'}</button>
+            <button type="submit" class="w-full cta-button rounded-md text-center">${getContent('servicePage.ctaButton.text') || getContent('servicePage.ctaButton') || 'Submit Service Request'}</button>
           </form>
         </div>
       </div>
@@ -1322,7 +1322,7 @@ function gvInventoryPageStatic(
       <div class="mt-12 bg-muted rounded-lg p-6 md:p-8 text-center">
         <h2 class="text-2xl font-bold text-primary uppercase tracking-tight mb-2">${getContent('inventoryPage.ctaHeading') || "Don't see what you're looking for?"}</h2>
         <p class="text-muted-foreground mb-4">${getContent('inventoryPage.ctaText') || "Contact us and we'll help you find the right equipment for your needs."}</p>
-        <a href="${baseUrl}${getContent('inventoryPage.ctaLink') || 'contact'}" class="inline-flex items-center gap-2 cta-button rounded-md">${getContent('inventoryPage.ctaButton') || 'Contact Us'}</a>
+        <a href="${getContent('inventoryPage.ctaButton.destination') === '__custom' ? getContent('inventoryPage.ctaButton.destination_url') : `${baseUrl}${getContent('inventoryPage.ctaButton.destination') || getContent('inventoryPage.ctaLink') || 'contact'}`}" class="inline-flex items-center gap-2 cta-button rounded-md">${getContent('inventoryPage.ctaButton.text') || getContent('inventoryPage.ctaButton') || 'Contact Us'}</a>
       </div>
     </div>
   </section>
@@ -1427,8 +1427,8 @@ function gvRentalsPageStatic(
         })()}
         <h2 class="text-2xl font-bold text-foreground mb-2">${getContent('rentalsPage.ctaHeading') || 'Rental Equipment'}</h2>
         <p class="text-muted-foreground mb-6">${getContent('rentalsPage.ctaText') || 'Contact us for current rental availability and rates.'}</p>
-        <a href="${baseUrl}${getContent('rentalsPage.ctaLink') || 'contact'}" class="cta-button rounded-md inline-flex items-center gap-2">
-          ${getContent('rentalsPage.ctaButton') || 'Contact Us'}
+        <a href="${getContent('rentalsPage.ctaButton.destination') === '__custom' ? getContent('rentalsPage.ctaButton.destination_url') : `${baseUrl}${getContent('rentalsPage.ctaButton.destination') || getContent('rentalsPage.ctaLink') || 'contact'}`}" class="cta-button rounded-md inline-flex items-center gap-2">
+          ${getContent('rentalsPage.ctaButton.text') || getContent('rentalsPage.ctaButton') || 'Contact Us'}
         </a>
       </div>
 
