@@ -115,24 +115,13 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   } else if (templateSlug === 'vibe-dynamics') {
     html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers || [], sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, '/', site.addons || [], site.checkout_mode || 'quote_only');
   } else if (templateSlug === 'corporate-edge') {
-    console.log('CE render params:', {
-      siteId,
-      page,
-      addons: site.addons,
-      addonsIsArray: Array.isArray(site.addons),
-      enabledFeaturesType: typeof enabledFeatures,
-      enabledFeaturesIsSet: enabledFeatures instanceof Set,
-      visType: typeof vis,
-      availablePagesLength: availablePages?.length,
-      manufacturersLength: manufacturers?.length,
-    });
-    html = renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || []);
+    html = renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/');
   } else if (templateSlug === 'zenith-lawn') {
-    html = renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, '/');
+    html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, '/', supabase, site.addons || []);
   } else if (templateSlug === 'modern-lawn-solutions') {
-    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, '/');
+    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, '/', site.addons || []);
   } else if (templateSlug === 'warm-earth-designs') {
-    html = renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/');
+    html = await renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || []);
   } else {
     throw new Error(`Unknown template: ${templateSlug}`);
   }
@@ -183,16 +172,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
     try {
       html = await loadAndRender(site, page, supabase);
     } catch (renderError: any) {
-      console.error('Render error:', {
-        message: renderError?.message,
-        stack: renderError?.stack?.split('\n').slice(0,5).join(' | '),
-        template: site?.template?.slug,
-        page,
-        siteSlug: params.slug,
-        addons: site?.addons,
-        addonsType: typeof site?.addons,
-        isArray: Array.isArray(site?.addons),
-      });
+      console.error('Render error:', { message: renderError?.message, template: site?.template?.slug, page, siteSlug: params.slug });
       throw renderError;
     }
 

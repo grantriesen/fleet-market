@@ -214,11 +214,11 @@ async function generateTemplateHTML(
   } else if (templateSlug === 'corporate-edge') {
     html = renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || []);
   } else if (templateSlug === 'zenith-lawn') {
-    html = renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, previewBase);
+    html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, previewBase, supabase, site.addons || []);
   } else if (templateSlug === 'modern-lawn-solutions') {
-    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, previewBase);
+    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, previewBase, site.addons || []);
   } else if (templateSlug === 'warm-earth-designs') {
-    html = renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase);
+    html = await renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || []);
   } else {
     // Fallback for unknown templates
     html = '<p style="padding:2rem;">Preview not available for this template.</p>';
