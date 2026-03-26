@@ -466,8 +466,8 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
         </div>
       </div>
       <!-- Bottom wave -->
-      <div class="absolute bottom-0 left-0 right-0">
-        <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto" preserveAspectRatio="none">
+      <div class="absolute bottom-0 left-0 right-0" style="margin-bottom: -2px;">
+        <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto" preserveAspectRatio="none" style="display: block;">
           <path d="M0 60L1440 60L1440 30C1440 30 1320 0 720 0C120 0 0 30 0 30L0 60Z" fill="#f3f4f6"/>
         </svg>
       </div>
