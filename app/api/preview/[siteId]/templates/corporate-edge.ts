@@ -732,13 +732,13 @@ function ceServicePage(siteId: string, getContent: Function,
         ${services.map((s: any) => `
         <div class="border border-gray-200 rounded transition-corporate hover:shadow-lg bg-white overflow-hidden">
           ${s.image ? `<div class="aspect-video overflow-hidden"><img src="${s.image}" alt="${s.title}" class="w-full h-full object-cover"></div>` : ''}
-          <div class="p-6">
-            <div class="w-12 h-12 bg-blue-50 rounded flex items-center justify-center mb-4">
+          <div class="p-6 text-center">
+            <div class="w-12 h-12 bg-blue-50 rounded flex items-center justify-center mb-4 mx-auto">
               <span class="text-xl">${s.icon || '🔧'}</span>
             </div>
             <h3 class="font-heading font-semibold text-xl text-gray-900 mb-3">${s.title}</h3>
             <p class="text-gray-500 mb-4 text-sm leading-relaxed">${s.description}</p>
-            ${s.features ? `<ul class="space-y-2">${s.features.map((f: string) => `<li class="flex items-center gap-2 text-sm"><div class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>${f}</li>`).join('')}</ul>` : ''}
+            ${s.features ? `<ul class="space-y-2 text-left">${s.features.map((f: string) => `<li class="flex items-center gap-2 text-sm"><div class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>${f}</li>`).join('')}</ul>` : ''}
           </div>
         </div>`).join('')}
       </div>
