@@ -133,10 +133,19 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     ? true
     : (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync'));
 
+  console.log('[FM Cart Debug]', {
+    templateSlug,
+    needsCartSystem,
+    htmlLength: html.length,
+    hasBody: html.includes('</body>'),
+    hasModal: html.includes('fm-product-modal'),
+  });
+
   if (needsCartSystem && (templateSlug === 'corporate-edge' || !html.includes('fm-product-modal'))) {
     const checkoutMode = site.checkout_mode || 'quote_only';
     const cartHtml = injectCartSystem(siteId, checkoutMode, colors.primary);
     html = html.includes('</body>') ? html.replace('</body>', cartHtml + '\n</body>') : html + cartHtml;
+    console.log('[FM Cart Debug] Cart injected, new length:', html.length);
   }
 
   return html;
