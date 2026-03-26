@@ -146,7 +146,7 @@ export async function renderCorporateEdgePage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors, manufacturers, baseUrl); break;
-    case 'service': body = ceServicePage(siteId, getContent, baseUrl); break;
+    case 'service': body = ceServicePage(siteId, getContent, baseUrl, enabledFeatures, supabase); break;
     case 'contact': body = ceContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
     case 'inventory': body = ceInventoryPage(siteId, getContent, products, baseUrl); break;
     case 'rentals': body = await ceRentalsPage(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
@@ -688,7 +688,9 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
 
 // ── Service Page ──
 function ceServicePage(siteId: string, getContent: Function,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  enabledFeatures: Set<string> = new Set(),
+  supabase?: any
 ) {
   let services: any[] = [];
   // Build from config fields first, then fall back to JSON items
@@ -707,14 +709,21 @@ function ceServicePage(siteId: string, getContent: Function,
     try { services = JSON.parse(getContent('services.items') || '[]'); } catch {}
   }
 
+  const formHeading = getContent('servicePage.formHeading') || getContent('servicePage.ctaHeading') || 'Schedule a Service Consultation';
+  const formSubheading = getContent('servicePage.formSubheading') || 'Fill out the form below and our service team will contact you within one business day.';
+
+  const inputClass = 'w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none';
+  const buttonClass = 'w-full py-3 rounded font-semibold text-white bg-blue-900 transition-corporate hover:brightness-110';
+  const selectClass = 'w-full px-4 py-2.5 border border-gray-300 rounded text-sm bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none';
+
   return `
   ${cePageHeader(getContent('servicePage.heading') || getContent('services.heading') || 'Service Department', getContent('servicePage.subheading') || getContent('services.description') || '')}
 
   <section class="py-16 bg-white">
     <div class="container-corporate">
       <div class="text-center mb-12">
-        <h2 class="font-heading text-3xl font-bold text-gray-900 mb-4">Our Services</h2>
-        <p class="text-gray-500 max-w-2xl mx-auto">From routine maintenance to complex repairs, our certified technicians keep your equipment running at peak performance.</p>
+        <h2 class="font-heading text-3xl font-bold text-gray-900 mb-4">${getContent('servicePage.gridHeading') || 'Our Services'}</h2>
+        <p class="text-gray-500 max-w-2xl mx-auto">${getContent('servicePage.gridSubheading') || 'From routine maintenance to complex repairs, our certified technicians keep your equipment running at peak performance.'}</p>
       </div>
       <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         ${services.map((s: any) => `
@@ -730,8 +739,17 @@ function ceServicePage(siteId: string, getContent: Function,
     </div>
   </section>
 
-  ${ceFormSection(siteId, 'Schedule a Service Consultation', 'Fill out the form below and our service team will contact you within one business day.')}`;
-}
+  <section data-section="serviceCta" class="py-16 bg-gray-100">
+    <div class="container-corporate max-w-3xl">
+      <div class="text-center mb-12">
+        <h2 class="font-heading text-3xl font-bold text-gray-900 mb-4">${formHeading}</h2>
+        <p class="text-gray-500">${formSubheading}</p>
+      </div>
+      <div class="border border-gray-200 rounded bg-white p-8">
+        ${serviceFormHtml(siteId, enabledFeatures, inputClass, buttonClass, selectClass)}
+      </div>
+    </div>
+  </section>`;
 
 // ── Contact Page ──
 function ceContactPage(siteId: string, getContent: Function, weekdayHours: string, saturdayHours: string, sundayHours: string,
@@ -1083,5 +1101,4 @@ function ceFormSection(siteId: string, heading: string, description: string) {
   </section>`;
 }
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
-import { productCardOnclick } from './shared';
-import { injectCartSystem } from './shared';
+import { productCardOnclick, injectCartSystem, serviceFormHtml } from './shared';
