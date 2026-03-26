@@ -117,11 +117,11 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   } else if (templateSlug === 'corporate-edge') {
     html = await renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
   } else if (templateSlug === 'zenith-lawn') {
-    html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, '/', supabase, site.addons || []);
+    html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, '/', supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
   } else if (templateSlug === 'modern-lawn-solutions') {
-    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, '/', site.addons || []);
+    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, '/', site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
   } else if (templateSlug === 'warm-earth-designs') {
-    html = await renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || []);
+    html = await renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
   } else {
     throw new Error(`Unknown template: ${templateSlug}`);
   }

@@ -5,7 +5,7 @@
 //         wood texture overlays, organic/rustic aesthetic.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { sharedPreviewScript } from './shared';
+import { sharedPreviewScript, injectCartSystem } from './shared';
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
 import { serviceBookingSection } from './product-modal';
 
@@ -95,7 +95,9 @@ export async function renderWarmEarthPage(
   manufacturers: any[] = [],
   baseUrl: string = `/api/preview/${siteId}?page=`,
   supabase?: any,
-  siteAddons: string[] = []
+  siteAddons: string[] = [],
+  checkoutMode: string = 'quote_only',
+  stripeConnected: boolean = false
 ) {
   const WE_KEY_ALIASES: Record<string,string> = {
     'business.name':    'businessInfo.businessName',
@@ -146,12 +148,13 @@ export async function renderWarmEarthPage(
   }
 
   return weShell(gc('business.name') || 'Heartland Outdoor Equipment', C, siteId, currentPage,
-    weHeader(siteId, currentPage, pages, gc, C, baseUrl) + body + weFooter(siteId, pages, gc, C, wkday, sat, sun, baseUrl)
+    weHeader(siteId, currentPage, pages, gc, C, baseUrl) + body + weFooter(siteId, pages, gc, C, wkday, sat, sun, baseUrl),
+    enabledFeatures, checkoutMode
   );
 }
 
 // ── HTML Shell ──
-function weShell(title: string, C: any, siteId: string, page: string, body: string) {
+function weShell(title: string, C: any, siteId: string, page: string, body: string, enabledFeatures?: Set<string>, checkoutMode: string = 'quote_only') {
   return `<!DOCTYPE html><html lang="en"><head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>${title}</title>
@@ -177,6 +180,7 @@ function weShell(title: string, C: any, siteId: string, page: string, body: stri
     .form-we:focus { outline: none; border-color: ${C.accent}; box-shadow: 0 0 0 3px ${C.accent}30; }
     select.form-we { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2392673a' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; padding-right: 2.5rem; cursor: pointer; }
     .label-we { display: block; font-size: 0.875rem; font-weight: 600; color: ${C.fg}; margin-bottom: 0.375rem; }
+    :root { --color-primary: ${C.primary}; --color-secondary: ${C.secondary}; --color-accent: ${C.accent}; }
     .texture-wood { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.03'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9z'/%3E%3Cpath d='M6 5V0H5v5H0v1h5v94h1V6h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
 
     /* ── Mobile Responsive ── */
@@ -209,7 +213,7 @@ function weShell(title: string, C: any, siteId: string, page: string, body: stri
   </style>
 </head><body>${body}${sharedPreviewScript(siteId, page)}<script>
   function fmSubmitForm(form,siteId,formType,extraFn){var btn=form.querySelector('button[type="submit"]');var orig=btn?btn.innerHTML:'';if(btn){btn.disabled=true;btn.innerHTML='Submitting...';}var nameEl=form.querySelector('input[type="text"]');var emailEl=form.querySelector('input[type="email"]');var phoneEl=form.querySelector('input[type="tel"]');var msgEl=form.querySelector('textarea');var data={site_id:siteId,form_type:formType,name:nameEl?nameEl.value:null,email:emailEl?emailEl.value:null,phone:phoneEl?phoneEl.value:null,message:msgEl?msgEl.value:null,extra_data:extraFn?extraFn(form):null};fetch('/api/submit-form',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json();}).then(function(res){if(res.success){var suc=form.parentElement?form.parentElement.querySelector('[data-fm-success]'):null;if(suc){form.style.display='none';suc.style.display='block';}else{form.reset();if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';}}}else{if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');}}).catch(function(){if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');});}
-</script>${enabledFeatures && enabledFeatures.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
+</script>${enabledFeatures?.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}${injectCartSystem(siteId, checkoutMode, C.primary)}
 </body></html>`;
 }
 

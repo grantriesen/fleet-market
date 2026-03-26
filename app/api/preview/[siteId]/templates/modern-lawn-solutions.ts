@@ -4,7 +4,7 @@
 //         shadcn-inspired card system, muted gray backgrounds.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { sharedPreviewScript } from './shared';
+import { sharedPreviewScript, injectCartSystem, serviceFormHtml } from './shared';
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
 
 /* ── DEMO overrides ── */
@@ -88,7 +88,9 @@ export async function renderModernLawnPage(
   content?: Record<string, string>,
   supabase?: any,
   baseUrl: string = '',
-  siteAddons: string[] = []
+  siteAddons: string[] = [],
+  checkoutMode: string = 'quote_only',
+  stripeConnected: boolean = false
 ) {
   // Content resolution: passed content (from route) > customizations > config > demo overrides
   const MLS_KEY_ALIASES: Record<string,string> = {
@@ -143,7 +145,7 @@ export async function renderModernLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl); break;
-    case 'service': body = mlsServicePage(siteId, getContent, baseUrl); break;
+    case 'service': body = mlsServicePage(siteId, getContent, baseUrl, enabledFeatures); break;
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice, baseUrl); break;
     case 'rentals': body = await mlsRentalsPage(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
@@ -159,12 +161,15 @@ export async function renderModernLawnPage(
     currentPage,
     mlsHeader(siteId, currentPage, pages, getContent, colors, baseUrl) +
     body +
-    mlsFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl)
+    mlsFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl),
+    enabledFeatures,
+    checkoutMode,
+    stripeConnected
   );
 }
 
 // ── HTML Shell ──
-function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, page: string, body: string) {
+function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, page: string, body: string, enabledFeatures?: Set<string>, checkoutMode: string = 'quote_only', stripeConnected: boolean = false) {
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const googleFontsUrl = Array.from(fontFamilies)
     .map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700;800`)
@@ -247,6 +252,7 @@ function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, pa
     select.form-input:hover { border-color: #9ca3af; }
     select.form-input option { padding: 0.5rem; }
     .form-label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.375rem; }
+    :root { --color-primary: ${colors.primary}; --color-secondary: ${colors.secondary}; --color-accent: ${colors.accent}; }
 
     /* ── Mobile Responsive ── */
     @media (max-width: 768px) {
@@ -280,7 +286,9 @@ function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, pa
 </head>
 <body>
   ${body}
-  ${sharedPreviewScript(siteId, page)}${enabledFeatures && enabledFeatures.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
+  ${sharedPreviewScript(siteId, page)}
+  ${enabledFeatures?.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
+  ${injectCartSystem(siteId, checkoutMode, colors.primary)}
 </body>
 </html>`;
 }
@@ -620,7 +628,8 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
 //  SERVICE PAGE
 // ══════════════════════════════════════════════════
 function mlsServicePage(siteId: string, gc: (k: string) => string,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  enabledFeatures: Set<string> = new Set()
 ): string {
   let serviceItems: any[] = [];
   const ms1t = gc('servicePage.service1Title'); const ms1d = gc('servicePage.service1Text') || gc('servicePage.service1Description');
@@ -668,24 +677,8 @@ function mlsServicePage(siteId: string, gc: (k: string) => string,
     <div class="container-mls">
       <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
         <div class="card-mls" style="padding: 2rem;">
-          <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">Request Service</h3>
-          <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var s=f.querySelector('select');return s?{equipment_type:s.value}:null;});">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div><label class="form-label">Name *</label><input class="form-input" required placeholder="Your name"></div>
-              <div><label class="form-label">Email *</label><input class="form-input" type="email" required placeholder="your@email.com"></div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div><label class="form-label">Phone *</label><input class="form-input" type="tel" required placeholder="(555) 123-4567"></div>
-              <div><label class="form-label">Equipment Type *</label>
-                <select class="form-input" required>
-                  <option value="">Select type</option>
-                  <option>Mower</option><option>Trimmer</option><option>Blower</option><option>Chainsaw</option><option>Tractor</option><option>Other</option>
-                </select>
-              </div>
-            </div>
-            <div style="margin-bottom: 1rem;"><label class="form-label">Description of Issue *</label><textarea class="form-input" rows="5" required placeholder="Please describe the issue or service needed..."></textarea></div>
-            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Submit Service Request</button>
-          </form>
+          <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">${enabledFeatures.has('service_scheduling') ? 'Schedule Service' : 'Request Service'}</h3>
+          ${serviceFormHtml(siteId, enabledFeatures, 'form-input', 'btn-primary', 'form-input', 'form-label')}
         </div>
         <div style="display: flex; flex-direction: column; gap: 1.5rem;">
           ${mlsContactSidebar(gc)}

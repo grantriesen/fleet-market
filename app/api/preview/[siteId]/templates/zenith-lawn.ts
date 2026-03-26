@@ -4,6 +4,9 @@
 //         text-only brand display, clean product cards, fade-in animations.
 // ─────────────────────────────────────────────────────────────────────────
 
+import { injectCartSystem, serviceFormHtml } from './shared';
+import { rentalModalBlock, rentalReserveButton } from './shared-rental';
+
 /* ── DEMO overrides ── */
 export const ZENITH_LAWN_DEMO_OVERRIDES = {
   'business.name': 'Zenith Equipment Co.',
@@ -57,7 +60,9 @@ export async function renderZenithLawnPage(
   content: Record<string, string> = {},
   baseUrl: string = `/api/preview/${siteId}?page=`,
   supabase?: any,
-  siteAddons: string[] = []
+  siteAddons: string[] = [],
+  checkoutMode: string = 'quote_only',
+  stripeConnected: boolean = false
 ) {
   const ZL_KEY_ALIASES: Record<string, string> = {
     'business.name':    'businessInfo.businessName',
@@ -112,7 +117,7 @@ export async function renderZenithLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = zlHome(siteId, getContent, products, vis, colors, baseUrl); break;
-    case 'service': body = zlService(siteId, getContent, baseUrl); break;
+    case 'service': body = zlService(siteId, getContent, baseUrl, enabledFeatures); break;
     case 'contact': body = zlContact(siteId, getContent, hoursLine, baseUrl); break;
     case 'inventory': body = zlInventory(siteId, getContent, products, baseUrl); break;
     case 'rentals': body = await zlRentals(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
@@ -123,12 +128,13 @@ export async function renderZenithLawnPage(
   return zlShell(
     getContent('businessInfo.businessName') || getContent('business.name') || 'Zenith Equipment',
     fonts, colors,
-    zlHeader(siteId, currentPage, pages, getContent, baseUrl) + body + zlFooter(siteId, pages, getContent, hoursLine, baseUrl)
+    zlHeader(siteId, currentPage, pages, getContent, baseUrl) + body + zlFooter(siteId, pages, getContent, hoursLine, baseUrl),
+    enabledFeatures, siteId, checkoutMode
   );
 }
 
 // ── HTML Shell ──
-function zlShell(title: string, fonts: any, colors: any, body: string) {
+function zlShell(title: string, fonts: any, colors: any, body: string, enabledFeatures?: Set<string>, siteId?: string, checkoutMode: string = 'quote_only') {
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const gUrl = Array.from(fontFamilies).map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700&display=swap`).join('&');
   return `<!DOCTYPE html>
@@ -156,11 +162,12 @@ function zlShell(title: string, fonts: any, colors: any, body: string) {
     @media(min-width:768px){ .container-narrow { padding: 0 3rem; } }
     @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
     .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+    :root { --color-primary: ${colors.primary}; --color-secondary: ${colors.secondary}; --color-accent: ${colors.accent}; }
   </style>
 </head>
 <body>${body}<script>
   function fmSubmitForm(form,siteId,formType,extraFn){var btn=form.querySelector('button[type="submit"]');var orig=btn?btn.innerHTML:'';if(btn){btn.disabled=true;btn.innerHTML='Submitting...';}var nameEl=form.querySelector('input[type="text"]');var emailEl=form.querySelector('input[type="email"]');var phoneEl=form.querySelector('input[type="tel"]');var msgEl=form.querySelector('textarea');var data={site_id:siteId,form_type:formType,name:nameEl?nameEl.value:null,email:emailEl?emailEl.value:null,phone:phoneEl?phoneEl.value:null,message:msgEl?msgEl.value:null,extra_data:extraFn?extraFn(form):null};fetch('/api/submit-form',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json();}).then(function(res){if(res.success){var suc=form.parentElement?form.parentElement.querySelector('[data-fm-success]'):null;if(suc){form.style.display='none';suc.style.display='block';}else{form.reset();if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';}}}else{if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');}}).catch(function(){if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');});}
-</script>${enabledFeatures && enabledFeatures.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
+</script>${enabledFeatures?.has('rental_scheduling') ? rentalModalBlock('fm', siteId || '') : ''}${injectCartSystem(siteId || '', checkoutMode, colors.accent)}
 </body>
 </html>`;
 }
@@ -363,9 +370,10 @@ function zlProductCard(siteId: string, p: any, baseUrl: string = '') {
 
 // ── Service ──
 function zlService(siteId: string, getContent: Function,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  enabledFeatures: Set<string> = new Set()
 ) {
-  const formHeading = getContent('servicePage.formHeading') || 'Request Service';
+  const formHeading = getContent('servicePage.formHeading') || (enabledFeatures.has('service_scheduling') ? 'Schedule Service' : 'Request Service');
 
   // Build service cards from config fields
   const serviceCards = [1, 2, 3].map(i => {
@@ -384,6 +392,9 @@ function zlService(siteId: string, getContent: Function,
   }).filter(Boolean);
 
   const defaultServices = ['Routine maintenance & tune-ups','Engine diagnostics & repair','Blade sharpening & replacement','Electrical system repair','Seasonal winterization','Warranty service for authorized brands'];
+
+  const inputCls = 'w-full px-3 py-2.5 border border-neutral-200 rounded text-sm focus:outline-none focus:border-neutral-400 bg-white';
+  const btnCls = 'w-full py-3 bg-neutral-900 text-white text-sm font-medium rounded hover:bg-neutral-700 transition-colors cursor-pointer border-none';
 
   return zlPageHero(getContent, 'servicePage', 'Service & Repair', getContent('servicePage.subheading') || '') + `
   <section class="section-spacing">
@@ -406,14 +417,7 @@ function zlService(siteId: string, getContent: Function,
         </div>
         <div>
           <h2 class="text-xl font-light mb-8">${formHeading}</h2>
-          ${zlForm(siteId, [
-            { label: 'First Name', type: 'text', half: true },
-            { label: 'Last Name', type: 'text', half: true },
-            { label: 'Email', type: 'email' },
-            { label: 'Phone', type: 'tel' },
-            { label: 'Equipment Type & Model', type: 'text', placeholder: 'e.g., John Deere X350' },
-            { label: 'Issue Description', type: 'textarea', placeholder: 'Please describe the issue or service needed...' },
-          ], 'Submit Request')}
+          ${serviceFormHtml(siteId, enabledFeatures, inputCls, btnCls, inputCls, 'block text-xs font-medium text-neutral-600 mb-1')}
         </div>
       </div>
     </div>
@@ -692,4 +696,3 @@ function zlPageHero(getContent: Function, pageKey: string, defaultHeading: strin
   </section>`;
 }
 
-import { rentalModalBlock, rentalReserveButton } from './shared-rental';
