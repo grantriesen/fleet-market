@@ -213,7 +213,7 @@ var CE_STRIPE = ${stripeConnected ? 'true' : 'false'};
 var CE_SESSION_ID = sessionStorage.getItem('fm_cart_sid') || (function(){var s=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('fm_cart_sid',s);return s;})();
 var ceCurrentProduct = null;
 function ceCloseModal(){document.getElementById('ce-product-modal').classList.remove('open');}
-function fmOpenProduct(product){
+function ceBuildModal(product){
   ceCurrentProduct = product;
   var content=document.getElementById('ce-modal-content');
   if(!content)return;
@@ -246,9 +246,14 @@ function fmOpenProduct(product){
     +actionHtml;
   document.getElementById('ce-product-modal').classList.add('open');
 }
+// Define now so onclick works immediately, then redefine after load to win over cart system
+window.fmOpenProduct = ceBuildModal;
+window.addEventListener('load', function(){ window.fmOpenProduct = ceBuildModal; });
 function ceAddToCart(btn) {
   var product = ceCurrentProduct;
   if (!product) return;
+  // Delegate to shared cart system if available
+  if (window.fmAddToCart) { ceCloseModal(); window.fmAddToCart(product, 1); return; }
   var orig = btn ? btn.textContent : '';
   if (btn) { btn.textContent = 'Adding...'; btn.disabled = true; }
   fetch('/api/inventory/cart/'+CE_SITE_ID, {
@@ -258,7 +263,6 @@ function ceAddToCart(btn) {
     if (d.items) {
       if (btn) { btn.textContent = '\u2713 Added!'; btn.style.background='#16a34a'; }
       setTimeout(function(){ if(btn){btn.textContent=orig;btn.style.background=CE_PRIMARY;btn.disabled=false;} }, 2000);
-      if (window.fmOpenCart) window.fmOpenCart();
     } else {
       if (btn) { btn.textContent = orig; btn.disabled = false; }
       alert(d.error || 'Could not add to cart.');
@@ -268,6 +272,8 @@ function ceAddToCart(btn) {
 function ceBuyNow(btn) {
   var product = ceCurrentProduct;
   if (!product) return;
+  // Delegate to shared cart system if available
+  if (window.fmBuyNow) { ceCloseModal(); window.fmBuyNow(product); return; }
   if (btn) { btn.textContent = 'Redirecting...'; btn.disabled = true; }
   fetch('/api/inventory/cart/'+CE_SITE_ID, {
     method:'POST', headers:{'Content-Type':'application/json'},
