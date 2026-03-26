@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
             site_id: siteId,
             field_key: r.field_key,
             value: r.value,
+            field_type: r.field_type || 'text',
           })),
           { onConflict: 'site_id,field_key' }
         );
