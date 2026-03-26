@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import ImageUpload from '@/components/ImageUpload';
+import { buildOnboardingPrompt } from '@/lib/template-prompts';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import {
@@ -17,6 +18,7 @@ interface Site {
   slug: string;
   addons: string[];
   template: { slug: string; config_json: any };
+  templateSlug: string;
 }
 
 interface LibraryBrand {
@@ -192,6 +194,16 @@ export default function OnboardingPage({ params }: { params: { siteId: string } 
   async function handleAiAssist(field: 'services' | 'about') {
     setAiAssisting(field);
     try {
+      const templateSlug = site?.template?.slug || 'green-valley-industrial';
+      const toneMap: Record<string, string> = {
+        'green-valley-industrial': 'professional and direct, sentence case',
+        'corporate-edge': 'polished B2B professional, title case',
+        'modern-lawn-solutions': 'clean and approachable, sentence case',
+        'vibe-dynamics': 'HIGH ENERGY with ALL CAPS for emphasis, punchy and exciting',
+        'warm-earth-designs': 'warm and community-focused, personal and grounded',
+        'zenith-lawn': 'minimalist and premium, refined and understated',
+      };
+      const tone = toneMap[templateSlug] || 'professional';
       const isServices = field === 'services';
       const hasExisting = isServices ? form.servicesDescription.trim() : form.businessDescription.trim();
 
@@ -270,89 +282,25 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
     try {
       // ── Build AI prompt ──────────────────────────────────────────────────
       const addons = site.addons || [];
-      const prompt = `You are writing website copy for an outdoor power equipment and landscape contractor dealer.
-
-Here is information about the business:
-
-Business Name: ${form.businessName}
-Location: ${form.city}, ${form.state}
-Phone: ${form.phone}
-Email: ${form.email}
-Hours: ${form.weekdayHours}${form.saturdayHours ? ', ' + form.saturdayHours : ''}${form.sundayHours ? ', ' + form.sundayHours : ''}
-Years in Business: ${form.yearsInBusiness || 'not specified'}
-Service Area: ${form.serviceArea || 'local area'}
-Services Offered: ${form.servicesDescription}
-Brands Carried: ${form.selectedBrands.join(', ') || 'various brands'}
-
-In their own words: "${form.businessDescription}"
-
-Write website copy for this dealer. Use their voice and the specific details they provided. Keep it professional but approachable — this is a local equipment dealer, not a corporate chain. Be specific where you can — reference their brands, their service area, their specialties.
-
-Return ONLY a valid JSON object with these exact keys. No markdown, no backticks, no extra text before or after the JSON:
-
-{
-  "hero.heading": "Homepage hero heading (6-10 words, punchy, reflects their business)",
-  "hero.subheading": "Hero subheading (1-2 sentences, what they do and who they serve)",
-  "hero.ctaButton.text": "Primary CTA button text (2-4 words, action-oriented)",
-  "hero.secondaryButton.text": "Secondary CTA button text (2-4 words)",
-  "featured.heading": "Featured equipment section heading (2-4 words)",
-  "featured.subheading": "Featured equipment subheading (1 short sentence)",
-  "manufacturers.heading": "Brands section heading (3-5 words)",
-  "manufacturers.subheading": "Brands section subheading (1 short sentence)",
-  "testimonials.heading": "Testimonials section heading (3-5 words)",
-  "cta.heading": "Bottom CTA section heading (5-8 words, compelling)",
-  "cta.subheading": "Bottom CTA subheading (1-2 sentences encouraging contact)",
-  "cta.primaryButton.text": "CTA primary button text (2-4 words)",
-  "cta.secondaryButton.text": "CTA secondary button text (2-4 words)",
-  "footer.tagline": "Footer tagline (5-8 words, memorable brand statement)",
-  "contactPage.heading": "Contact page heading (2-4 words)",
-  "contactPage.subheading": "Contact page description (1-2 sentences)",
-  "contactPage.formHeading": "Contact form heading (3-5 words)",
-  "contactPage.locationHeading": "Location section heading (3-5 words)",
-  "manufacturersPage.heading": "Manufacturers page heading (3-5 words)",
-  "manufacturersPage.subheading": "Manufacturers page description (1-2 sentences)",
-  "manufacturersPage.introText": "Manufacturers page intro paragraph (2-3 sentences about being an authorized dealer)"${addons.includes('inventory') ? `,
-  "inventoryPage.heading": "Inventory page heading (2-4 words)",
-  "inventoryPage.subheading": "Inventory page description (1 sentence)",
-  "inventoryPage.ctaHeading": "Inventory CTA heading for when customer doesn't see what they want (5-8 words)",
-  "inventoryPage.ctaText": "Inventory CTA description (1 sentence)",
-  "inventoryPage.ctaButton.text": "Inventory CTA button text (2-4 words)",
-  "inventoryPage.filterLabel": "Filter label text (2-4 words)"` : ''}${addons.includes('service') ? `,
-  "servicePage.heading": "Service page heading (3-5 words)",
-  "servicePage.subheading": "Service page description (1-2 sentences)",
-  "servicePage.service1Title": "First service offering title (2-4 words, based on their services)",
-  "servicePage.service1Description": "First service description (1-2 sentences)",
-  "servicePage.service2Title": "Second service offering title (2-4 words)",
-  "servicePage.service2Description": "Second service description (1-2 sentences)",
-  "servicePage.service3Title": "Third service offering title (2-4 words)",
-  "servicePage.service3Description": "Third service description (1-2 sentences)",
-  "servicePage.whyChooseHeading": "Why choose our service section heading (3-6 words)",
-  "servicePage.why1Title": "First benefit title (2-4 words)",
-  "servicePage.why1Description": "First benefit description (1 sentence)",
-  "servicePage.why2Title": "Second benefit title (2-4 words)",
-  "servicePage.why2Description": "Second benefit description (1 sentence)",
-  "servicePage.why3Title": "Third benefit title (2-4 words)",
-  "servicePage.why3Description": "Third benefit description (1 sentence)",
-  "servicePage.ctaHeading": "Service page CTA heading (4-6 words)",
-  "servicePage.urgentHeading": "Urgent service card heading (3-5 words)",
-  "servicePage.urgentText": "Urgent service card description (1 sentence)",
-  "servicePage.formSubheading": "Service form subheading (1 sentence)"` : ''}${addons.includes('rentals') ? `,
-  "rentalsPage.heading": "Rentals page heading (2-4 words)",
-  "rentalsPage.subheading": "Rentals page description (1-2 sentences)",
-  "rentalsPage.ctaHeading": "Rentals CTA heading (4-6 words)",
-  "rentalsPage.ctaText": "Rentals CTA description (1 sentence)",
-  "rentalsPage.ctaButton.text": "Rentals CTA button text (2-4 words)",
-  "rentalsPage.rentalInfoHeading": "Rental information card heading (2-4 words)",
-  "rentalsPage.pricingNote": "Pricing and delivery note (1-2 sentences)",
-  "rentalsPage.requirement1": "Rental requirement 1 (short phrase, e.g. Valid driver license)",
-  "rentalsPage.requirement2": "Rental requirement 2 (short phrase)",
-  "rentalsPage.requirement3": "Rental requirement 3 (short phrase)",
-  "rentalsPage.requirement4": "Rental requirement 4 (short phrase)",
-  "rentalsPage.policy1": "Rental policy 1 (short phrase)",
-  "rentalsPage.policy2": "Rental policy 2 (short phrase)",
-  "rentalsPage.policy3": "Rental policy 3 (short phrase)",
-  "rentalsPage.policy4": "Rental policy 4 (short phrase)"` : ''}
-}`;
+      const prompt = buildOnboardingPrompt(
+        site.template?.slug || 'green-valley-industrial',
+        {
+          businessName: form.businessName,
+          city: form.city,
+          state: form.state,
+          phone: form.phone,
+          email: form.email,
+          weekdayHours: form.weekdayHours,
+          saturdayHours: form.saturdayHours,
+          sundayHours: form.sundayHours,
+          yearsInBusiness: form.yearsInBusiness,
+          serviceArea: form.serviceArea,
+          servicesDescription: form.servicesDescription,
+          selectedBrands: form.selectedBrands,
+          businessDescription: form.businessDescription,
+        },
+        site.addons || []
+      );
 
       // ── Call Claude API ──────────────────────────────────────────────────
       setGenStatus('Generating your website copy...');
