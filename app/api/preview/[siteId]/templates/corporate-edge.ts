@@ -148,7 +148,7 @@ export async function renderCorporateEdgePage(
     case 'contact': body = ceContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
     case 'inventory': body = ceInventoryPage(siteId, getContent, products, baseUrl); break;
     case 'rentals': body = await ceRentalsPage(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
-    case 'manufacturers': body = ceManufacturersPage(siteId, getContent, baseUrl); break;
+    case 'manufacturers': body = ceManufacturersPage(siteId, getContent, baseUrl, manufacturers); break;
     default: body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors, manufacturers, baseUrl); break;
   }
 
@@ -468,7 +468,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
       <!-- Bottom wave -->
       <div class="absolute bottom-0 left-0 right-0">
         <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto" preserveAspectRatio="none">
-          <path d="M0 60L1440 60L1440 30C1440 30 1320 0 720 0C120 0 0 30 0 30L0 60Z" fill="#f8fafc"/>
+          <path d="M0 60L1440 60L1440 30C1440 30 1320 0 720 0C120 0 0 30 0 30L0 60Z" fill="#f3f4f6"/>
         </svg>
       </div>
     </section>`;
@@ -600,7 +600,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           ${mfgList.slice(0, 6).map((m: any) => `
           <a href="${baseUrl}manufacturers" class="group bg-white p-6 rounded border border-gray-200 transition-corporate hover:shadow-md hover:border-blue-200 text-center">
-            ${(m.logo_url || m.logoUrl) ? `<img src="${m.logo_url || m.logoUrl}" alt="${m.name}" style="max-height: 48px; width: auto; margin: 0 auto 0.75rem auto; display: block;">` : `<div style="height:48px;display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;"><span class="font-bold text-gray-700 text-sm">${m.name}</span></div>`}
+            ${(m.logo_url || m.logoUrl || m.logo || m.image_url) ? `<img src="${m.logo_url || m.logoUrl || m.logo || m.image_url}" alt="${m.name}" style="max-height: 48px; width: auto; margin: 0 auto 0.75rem auto; display: block;">` : `<div style="height:48px;display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;"><span class="font-bold text-gray-700 text-sm">${m.name}</span></div>`}
             <p class="font-semibold text-gray-900 text-sm">${m.name}</p>
             <div class="flex items-center justify-center gap-1 mt-1">
               <svg class="w-3 h-3" style="color: ${colors.accent};" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
@@ -622,13 +622,24 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
   if (vis.testimonials !== false) {
     let testimonials: any[] = [];
     try { testimonials = JSON.parse(getContent('testimonials.items') || '[]'); } catch {}
+    // Fall back to demo items if none saved yet
+    if (testimonials.length === 0) {
+      try { testimonials = JSON.parse(getContent('testimonials.items') || '[]'); } catch {}
+    }
+    if (testimonials.length === 0) {
+      testimonials = [
+        { quote: "Premier Equipment has been our go-to dealer for over 15 years. Their service department is second to none.", name: 'Michael Thompson', title: 'Operations Manager', company: 'GreenScape Landscaping' },
+        { quote: "When we expanded our fleet, the team at Premier helped us choose the right equipment for our needs.", name: 'Sarah Martinez', title: 'Owner', company: 'Martinez Lawn Care' },
+        { quote: "The financing options and trade-in program made upgrading our equipment painless.", name: 'David Chen', title: 'Fleet Manager', company: 'ProCut Commercial Services' },
+      ];
+    }
     if (testimonials.length > 0) {
       html += `
       <section data-section="testimonials" class="py-20 bg-white">
         <div class="container-corporate">
           <div class="text-center mb-12">
-            <h2 class="font-heading text-3xl lg:text-4xl font-bold text-gray-900 mb-4">What Our Customers Say</h2>
-            <p class="text-gray-500 max-w-2xl mx-auto">Don't just take our word for it — hear from the professionals who trust us</p>
+            <h2 class="font-heading text-3xl lg:text-4xl font-bold text-gray-900 mb-4">${getContent('testimonials.heading') || 'What Our Customers Say'}</h2>
+            <p class="text-gray-500 max-w-2xl mx-auto">${getContent('testimonials.subheading') || "Don't just take our word for it — hear from the professionals who trust us"}</p>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             ${testimonials.map((t: any) => `
@@ -971,19 +982,21 @@ async function ceRentalsPage(
 }
 // ── Manufacturers Page ──
 function ceManufacturersPage(siteId: string, getContent: Function,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  manufacturers: any[] = []
 ) {
-  const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Exmark': '/images/logos/exmark.png', 'Stihl': '/images/logos/Stihl.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Kubota': '/images/logos/kubota.jpg', 'Scag': '/images/logos/Scag.png', 'Echo': '/images/logos/Echo.png' };
-  const manufacturers = [
-    { name: 'John Deere', description: 'World-leading manufacturer of agricultural and turf equipment.' },
-    { name: 'Exmark', description: 'Premium commercial mowing equipment for landscape professionals.' },
-    { name: 'Stihl', description: 'The #1 selling brand of gasoline-powered handheld outdoor power equipment.' },
-    { name: 'Husqvarna', description: 'Innovative outdoor power products for forest, park, and garden care.' },
-    { name: 'Kubota', description: 'Compact tractors and utility vehicles built for performance.' },
-    { name: 'Scag', description: 'Simply the best commercial mowers in the industry.' },
-    { name: 'Toro', description: 'Trusted by golf courses, sports fields, and landscape contractors.' },
-    { name: 'Echo', description: 'Professional-grade outdoor power equipment since 1972.' },
-  ];
+  const fallbackLogos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Exmark': '/images/logos/exmark.png', 'Stihl': '/images/logos/Stihl.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Kubota': '/images/logos/kubota.jpg', 'Scag': '/images/logos/Scag.png', 'Echo': '/images/logos/Echo.png' };
+  const fallbackDescriptions: Record<string,string> = {
+    'John Deere': 'World-leading manufacturer of agricultural and turf equipment.',
+    'Exmark': 'Premium commercial mowing equipment for landscape professionals.',
+    'Stihl': 'The #1 selling brand of gasoline-powered handheld outdoor power equipment.',
+    'Husqvarna': 'Innovative outdoor power products for forest, park, and garden care.',
+    'Kubota': 'Compact tractors and utility vehicles built for performance.',
+    'Scag': 'Simply the best commercial mowers in the industry.',
+    'Toro': 'Trusted by golf courses, sports fields, and landscape contractors.',
+    'Echo': 'Professional-grade outdoor power equipment since 1972.',
+  };
+  const mfgList = manufacturers.length > 0 ? manufacturers : Object.keys(fallbackDescriptions).map(name => ({ name, logo_url: fallbackLogos[name] || '', description: fallbackDescriptions[name] }));
 
   return `
   ${cePageHeader(getContent('manufacturersPage.heading') || getContent('manufacturers.heading') || 'Our Manufacturers', getContent('manufacturersPage.subheading') || getContent('manufacturers.description') || '')}
@@ -991,10 +1004,16 @@ function ceManufacturersPage(siteId: string, getContent: Function,
   <section class="py-16 bg-white">
     <div class="container-corporate">
       <div class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        ${manufacturers.map(m => `
+        ${mfgList.map((m: any) => {
+          const logoSrc = m.logo_url || m.logoUrl || m.logo || m.image_url || fallbackLogos[m.name] || '';
+          const description = m.description || fallbackDescriptions[m.name] || '';
+          return `
         <div class="border border-gray-200 rounded transition-corporate hover:shadow-lg hover:border-blue-200 group bg-white p-6">
           <div class="aspect-[3/2] flex items-center justify-center bg-gray-50 rounded mb-4 p-4">
-            <img src="${logos[m.name] || ''}" alt="${m.name}" style="max-height: 60px; max-width: 80%; object-fit: contain;">
+            ${logoSrc
+              ? `<img src="${logoSrc}" alt="${m.name}" style="max-height: 60px; max-width: 80%; object-fit: contain;">`
+              : `<span class="font-bold text-gray-400 text-lg">${m.name}</span>`
+            }
           </div>
           <div class="flex items-center gap-2 mb-3">
             <h3 class="font-heading font-semibold text-lg text-gray-900">${m.name}</h3>
@@ -1003,11 +1022,11 @@ function ceManufacturersPage(siteId: string, getContent: Function,
               Authorized
             </span>
           </div>
-          <p class="text-gray-500 text-sm mb-4 line-clamp-2">${m.description}</p>
+          <p class="text-gray-500 text-sm mb-4 line-clamp-2">${description}</p>
           <a href="${baseUrl}contact" class="inline-flex items-center gap-2 w-full justify-center px-4 py-2 rounded border border-gray-300 text-sm font-medium text-gray-700 group-hover:bg-blue-900 group-hover:text-white group-hover:border-blue-900 transition-corporate">
             Learn More →
           </a>
-        </div>`).join('')}
+        </div>`}).join('')}
       </div>
     </div>
   </section>
