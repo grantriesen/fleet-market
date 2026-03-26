@@ -1263,23 +1263,23 @@ function ceManufacturersPage(siteId: string, getContent: Function,
   <!-- Why Authorized -->
   <section class="py-16 bg-gray-100">
     <div class="container-corporate text-center max-w-4xl mx-auto">
-      <h2 class="font-heading text-3xl font-bold text-gray-900 mb-6">Why Buy From an Authorized Dealer?</h2>
-      <p class="text-gray-500 text-lg mb-10 leading-relaxed">When you purchase from an authorized dealer, you get factory-backed warranties, genuine parts, and service from certified technicians.</p>
+      <h2 class="font-heading text-3xl font-bold text-gray-900 mb-6">${getContent('manufacturersPage.whyHeading') || 'Why Buy From an Authorized Dealer?'}</h2>
+      <p class="text-gray-500 text-lg mb-10 leading-relaxed">${getContent('manufacturersPage.whySubheading') || 'When you purchase from an authorized dealer, you get factory-backed warranties, genuine parts, and service from certified technicians.'}</p>
       <div class="grid sm:grid-cols-3 gap-6">
         <div class="bg-white border border-gray-200 rounded p-6">
           <div class="text-3xl mb-3">🛡️</div>
-          <h3 class="font-heading font-semibold text-gray-900 mb-2">Full Warranty</h3>
-          <p class="text-gray-500 text-sm">Factory warranty coverage on all new equipment</p>
+          <h3 class="font-heading font-semibold text-gray-900 mb-2">${getContent('manufacturersPage.benefit1Title') || 'Full Warranty'}</h3>
+          <p class="text-gray-500 text-sm">${getContent('manufacturersPage.benefit1Text') || 'Factory warranty coverage on all new equipment'}</p>
         </div>
         <div class="bg-white border border-gray-200 rounded p-6">
           <div class="text-3xl mb-3">⚙️</div>
-          <h3 class="font-heading font-semibold text-gray-900 mb-2">Genuine Parts</h3>
-          <p class="text-gray-500 text-sm">OEM parts that meet manufacturer specifications</p>
+          <h3 class="font-heading font-semibold text-gray-900 mb-2">${getContent('manufacturersPage.benefit2Title') || 'Genuine Parts'}</h3>
+          <p class="text-gray-500 text-sm">${getContent('manufacturersPage.benefit2Text') || 'OEM parts that meet manufacturer specifications'}</p>
         </div>
         <div class="bg-white border border-gray-200 rounded p-6">
           <div class="text-3xl mb-3">🏆</div>
-          <h3 class="font-heading font-semibold text-gray-900 mb-2">Certified Service</h3>
-          <p class="text-gray-500 text-sm">Factory-trained technicians you can trust</p>
+          <h3 class="font-heading font-semibold text-gray-900 mb-2">${getContent('manufacturersPage.benefit3Title') || 'Certified Service'}</h3>
+          <p class="text-gray-500 text-sm">${getContent('manufacturersPage.benefit3Text') || 'Factory-trained technicians you can trust'}</p>
         </div>
       </div>
     </div>
