@@ -753,6 +753,7 @@ function ceServicePage(siteId: string, getContent: Function,
       </div>
     </div>
   </section>`;
+}
 
 // ── Contact Page ──
 function ceContactPage(siteId: string, getContent: Function, weekdayHours: string, saturdayHours: string, sundayHours: string,
