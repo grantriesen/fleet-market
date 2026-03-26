@@ -115,10 +115,11 @@ export async function renderCorporateEdgePage(
     return '';
   };
 
+  const colorsRaw = typeof customizations?.colors === 'object' ? customizations.colors : {};
   const colors = {
-    primary: customizations?.colors?.primary || config?.colors?.primary?.default || '#1e3a8a',
-    secondary: customizations?.colors?.secondary || config?.colors?.secondary?.default || '#dc2626',
-    accent: customizations?.colors?.accent || config?.colors?.accent?.default || '#059669',
+    primary: colorsRaw?.primary || config?.colors?.primary?.default || '#1e3a8a',
+    secondary: colorsRaw?.secondary || config?.colors?.secondary?.default || '#dc2626',
+    accent: colorsRaw?.accent || config?.colors?.accent?.default || '#059669',
   };
 
   const fonts = {
@@ -147,7 +148,7 @@ export async function renderCorporateEdgePage(
     case 'service': body = ceServicePage(siteId, getContent, baseUrl); break;
     case 'contact': body = ceContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
     case 'inventory': body = ceInventoryPage(siteId, getContent, products, baseUrl); break;
-    case 'rentals': body = await ceRentalsPage(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
+    case 'rentals': body = await ceRentalsPage(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || (Array.isArray(siteAddons) && siteAddons.includes('rentals'))); break;
     case 'manufacturers': body = ceManufacturersPage(siteId, getContent, baseUrl); break;
     default: body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors, manufacturers, baseUrl); break;
   }
@@ -238,7 +239,7 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string) {
   </style>
 </head>
 <body class="antialiased">
-${body}${enabledFeatures && enabledFeatures.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
+${body}${enabledFeatures && typeof enabledFeatures.has === 'function' && enabledFeatures.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
 </body>
 </html>`;
 }
@@ -254,7 +255,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
   // Read weekday hours directly from plain text config fields (fallback to parsed JSON hours)
   const mondayHours = getContent('hours.monday') || weekdayHours;
 
-  const navLinks = pages
+  const navLinks = (pages || [])
     .filter((p: any) => p.is_visible !== false)
     .map(p => {
       const isActive = p.slug === currentPage || (p.slug === 'index' && (currentPage === 'home' || currentPage === 'index'));
@@ -360,7 +361,7 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
     </a>`;
   }).filter(Boolean).join('');
 
-  const quickLinks = pages
+  const quickLinks = (pages || [])
     .filter((p: any) => p.is_visible !== false)
     .map((p: any) => `<li><a href="${baseUrl}${p.slug}" class="text-white/70 hover:text-white transition-corporate">${p.name || p.title}</a></li>`)
     .join('\n');
