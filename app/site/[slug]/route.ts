@@ -126,7 +126,7 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
       availablePagesLength: availablePages?.length,
       manufacturersLength: manufacturers?.length,
     });
-    html = renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/');
+    html = renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || []);
   } else if (templateSlug === 'zenith-lawn') {
     html = renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, '/');
   } else if (templateSlug === 'modern-lawn-solutions') {
