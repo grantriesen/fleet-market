@@ -661,7 +661,6 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
               type="text"
               value={value}
               onChange={(e) => updateContent(fieldKey, e.target.value)}
-              onFocus={() => scrollToSection(sectionKey)}
               className="w-full px-3 py-2 border rounded"
               placeholder={field.default || ''}
             />
@@ -680,7 +679,6 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
             <textarea
               value={value}
               onChange={(e) => updateContent(fieldKey, e.target.value)}
-              onFocus={() => scrollToSection(sectionKey)}
               rows={3}
               className="w-full px-3 py-2 border rounded"
               placeholder={field.default || ''}
@@ -716,7 +714,6 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
             <select
               value={value}
               onChange={(e) => updateContent(fieldKey, e.target.value)}
-              onFocus={() => scrollToSection(sectionKey)}
               className="w-full px-3 py-2 border rounded bg-white"
             >
               <option value="">Default ({field.default || 'auto'})</option>
@@ -753,7 +750,6 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
               type="email"
               value={value}
               onChange={(e) => updateContent(fieldKey, e.target.value)}
-              onFocus={() => scrollToSection(sectionKey)}
               className="w-full px-3 py-2 border rounded"
               placeholder={field.default || ''}
             />
@@ -848,7 +844,6 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
               type="text"
               value={value}
               onChange={(e) => updateContent(fieldKey, e.target.value)}
-              onFocus={() => scrollToSection(sectionKey)}
               className="w-full px-3 py-2 border rounded"
               placeholder={field.default || ''}
             />
