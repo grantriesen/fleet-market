@@ -854,7 +854,7 @@ function gvManufacturersPage(
               ${m.description ? `<p class="text-sm text-muted-foreground mb-4 leading-relaxed">${m.description}</p>` : ''}
               <div class="flex items-center gap-3 pt-3 border-t border-border">
                 ${m.website_url ? `<a href="${m.website_url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-secondary font-semibold text-sm hover:underline">Visit Website <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>` : ''}
-                <a href="${baseUrl}inventory" class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline ml-auto">Learn More →</a>
+                <a href="${baseUrl}contact" class="inline-flex items-center gap-1 text-primary font-semibold text-sm hover:underline ml-auto">Learn More →</a>
               </div>
             </div>
           </div>

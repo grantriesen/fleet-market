@@ -1002,9 +1002,8 @@ function ceManufacturersPage(siteId: string, getContent: Function,
             </span>
           </div>
           <p class="text-gray-500 text-sm mb-4 line-clamp-2">${m.description}</p>
-          <a href="${baseUrl}inventory" class="inline-flex items-center gap-2 w-full justify-center px-4 py-2 rounded border border-gray-300 text-sm font-medium text-gray-700 group-hover:bg-blue-900 group-hover:text-white group-hover:border-blue-900 transition-corporate">
-            Shop ${m.name}
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+          <a href="${baseUrl}contact" class="inline-flex items-center gap-2 w-full justify-center px-4 py-2 rounded border border-gray-300 text-sm font-medium text-gray-700 group-hover:bg-blue-900 group-hover:text-white group-hover:border-blue-900 transition-corporate">
+            Learn More →
           </a>
         </div>`).join('')}
       </div>

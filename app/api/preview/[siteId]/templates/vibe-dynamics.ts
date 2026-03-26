@@ -784,7 +784,8 @@ function vdManufacturersPage(getContent: GetContent, colors: Colors, manufacture
               ${(m.logo_url || m.logoUrl) ? `<img src="${m.logo_url || m.logoUrl}" alt="${m.name}" class="max-h-12 max-w-20 object-contain">` : `<span class="font-heading font-black text-sm" style="color: var(--color-primary);">${m.name}</span>`}
             </div>
             <p class="mt-3 font-heading font-bold text-gray-800 text-sm">${m.name}</p>
-            ${m.description ? `<p class="text-xs text-gray-500 mt-1">${m.description}</p>` : ''}
+            ${m.description ? `<p class="text-xs text-gray-500 mt-1 mb-2">${m.description}</p>` : ''}
+            <a href="${baseUrl}contact" class="text-xs font-bold mt-1" style="color: var(--color-primary); text-decoration: none;">Learn More →</a>
           </div>
         `).join('')}
       </div>

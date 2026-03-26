@@ -799,7 +799,8 @@ function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any, 
             ${(b.logo_url || b.logoUrl) ? `<img src="${b.logo_url || b.logoUrl}" alt="${b.name}" style="height:52px;width:auto;">` : `<span style="font-weight:700;color:${C.secondary};">${b.name}</span>`}
           </div>
           <span style="display:inline-block;font-size:0.75rem;color:${C.secondary};font-weight:600;border:1px solid ${C.secondary};padding:0.2rem 0.6rem;border-radius:9999px;margin-bottom:1rem;">✦ Trusted Partner</span>
-          ${b.description ? `<p style="color:${C.mutedFg};font-size:0.9375rem;line-height:1.7;margin:0;">${b.description}</p>` : ''}
+          ${b.description ? `<p style="color:${C.mutedFg};font-size:0.9375rem;line-height:1.7;margin:0 0 1rem;">${b.description}</p>` : ''}
+          <a href="${baseUrl}contact" style="display:inline-flex;align-items:center;gap:0.25rem;font-size:0.875rem;font-weight:600;color:${C.secondary};text-decoration:none;">Learn More →</a>
         </div>`).join('')}
       </div>
     </div>

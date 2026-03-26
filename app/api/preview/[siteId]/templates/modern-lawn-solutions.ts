@@ -836,7 +836,8 @@ function mlsManufacturersPage(siteId: string, gc: (k: string) => string,
           <div style="height: 4rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
             <img src="${logos[b.name] || ''}" alt="${b.name}" style="height: 48px; width: auto;">
           </div>
-          ${b.tagline ? `<p style="color: #6b7280; font-size: 0.875rem; margin: 0;">${b.tagline}</p>` : ''}
+          ${b.tagline ? `<p style="color: #6b7280; font-size: 0.875rem; margin: 0 0 1rem;">${b.tagline}</p>` : ''}
+          <a href="${baseUrl}contact" style="display:inline-flex;align-items:center;gap:0.25rem;font-size:0.875rem;font-weight:600;color:var(--color-primary);text-decoration:none;">Learn More →</a>
         </div>`).join('')}
       </div>
     </div>

@@ -618,18 +618,18 @@ function zlManufacturers(siteId: string, getContent: Function,
       </div>
       <div class="border-t border-neutral-200">
         ${brands.map((b, i) => `
-        <a href="${baseUrl}inventory" class="block py-8 group ${i < brands.length - 1 ? 'border-b border-neutral-200' : ''}">
+        <div class="block py-8 ${i < brands.length - 1 ? 'border-b border-neutral-200' : ''}">
           <div class="flex items-center justify-between gap-8">
             <div class="flex items-center gap-6">
               <img src="${logos[b.name] || ''}" alt="${b.name}" style="height: 40px; width: auto;">
               <div>
-                <h3 class="text-xl font-light mb-1 group-hover:opacity-70 transition-slow">${b.name}</h3>
+                <h3 class="text-xl font-light mb-1">${b.name}</h3>
                 <p class="text-sm text-neutral-500">${b.desc}</p>
               </div>
             </div>
-            <span class="text-sm text-neutral-400 group-hover:text-neutral-900 transition-slow whitespace-nowrap">View products →</span>
+            <a href="${baseUrl}contact" class="text-sm text-neutral-400 hover:text-neutral-900 transition-slow whitespace-nowrap">Learn More →</a>
           </div>
-        </a>`).join('')}
+        </div>`).join('')}
       </div>
     </div>
   </section>`;
