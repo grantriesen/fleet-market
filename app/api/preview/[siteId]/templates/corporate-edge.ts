@@ -5,7 +5,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
-import { productCardOnclick, injectCartSystem, serviceFormHtml } from './shared';
+import { productCardOnclick, injectCartSystem } from './shared';
 
 /* ── DEMO overrides ── */
 export const CORPORATE_EDGE_DEMO_OVERRIDES = {
@@ -712,12 +712,8 @@ function ceServicePage(siteId: string, getContent: Function,
     try { services = JSON.parse(getContent('services.items') || '[]'); } catch {}
   }
 
-  const formHeading = getContent('servicePage.formHeading') || getContent('servicePage.ctaHeading') || 'Schedule a Service Consultation';
-  const formSubheading = getContent('servicePage.formSubheading') || 'Fill out the form below and our service team will contact you within one business day.';
-
-  const inputClass = 'w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none';
-  const buttonClass = 'w-full py-3 rounded font-semibold text-white bg-blue-900 transition-corporate hover:brightness-110';
-  const selectClass = 'w-full px-4 py-2.5 border border-gray-300 rounded text-sm bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none';
+  const inputCls = 'w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none';
+  const hasScheduling = enabledFeatures.has('service_scheduling') || enabledFeatures.has('service');
 
   return `
   ${cePageHeader(getContent('servicePage.heading') || getContent('services.heading') || 'Service Department', getContent('servicePage.subheading') || getContent('services.description') || '')}
@@ -744,15 +740,231 @@ function ceServicePage(siteId: string, getContent: Function,
 
   <section data-section="serviceCta" class="py-16 bg-gray-100">
     <div class="container-corporate max-w-3xl">
-      <div class="text-center mb-12">
-        <h2 class="font-heading text-3xl font-bold text-gray-900 mb-4">${formHeading}</h2>
-        <p class="text-gray-500">${formSubheading}</p>
+      <div class="text-center mb-10">
+        <h2 class="font-heading text-3xl font-bold text-gray-900 mb-4">${getContent('servicePage.formHeading') || getContent('servicePage.ctaHeading') || 'Schedule a Service Consultation'}</h2>
+        <p class="text-gray-500">${getContent('servicePage.formSubheading') || 'Fill out the form below and our service team will contact you within one business day.'}</p>
       </div>
       <div class="border border-gray-200 rounded bg-white p-8">
-        ${serviceFormHtml(siteId, enabledFeatures, inputClass, buttonClass, selectClass)}
+        ${hasScheduling ? cePremiumServiceForm(siteId, inputCls) : ceBasicServiceForm(siteId, inputCls)}
       </div>
     </div>
   </section>`;
+}
+
+// ── Premium Service Scheduler (loads service types from API) ──
+function cePremiumServiceForm(siteId: string, inputCls: string): string {
+  return `
+  <!-- Step 1: Select Service -->
+  <div id="ce-sf-step1">
+    <p class="text-xs font-bold text-blue-900 uppercase tracking-wider mb-3">1. Select a Service</p>
+    <div id="ce-sf-service-list" class="flex flex-col gap-2">
+      <div class="text-center py-6 text-gray-400 text-sm">Loading services...</div>
+    </div>
+  </div>
+
+  <!-- Step 2: Date & Time -->
+  <div id="ce-sf-step2" style="display:none;" class="mt-6 pt-6 border-t border-gray-200">
+    <p class="text-xs font-bold text-blue-900 uppercase tracking-wider mb-3">2. Choose Date & Time</p>
+    <div class="grid md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Preferred Date *</label>
+        <input type="date" id="ce-sf-date" class="${inputCls}" min="${new Date().toISOString().split('T')[0]}">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Available Times</label>
+        <div id="ce-sf-slots" class="flex flex-wrap gap-2 mt-1">
+          <span class="text-sm text-gray-400">Select a date first</span>
+        </div>
+        <input type="hidden" id="ce-sf-time" value="">
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Your Info -->
+  <div id="ce-sf-step3" style="display:none;" class="mt-6 pt-6 border-t border-gray-200">
+    <p class="text-xs font-bold text-blue-900 uppercase tracking-wider mb-3">3. Your Information</p>
+    <div class="space-y-4">
+      <div class="grid md:grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Name *</label><input type="text" id="ce-sf-name" class="${inputCls}" placeholder="John Smith" required></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Phone *</label><input type="tel" id="ce-sf-phone" class="${inputCls}" placeholder="(555) 123-4567" required></div>
+      </div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" id="ce-sf-email" class="${inputCls}" placeholder="john@company.com" required></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Equipment Make / Model</label><input type="text" id="ce-sf-equip" class="${inputCls}" placeholder='e.g. Toro TimeCutter 54"'></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label><textarea id="ce-sf-notes" rows="3" class="${inputCls} resize-y" placeholder="Describe the issue or any additional details..."></textarea></div>
+      <div id="ce-sf-error" style="display:none;" class="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm"></div>
+      <div id="ce-sf-success" style="display:none;" class="p-4 bg-green-50 border border-green-200 rounded text-green-800 text-center font-medium">
+        ✓ Service request submitted! We'll confirm your appointment within one business day.
+      </div>
+      <button id="ce-sf-submit" onclick="ceSfSubmit()" class="w-full py-3 rounded font-semibold text-white bg-blue-900 transition-corporate hover:brightness-110">Schedule Service</button>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    var SITE_ID = '${siteId}';
+    var selectedService = null;
+    var selectedTime = null;
+    var selectedDate = null;
+
+    // Load service types
+    fetch('/api/service/types/' + SITE_ID)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var list = document.getElementById('ce-sf-service-list');
+        if (!list) return;
+        var types = data.types || data.serviceTypes || data || [];
+        if (!Array.isArray(types) || !types.length) {
+          list.innerHTML = '<p class="text-sm text-gray-500 py-4 text-center">No services configured yet. Please contact us directly.</p>';
+          return;
+        }
+        list.innerHTML = '';
+        types.forEach(function(st) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.style.cssText = 'display:flex;justify-content:space-between;align-items:center;width:100%;padding:0.875rem 1rem;border:2px solid #e5e7eb;border-radius:0.5rem;background:#fff;cursor:pointer;text-align:left;transition:border-color 0.15s,background 0.15s;';
+          btn.setAttribute('data-id', st.id);
+          var dur = st.duration_minutes ? st.duration_minutes + ' min' : '';
+          var price = st.price_estimate || st.price || '';
+          btn.innerHTML = '<div><strong style="color:#111827;font-size:0.9375rem;">' + st.name + '</strong>'
+            + (st.description ? '<br><span style="font-size:0.8125rem;color:#6b7280;">' + st.description + '</span>' : '')
+            + '</div>'
+            + '<div style="text-align:right;white-space:nowrap;flex-shrink:0;margin-left:1rem;">'
+            + (price ? '<span style="font-weight:600;color:#111827;font-size:0.875rem;">' + price + '</span><br>' : '')
+            + (dur ? '<span style="font-size:0.75rem;color:#6b7280;">' + dur + '</span>' : '')
+            + '</div>';
+          btn.addEventListener('click', function() {
+            document.querySelectorAll('#ce-sf-service-list button').forEach(function(b) {
+              b.style.borderColor = '#e5e7eb';
+              b.style.background = '#fff';
+            });
+            btn.style.borderColor = '#1e3a8a';
+            btn.style.background = '#eff6ff';
+            selectedService = st;
+            document.getElementById('ce-sf-step2').style.display = '';
+            // Reset slots
+            selectedTime = null;
+            document.getElementById('ce-sf-time').value = '';
+            document.getElementById('ce-sf-slots').innerHTML = '<span style="font-size:0.875rem;color:#9ca3af;">Select a date</span>';
+            document.getElementById('ce-sf-date').value = '';
+            document.getElementById('ce-sf-step3').style.display = 'none';
+          });
+          list.appendChild(btn);
+        });
+      })
+      .catch(function() {
+        var list = document.getElementById('ce-sf-service-list');
+        if (list) list.innerHTML = '<p class="text-sm text-red-500 py-4 text-center">Unable to load services. Please call us directly.</p>';
+      });
+
+    // Date change → load slots
+    var dateInput = document.getElementById('ce-sf-date');
+    if (dateInput) {
+      dateInput.addEventListener('change', function() {
+        selectedDate = this.value;
+        selectedTime = null;
+        document.getElementById('ce-sf-time').value = '';
+        if (!selectedDate || !selectedService) return;
+        var slotsDiv = document.getElementById('ce-sf-slots');
+        slotsDiv.innerHTML = '<span style="font-size:0.875rem;color:#9ca3af;">Loading...</span>';
+
+        fetch('/api/service/slots/' + SITE_ID + '?date=' + selectedDate + '&typeId=' + selectedService.id)
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.blocked || data.closed) {
+              slotsDiv.innerHTML = '<span style="font-size:0.875rem;color:#dc2626;">' + (data.message || 'Not available on this date') + '</span>';
+              return;
+            }
+            var available = (data.slots || []).filter(function(s) { return s.available; });
+            if (!available.length) {
+              slotsDiv.innerHTML = '<span style="font-size:0.875rem;color:#dc2626;">No available times on this date</span>';
+              return;
+            }
+            slotsDiv.innerHTML = '';
+            available.forEach(function(slot) {
+              var b = document.createElement('button');
+              b.type = 'button';
+              b.textContent = slot.display;
+              b.style.cssText = 'padding:0.375rem 0.875rem;border:2px solid #e5e7eb;border-radius:0.375rem;background:#fff;cursor:pointer;font-size:0.8125rem;font-weight:500;transition:all 0.15s;';
+              b.addEventListener('click', function() {
+                slotsDiv.querySelectorAll('button').forEach(function(x) { x.style.borderColor='#e5e7eb';x.style.background='#fff';x.style.color='#111827'; });
+                b.style.borderColor='#16a34a'; b.style.background='#f0fdf4'; b.style.color='#15803d';
+                selectedTime = slot.time;
+                document.getElementById('ce-sf-time').value = slot.time;
+                document.getElementById('ce-sf-step3').style.display = '';
+              });
+              slotsDiv.appendChild(b);
+            });
+          })
+          .catch(function() {
+            slotsDiv.innerHTML = '<span style="font-size:0.875rem;color:#dc2626;">Error loading times. Please try again.</span>';
+          });
+      });
+    }
+
+    window.ceSfSubmit = function() {
+      var name = (document.getElementById('ce-sf-name') || {}).value || '';
+      var email = (document.getElementById('ce-sf-email') || {}).value || '';
+      var phone = (document.getElementById('ce-sf-phone') || {}).value || '';
+      var equip = (document.getElementById('ce-sf-equip') || {}).value || '';
+      var notes = (document.getElementById('ce-sf-notes') || {}).value || '';
+      var errEl = document.getElementById('ce-sf-error');
+      var btn = document.getElementById('ce-sf-submit');
+
+      if (!name || !email || !phone) { errEl.textContent='Please fill in your name, email, and phone.'; errEl.style.display=''; return; }
+      if (!selectedService) { errEl.textContent='Please select a service.'; errEl.style.display=''; return; }
+      if (!selectedDate || !selectedTime) { errEl.textContent='Please select a date and time.'; errEl.style.display=''; return; }
+      errEl.style.display='none';
+      if (btn) { btn.textContent='Submitting...'; btn.disabled=true; }
+
+      fetch('/api/service/book/' + SITE_ID, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          customerName: name, customerEmail: email, customerPhone: phone,
+          serviceTypeId: selectedService.id,
+          equipmentType: equip || null,
+          preferredDate: selectedDate, preferredTime: selectedTime,
+          customDescription: notes || null,
+        })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.success) {
+          document.getElementById('ce-sf-step1').style.display='none';
+          document.getElementById('ce-sf-step2').style.display='none';
+          document.getElementById('ce-sf-step3').querySelector('button').style.display='none';
+          document.getElementById('ce-sf-success').style.display='';
+        } else {
+          errEl.textContent = d.error || 'Something went wrong. Please try again.';
+          errEl.style.display='';
+          if (btn) { btn.textContent='Schedule Service'; btn.disabled=false; }
+        }
+      })
+      .catch(function() {
+        errEl.textContent='Connection error. Please try again.';
+        errEl.style.display='';
+        if (btn) { btn.textContent='Schedule Service'; btn.disabled=false; }
+      });
+    };
+  })();
+  </script>`;
+}
+
+// ── Basic Service Form (no scheduling addon) ──
+function ceBasicServiceForm(siteId: string, inputCls: string): string {
+  return `
+  <form class="space-y-6" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){return null;});">
+    <div class="grid md:grid-cols-2 gap-6">
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label><input type="text" class="${inputCls}" placeholder="John" required></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label><input type="text" class="${inputCls}" placeholder="Smith" required></div>
+    </div>
+    <div class="grid md:grid-cols-2 gap-6">
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" class="${inputCls}" placeholder="john@company.com" required></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Phone *</label><input type="tel" class="${inputCls}" placeholder="(555) 123-4567" required></div>
+    </div>
+    <div><label class="block text-sm font-medium text-gray-700 mb-1">Message *</label><textarea rows="4" class="${inputCls} resize-y" placeholder="Describe what you need..." required></textarea></div>
+    <div data-fm-success style="display:none;" class="p-4 bg-green-50 border border-green-200 rounded text-green-800 text-center font-medium">✓ Message sent! We'll be in touch soon.</div>
+    <button type="submit" class="w-full py-3 rounded font-semibold text-white bg-blue-900 transition-corporate hover:brightness-110">Send Request</button>
+  </form>`;
 }
 
 // ── Contact Page ──
