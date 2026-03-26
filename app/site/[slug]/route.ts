@@ -115,7 +115,18 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   } else if (templateSlug === 'vibe-dynamics') {
     html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers || [], sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, '/', site.addons || [], site.checkout_mode || 'quote_only');
   } else if (templateSlug === 'corporate-edge') {
-    html = renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || []);
+    console.log('CE render params:', {
+      siteId,
+      page,
+      addons: site.addons,
+      addonsIsArray: Array.isArray(site.addons),
+      enabledFeaturesType: typeof enabledFeatures,
+      enabledFeaturesIsSet: enabledFeatures instanceof Set,
+      visType: typeof vis,
+      availablePagesLength: availablePages?.length,
+      manufacturersLength: manufacturers?.length,
+    });
+    html = renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/');
   } else if (templateSlug === 'zenith-lawn') {
     html = renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, '/');
   } else if (templateSlug === 'modern-lawn-solutions') {
@@ -172,7 +183,16 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
     try {
       html = await loadAndRender(site, page, supabase);
     } catch (renderError: any) {
-      console.error('Render error:', { message: renderError?.message, template: site?.template?.slug, page, siteSlug: params.slug });
+      console.error('Render error:', {
+        message: renderError?.message,
+        stack: renderError?.stack?.split('\n').slice(0,5).join(' | '),
+        template: site?.template?.slug,
+        page,
+        siteSlug: params.slug,
+        addons: site?.addons,
+        addonsType: typeof site?.addons,
+        isArray: Array.isArray(site?.addons),
+      });
       throw renderError;
     }
 
