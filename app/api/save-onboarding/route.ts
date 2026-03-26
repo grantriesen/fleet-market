@@ -16,7 +16,7 @@ function createSupabase() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { siteId, contentRows, manufacturers } = await request.json();
+    const { siteId, contentRows, manufacturers, colors } = await request.json();
 
     if (!siteId || !contentRows) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -73,6 +73,26 @@ export async function POST(request: NextRequest) {
       if (mfgError) {
         console.error('Manufacturers insert error:', mfgError);
         // Non-fatal — content already saved
+      }
+    }
+
+    // Save brand colors to site_customizations
+    if (colors) {
+      const { data: existing } = await supabase
+        .from('site_customizations')
+        .select('config_json')
+        .eq('site_id', siteId)
+        .eq('customization_type', 'colors')
+        .maybeSingle();
+
+      if (existing) {
+        await supabase.from('site_customizations')
+          .update({ config_json: colors })
+          .eq('site_id', siteId)
+          .eq('customization_type', 'colors');
+      } else {
+        await supabase.from('site_customizations')
+          .insert({ site_id: siteId, customization_type: 'colors', config_json: colors });
       }
     }
 

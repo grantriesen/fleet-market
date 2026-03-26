@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import ImageUpload from '@/components/ImageUpload';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import {
@@ -30,6 +31,7 @@ interface LibraryBrand {
 interface FormData {
   // Business basics
   businessName: string;
+  logoImage: string;
   phone: string;
   email: string;
   address: string;
@@ -57,12 +59,16 @@ interface FormData {
   // Rentals addon
   rentalManagementSystem: string;
   rentalManagementSystemName: string;
+  // Brand colors
+  colorPrimary: string;
+  colorSecondary: string;
+  colorAccent: string;
   // AI description
   businessDescription: string;
 }
 
 const INITIAL_FORM: FormData = {
-  businessName: '', phone: '', email: '', address: '', city: '', state: '', zip: '',
+  businessName: '', logoImage: '', phone: '', email: '', address: '', city: '', state: '', zip: '',
   weekdayHours: 'Mon–Fri: 8:00 AM – 5:00 PM',
   saturdayHours: 'Sat: 8:00 AM – 12:00 PM',
   sundayHours: 'Closed',
@@ -73,6 +79,9 @@ const INITIAL_FORM: FormData = {
   posSystem: '', posSystemName: '',
   serviceSchedulingSystem: '', serviceSchedulingSystemName: '',
   rentalManagementSystem: '', rentalManagementSystemName: '',
+  colorPrimary: '#2D5016',
+  colorSecondary: '#F97316',
+  colorAccent: '#059669',
   businessDescription: '',
 };
 
@@ -288,6 +297,7 @@ Return ONLY a valid JSON object with these exact keys. No markdown, no backticks
       // ── Build content rows ────────────────────────────────────────────────
       const contentRows = [
         { field_key: 'businessInfo.businessName', value: form.businessName },
+        { field_key: 'businessInfo.logoImage',    value: form.logoImage },
         { field_key: 'businessInfo.phone',        value: form.phone },
         { field_key: 'businessInfo.email',        value: form.email },
         { field_key: 'businessInfo.address',      value: form.address },
@@ -319,6 +329,11 @@ Return ONLY a valid JSON object with these exact keys. No markdown, no backticks
           siteId: site.id,
           contentRows,
           manufacturers: manufacturerRows,
+          colors: {
+            primary: form.colorPrimary,
+            secondary: form.colorSecondary,
+            accent: form.colorAccent,
+          },
         }),
       });
 
@@ -470,6 +485,7 @@ Return ONLY a valid JSON object with these exact keys. No markdown, no backticks
           brandCategory={brandCategory}
           setBrandCategory={setBrandCategory}
           siteName={site.site_name}
+          siteId={params.siteId}
           error={error}
         />
 
@@ -511,7 +527,7 @@ Return ONLY a valid JSON object with these exact keys. No markdown, no backticks
 // ─── Step Content Component ────────────────────────────────────────────────────
 function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
   filteredBrands, brandsByCategory, brandSearch, setBrandSearch,
-  brandCategory, setBrandCategory, siteName, error }: any) {
+  brandCategory, setBrandCategory, siteName, siteId, error }: any) {
 
   const inputCls = "w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors text-sm";
   const labelCls = "block text-sm font-medium text-slate-300 mb-2";
@@ -520,12 +536,67 @@ function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
     case 'basics':
       return (
         <div>
-          <StepHeader icon={Building2} title="Let's start with the basics" subtitle="This info will appear on your site's contact page and footer." />
-          <div className="grid grid-cols-1 gap-5">
+          <StepHeader icon={Building2} title="Let's set up your brand" subtitle="Start with your business name, logo, and brand colors — these appear throughout your site." />
+          <div className="grid grid-cols-1 gap-6">
+
+            {/* Business Name */}
             <div>
               <label className={labelCls}>Business Name *</label>
               <input className={inputCls} value={form.businessName} onChange={e => update('businessName', e.target.value)} placeholder="Green Valley Equipment Co." />
             </div>
+
+            {/* Logo Upload */}
+            {siteName && (
+              <div>
+                <label className={labelCls}>Logo</label>
+                <p className="text-xs text-slate-500 mb-3">Recommended: transparent PNG, 200×60px. You can update this anytime.</p>
+                <div className="bg-slate-900 border border-slate-700 rounded-xl p-4">
+                  <ImageUpload
+                    value={form.logoImage}
+                    onChange={url => update('logoImage', url)}
+                    siteId={siteId}
+                    fieldKey="businessInfo.logoImage"
+                    label=""
+                    helpText=""
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Brand Colors */}
+            <div>
+              <label className={labelCls}>Brand Colors</label>
+              <p className="text-xs text-slate-500 mb-3">Pick colors that match your brand. You can fine-tune these in the customizer.</p>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl border-2 border-slate-600 overflow-hidden">
+                    <input type="color" value={form.colorPrimary} onChange={e => update('colorPrimary', e.target.value)}
+                      className="w-full h-full cursor-pointer border-0 p-0 bg-transparent" style={{width:'100%',height:'100%'}} />
+                  </div>
+                  <span className="text-xs font-medium text-slate-400">Primary</span>
+                </div>
+                <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl border-2 border-slate-600 overflow-hidden">
+                    <input type="color" value={form.colorSecondary} onChange={e => update('colorSecondary', e.target.value)}
+                      className="w-full h-full cursor-pointer border-0 p-0 bg-transparent" style={{width:'100%',height:'100%'}} />
+                  </div>
+                  <span className="text-xs font-medium text-slate-400">Secondary</span>
+                </div>
+                <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl border-2 border-slate-600 overflow-hidden">
+                    <input type="color" value={form.colorAccent} onChange={e => update('colorAccent', e.target.value)}
+                      className="w-full h-full cursor-pointer border-0 p-0 bg-transparent" style={{width:'100%',height:'100%'}} />
+                  </div>
+                  <span className="text-xs font-medium text-slate-400">Accent</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-slate-800 pt-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Contact Information</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Phone *</label>
