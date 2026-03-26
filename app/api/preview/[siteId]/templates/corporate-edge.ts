@@ -4,6 +4,9 @@
 //         utility bar in header, bottom wave on hero.
 // ──────────────────────────────────────────────────────────────────────────
 
+import { rentalModalBlock, rentalReserveButton } from './shared-rental';
+import { productCardOnclick, injectCartSystem, serviceFormHtml } from './shared';
+
 /* ── DEMO overrides ── */
 export const CORPORATE_EDGE_DEMO_OVERRIDES = {
   'business.name': 'Premier Equipment Co.',
@@ -1100,5 +1103,3 @@ function ceFormSection(siteId: string, heading: string, description: string) {
     </div>
   </section>`;
 }
-import { rentalModalBlock, rentalReserveButton } from './shared-rental';
-import { productCardOnclick, injectCartSystem, serviceFormHtml } from './shared';
