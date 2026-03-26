@@ -611,26 +611,55 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
     });
   };
 
+  // Maps customizer section keys to template data-section attribute values
+  const SECTION_KEY_MAP: Record<string, string> = {
+    // Home page sections
+    'hero':          'hero',
+    'featured':      'featured',
+    'manufacturers': 'manufacturers',
+    'testimonials':  'testimonials',
+    'cta':           'cta',
+    'about':         'about',
+    'whyChoose':     'whyChoose',
+    'stats':         'stats',
+    // Subpage sections
+    'contactPage':      'contactForm',
+    'manufacturersPage':'manufacturersList',
+    'servicePage':      'serviceTypes',
+    'inventoryPage':    'inventoryGrid',
+    'rentalsPage':      'rentalsList',
+  };
+
+  // Debounce ref — prevents re-scrolling on every keystroke
+  const scrollDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastScrolledSection = useRef<string>('');
+
   const scrollToSection = (section: string) => {
-    // First, update the active section immediately
+    // Always update active section and scroll the tab
     setActiveSection(section);
-    
-    // Scroll the section tab into view
     setTimeout(() => {
       const button = document.querySelector(`button[data-section="${section}"]`);
       if (button) {
         button.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
     }, 50);
-    
-    // Then try to scroll in the preview iframe
-    const iframe = document.querySelector('iframe');
-    if (iframe?.contentWindow) {
-      iframe.contentWindow.postMessage(
-        { type: 'scrollToSection', section },
-        '*'
-      );
-    }
+
+    // Only scroll the preview if we're moving to a different section
+    // and debounce so rapid field-to-field tabbing doesn't cause thrashing
+    if (lastScrolledSection.current === section) return;
+
+    if (scrollDebounceRef.current) clearTimeout(scrollDebounceRef.current);
+    scrollDebounceRef.current = setTimeout(() => {
+      lastScrolledSection.current = section;
+      const mappedSection = SECTION_KEY_MAP[section] || section;
+      const iframe = document.querySelector('iframe');
+      if (iframe?.contentWindow) {
+        iframe.contentWindow.postMessage(
+          { type: 'scrollToSection', section: mappedSection },
+          '*'
+        );
+      }
+    }, 150);
   };
 
   // Render field based on type
