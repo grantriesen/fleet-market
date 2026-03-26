@@ -553,15 +553,16 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
           ${featured.map((p: any) => {
             const imgUrl = p.image_url || p.primary_image || ''; const hasImage = imgUrl && !imgUrl.includes('placeholder');
             const displayPrice = p.sale_price || p.price;
+            const onclick = productCardOnclick(p);
             return `
-          <div class="group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white">
+          <div class="group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" onclick="${onclick}">
             <div class="aspect-square relative overflow-hidden bg-gray-100">
               ${hasImage
                 ? `<img src="${imgUrl}" alt="${p.name || p.title}" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
                 : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
                     <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                   </div>`}
-              <span class="absolute top-3 left-3 px-2.5 py-1 rounded text-xs font-semibold text-white" style="background-color: ${colors.primary};">${p.brand || 'Brand'}</span>
+              <span class="absolute top-3 left-3 px-2.5 py-1 rounded text-xs font-semibold text-white" style="background-color: ${colors.primary};">${p.brand || p.category || 'Equipment'}</span>
               ${p.condition === 'used' ? `<span class="absolute top-3 right-3 px-2 py-1 rounded text-xs font-semibold bg-amber-500 text-white">Used${p.hours ? ` · ${p.hours}hrs` : ''}</span>` : ''}
             </div>
             <div class="p-5">
@@ -571,9 +572,9 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
               <div class="flex items-center justify-between">
                 <div>
                   ${p.sale_price ? `<span class="text-gray-400 line-through text-sm mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
-                  <span class="font-heading font-bold text-lg" style="color: ${colors.primary};">$${Number(displayPrice).toLocaleString()}</span>
+                  <span class="font-heading font-bold text-lg" style="color: ${colors.primary};">${displayPrice ? `$${Number(displayPrice).toLocaleString()}` : 'Call for Price'}</span>
                 </div>
-                <a href="${baseUrl}contact" class="text-sm font-semibold hover:underline" style="color: ${colors.primary};">Details →</a>
+                <span class="text-sm font-semibold hover:underline" style="color: ${colors.primary};">View Details →</span>
               </div>
             </div>
           </div>`;
@@ -833,7 +834,7 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[],
           const imgUrl = p.image_url || p.primary_image || ''; const hasImage = imgUrl && !imgUrl.includes('placeholder');
           const displayPrice = p.sale_price || p.price;
           return `
-        <div class="ce-product group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" data-category="${p.category || ''}" onclick="fmOpenProduct(${JSON.stringify({id:p.id||p.slug,title:p.name||p.title,description:p.description,price:p.price,sale_price:p.sale_price,primary_image:p.image_url||p.primary_image,category:p.category,model:p.model,slug:p.slug}).replace(/"/g,'&quot;')})">
+        <div class="ce-product group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" data-category="${p.category || ''}" onclick="${productCardOnclick(p)}">
           <div class="aspect-square relative overflow-hidden bg-gray-100">
             ${hasImage
               ? `<img src="${imgUrl}" alt="${p.name || p.title}" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
@@ -1094,3 +1095,4 @@ function ceFormSection(siteId: string, heading: string, description: string) {
   </section>`;
 }
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
+import { productCardOnclick } from './shared';
