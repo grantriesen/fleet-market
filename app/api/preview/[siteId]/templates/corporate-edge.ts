@@ -190,6 +190,11 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabl
       }
     }
   }
+  // Stub fm functions — real implementations injected by cart system before </body>
+  // These queue any calls made before the cart script loads
+  window._fmQueue = [];
+  window.fmOpenProduct = function(p) { window._fmQueue.push(['fmOpenProduct', p]); };
+  window.fmSubmitForm = function(f, s, t, e) { window._fmQueue.push(['fmSubmitForm', f, s, t, e]); };
   </script>
   <style>
     body { font-family: '${fonts.body}', sans-serif; background: #f8fafc; color: #1e293b; }
