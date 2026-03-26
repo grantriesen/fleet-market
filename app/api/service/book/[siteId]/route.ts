@@ -109,7 +109,7 @@ export async function POST(request: NextRequest, { params }: { params: { siteId:
       scheduled_start: scheduledStart,
       scheduled_end: scheduledEnd,
       duration_minutes: duration,
-      status: isCustom ? 'contact_needed' : (scheduledStart ? 'confirmed' : 'pending'),
+      status: isCustom ? 'contact_needed' : 'pending',
       customer_notes: customerNotes || null,
     };
 
