@@ -91,7 +91,9 @@ export async function renderCorporateEdgePage(
   manufacturers: any[] = [],
   baseUrl: string = `/api/preview/${siteId}?page=`,
   supabase?: any,
-  siteAddons: string[] = []
+  siteAddons: string[] = [],
+  checkoutMode: string = 'quote_only',
+  stripeConnected: boolean = false
 ) {
   const CE_KEY_ALIASES: Record<string,string> = {
     'business.name':    'businessInfo.businessName',
@@ -160,12 +162,14 @@ export async function renderCorporateEdgePage(
     body +
     ceFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours, colors, manufacturers, baseUrl),
     enabledFeatures,
-    siteId
+    siteId,
+    checkoutMode,
+    stripeConnected
   );
 }
 
 // ── HTML Shell ──
-function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabledFeatures?: Set<string>, siteId?: string) {
+function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabledFeatures?: Set<string>, siteId?: string, checkoutMode: string = 'quote_only', stripeConnected: boolean = false) {
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const googleFontsUrl = Array.from(fontFamilies)
     .map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700;800;900`)
@@ -204,29 +208,70 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabl
 <script>
 var CE_SITE_ID = '${siteId}';
 var CE_PRIMARY = '${colors.primary}';
+var CE_CHECKOUT_MODE = '${checkoutMode}';
+var CE_STRIPE = ${stripeConnected ? 'true' : 'false'};
 function ceCloseModal(){document.getElementById('ce-product-modal').classList.remove('open');}
 function fmOpenProduct(product){
   var content=document.getElementById('ce-modal-content');
   if(!content)return;
   var price=product.sale_price||product.price;
   var priceHtml=price
-    ?'<span style="font-weight:700;font-size:1.5rem;color:'+CE_PRIMARY+';">$'+Number(price).toLocaleString()+'</span>'
+    ?(product.sale_price
+      ?'<span style="text-decoration:line-through;color:#9ca3af;margin-right:8px;font-size:1rem;">$'+Number(product.price).toLocaleString()+'</span><span style="font-weight:700;font-size:1.5rem;color:#dc2626;">$'+Number(product.sale_price).toLocaleString()+'</span>'
+      :'<span style="font-weight:700;font-size:1.5rem;color:'+CE_PRIMARY+';">$'+Number(price).toLocaleString()+'</span>')
     :'<span style="font-weight:600;color:#6b7280;">Call for Price</span>';
+  var canSell = CE_CHECKOUT_MODE === 'online' && CE_STRIPE && price;
+  var actionHtml = canSell
+    ? '<div style="display:flex;flex-direction:column;gap:10px;margin-top:1.25rem;">'
+        +'<button onclick="ceAddToCart('+JSON.stringify(product).replace(/"/g,\'&quot;\')+',this)" style="width:100%;padding:14px;background:'+CE_PRIMARY+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Add to Cart</button>'
+        +'<button onclick="ceBuyNow('+JSON.stringify(product).replace(/"/g,\'&quot;\')+',this)" style="width:100%;padding:14px;background:#fff;color:'+CE_PRIMARY+';border:2px solid '+CE_PRIMARY+';border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Buy Now</button>'
+        +'</div>'
+    : '<div style="background:#f9fafb;border-radius:8px;padding:1.25rem;margin-top:1rem;">'
+        +'<p style="font-weight:600;margin:0 0 12px;">Request a Quote</p>'
+        +'<form id="ce-quote-form" onsubmit="ceSendQuote(event,'+JSON.stringify(product).replace(/</g,'\\u003c').replace(/"/g,\'&quot;\')+');">'
+        +'<input name="name" type="text" required placeholder="Your name" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:8px;font-size:0.9375rem;box-sizing:border-box;">'
+        +'<input name="email" type="email" required placeholder="Email address" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:8px;font-size:0.9375rem;box-sizing:border-box;">'
+        +'<input name="phone" type="tel" placeholder="Phone (optional)" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:10px;font-size:0.9375rem;box-sizing:border-box;">'
+        +'<button type="submit" style="width:100%;padding:12px;background:'+CE_PRIMARY+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Request Quote</button>'
+        +'</form></div>';
   content.innerHTML=''
     +(product.primary_image?'<img src="'+product.primary_image+'" alt="'+product.title+'" style="width:100%;max-height:300px;object-fit:contain;border-radius:8px;background:#f3f4f6;padding:1rem;margin-bottom:1rem;">':'')
-    +'<p style="font-size:0.875rem;color:#6b7280;margin:0 0 4px;">'+( product.category||'')+'</p>'
+    +'<p style="font-size:0.875rem;color:#6b7280;margin:0 0 4px;">'+(product.category||'')+'</p>'
     +'<h2 style="font-size:1.375rem;font-weight:700;margin:0 0 8px;">'+product.title+'</h2>'
     +(product.description?'<p style="color:#4b5563;font-size:0.9375rem;margin:0 0 12px;">'+product.description+'</p>':'')
-    +'<div style="margin-bottom:1.25rem;">'+priceHtml+'</div>'
-    +'<div style="background:#f9fafb;border-radius:8px;padding:1.25rem;">'
-    +'<p style="font-weight:600;margin:0 0 12px;">Request a Quote</p>'
-    +'<form id="ce-quote-form" onsubmit="ceSendQuote(event,'+JSON.stringify(product).replace(/</g,'\\u003c').replace(/"/g,\'&quot;\')+');">'
-    +'<input name="name" type="text" required placeholder="Your name" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:8px;font-size:0.9375rem;box-sizing:border-box;">'
-    +'<input name="email" type="email" required placeholder="Email address" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:8px;font-size:0.9375rem;box-sizing:border-box;">'
-    +'<input name="phone" type="tel" placeholder="Phone (optional)" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:10px;font-size:0.9375rem;box-sizing:border-box;">'
-    +'<button type="submit" style="width:100%;padding:12px;background:'+CE_PRIMARY+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Request Quote</button>'
-    +'</form></div>';
+    +'<div>'+priceHtml+'</div>'
+    +actionHtml;
   document.getElementById('ce-product-modal').classList.add('open');
+}
+function ceAddToCart(product, btn) {
+  var orig = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = 'Adding...'; btn.disabled = true; }
+  var SESSION_ID = sessionStorage.getItem('fm_cart_sid');
+  if (!SESSION_ID) { SESSION_ID = Math.random().toString(36).slice(2)+Date.now().toString(36); sessionStorage.setItem('fm_cart_sid', SESSION_ID); }
+  fetch('/api/inventory/cart/'+CE_SITE_ID+'/add', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ sessionId: SESSION_ID, productId: product.id, quantity: 1 })
+  }).then(function(r){return r.json();}).then(function(d){
+    if (d.success || d.items) {
+      if (btn) { btn.textContent = '\u2713 Added to Cart'; btn.style.background = '#16a34a'; }
+      setTimeout(function(){ if(btn){btn.textContent=orig;btn.style.background=CE_PRIMARY;btn.disabled=false;} }, 2000);
+      if (window.fmOpenCart) window.fmOpenCart();
+    } else {
+      if (btn) { btn.textContent = orig; btn.disabled = false; }
+      alert(d.error || 'Could not add to cart.');
+    }
+  }).catch(function(){ if(btn){btn.textContent=orig;btn.disabled=false;} alert('Something went wrong.'); });
+}
+function ceBuyNow(product, btn) {
+  if (btn) { btn.textContent = 'Redirecting...'; btn.disabled = true; }
+  var SESSION_ID = sessionStorage.getItem('fm_cart_sid');
+  if (!SESSION_ID) { SESSION_ID = Math.random().toString(36).slice(2)+Date.now().toString(36); sessionStorage.setItem('fm_cart_sid', SESSION_ID); }
+  fetch('/api/inventory/cart/'+CE_SITE_ID+'/add', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ sessionId: SESSION_ID, productId: product.id, quantity: 1 })
+  }).then(function(r){return r.json();}).then(function(){
+    window.location.href = '/api/inventory/checkout/'+CE_SITE_ID+'?session='+SESSION_ID+'&direct=1';
+  }).catch(function(){ if(btn){btn.textContent='Buy Now';btn.disabled=false;} alert('Something went wrong.'); });
 }
 function ceSendQuote(e,product){
   e.preventDefault();
