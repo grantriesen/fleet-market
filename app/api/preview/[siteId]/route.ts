@@ -230,7 +230,7 @@ async function generateTemplateHTML(
     ? true
     : (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync'));
 
-  if (needsCartSystem && !html.includes('fm-product-modal')) {
+  if (needsCartSystem && (templateSlug === 'corporate-edge' || !html.includes('fm-product-modal'))) {
     const cartHtml = injectCartSystem(siteId, site.checkout_mode || 'quote_only', colors.primary);
     html = html.includes('</body>') ? html.replace('</body>', cartHtml + '\n</body>') : html + cartHtml;
   }
