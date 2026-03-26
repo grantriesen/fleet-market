@@ -560,6 +560,8 @@ Return ONLY a valid JSON object with these exact keys. No markdown, no backticks
           siteName={site.site_name}
           siteId={params.siteId}
           error={error}
+          aiAssisting={aiAssisting}
+          handleAiAssist={handleAiAssist}
         />
 
         {/* Nav */}
@@ -600,7 +602,8 @@ Return ONLY a valid JSON object with these exact keys. No markdown, no backticks
 // ─── Step Content Component ────────────────────────────────────────────────────
 function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
   filteredBrands, brandsByCategory, brandSearch, setBrandSearch,
-  brandCategory, setBrandCategory, siteName, siteId, error }: any) {
+  brandCategory, setBrandCategory, siteName, siteId, error,
+  aiAssisting, handleAiAssist }: any) {
 
   const inputCls = "w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors text-sm";
   const labelCls = "block text-sm font-medium text-slate-300 mb-2";
