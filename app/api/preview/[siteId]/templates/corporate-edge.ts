@@ -1195,12 +1195,7 @@ async function ceRentalsPage(
       </div>
     </div>
   </section>
-  ${inventoryHtml ? `
-
-
-  <!-- Rental Booking Modal (fm) -->
-  <script src="/fm-rental-datepicker.js"></script>
-` : ''}
+  ${inventoryHtml ? `` : ''}
   `;
 }
 // ── Manufacturers Page ──
