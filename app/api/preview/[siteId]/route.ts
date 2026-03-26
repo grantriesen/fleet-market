@@ -212,7 +212,7 @@ async function generateTemplateHTML(
   } else if (templateSlug === 'vibe-dynamics') {
     html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers, sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only');
   } else if (templateSlug === 'corporate-edge') {
-    html = await renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || []);
+    html = renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || []);
   } else if (templateSlug === 'zenith-lawn') {
     html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, previewBase, supabase, site.addons || []);
   } else if (templateSlug === 'modern-lawn-solutions') {
@@ -225,10 +225,12 @@ async function generateTemplateHTML(
   }
 
   // Inject cart system if needed
-  if (
-    (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync')) &&
-    !html.includes('fm-product-modal')
-  ) {
+  // CE always gets the cart system since its product cards always call fmOpenProduct
+  const needsCartSystem = templateSlug === 'corporate-edge'
+    ? true
+    : (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync'));
+
+  if (needsCartSystem && !html.includes('fm-product-modal')) {
     const cartHtml = injectCartSystem(siteId, site.checkout_mode || 'quote_only', colors.primary);
     html = html.includes('</body>') ? html.replace('</body>', cartHtml + '\n</body>') : html + cartHtml;
   }

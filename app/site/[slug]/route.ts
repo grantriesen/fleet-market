@@ -115,7 +115,7 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   } else if (templateSlug === 'vibe-dynamics') {
     html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers || [], sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, '/', site.addons || [], site.checkout_mode || 'quote_only');
   } else if (templateSlug === 'corporate-edge') {
-    html = await renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || []);
+    html = renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || []);
   } else if (templateSlug === 'zenith-lawn') {
     html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, '/', supabase, site.addons || []);
   } else if (templateSlug === 'modern-lawn-solutions') {
@@ -128,10 +128,12 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
 
   // Inject cart system if dealer has inventory addon
   // Guard against double injection (green-valley and vibe-dynamics inject their own)
-  if (
-    (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync')) &&
-    !html.includes('fm-product-modal')
-  ) {
+  // CE always gets the cart system since its product cards always call fmOpenProduct
+  const needsCartSystem = templateSlug === 'corporate-edge'
+    ? true
+    : (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync'));
+
+  if (needsCartSystem && !html.includes('fm-product-modal')) {
     const checkoutMode = site.checkout_mode || 'quote_only';
     const cartHtml = injectCartSystem(siteId, checkoutMode, colors.primary);
     html = html.includes('</body>') ? html.replace('</body>', cartHtml + '\n</body>') : html + cartHtml;
