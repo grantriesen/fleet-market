@@ -187,19 +187,9 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabl
           heading: ['${fonts.heading}', 'sans-serif'],
           body: ['${fonts.body}', 'sans-serif'],
         },
-        colors: {
-          primary: '${colors.primary}',
-          secondary: '${colors.secondary}',
-          accent: '${colors.accent}',
-        },
-        borderRadius: {
-          sm: '0.25rem',
-        },
       }
     }
   }
-
-
   </script>
   <style>
     body { font-family: '${fonts.body}', sans-serif; background: #f8fafc; color: #1e293b; }
