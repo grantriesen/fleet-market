@@ -218,6 +218,19 @@ function fmSubmitForm(form,siteId,formType,extraFn){
     else{if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');}
   }).catch(function(){if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');});
 }
+// Override fmBuyNow after cart system loads to ensure cart drawer opens
+window.addEventListener('load', function() {
+  var _origBuyNow = window.fmBuyNow;
+  window.fmBuyNow = function(product) {
+    // Open the cart drawer first so the shipping step is visible
+    var overlay = document.getElementById('fm-cart-overlay');
+    var drawer = document.getElementById('fm-cart-drawer');
+    if (overlay) overlay.classList.add('fm-open');
+    if (drawer) drawer.classList.add('fm-open');
+    document.body.style.overflow = 'hidden';
+    if (_origBuyNow) _origBuyNow(product);
+  };
+});
 </script>
 ${body}`;
 }
