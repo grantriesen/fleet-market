@@ -210,8 +210,11 @@ var CE_SITE_ID = '${siteId}';
 var CE_PRIMARY = '${colors.primary}';
 var CE_CHECKOUT_MODE = '${checkoutMode}';
 var CE_STRIPE = ${stripeConnected ? 'true' : 'false'};
+var CE_SESSION_ID = sessionStorage.getItem('fm_cart_sid') || (function(){var s=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('fm_cart_sid',s);return s;})();
+var ceCurrentProduct = null;
 function ceCloseModal(){document.getElementById('ce-product-modal').classList.remove('open');}
 function fmOpenProduct(product){
+  ceCurrentProduct = product;
   var content=document.getElementById('ce-modal-content');
   if(!content)return;
   var price=product.sale_price||product.price;
@@ -223,12 +226,12 @@ function fmOpenProduct(product){
   var canSell = CE_CHECKOUT_MODE === 'online' && CE_STRIPE && price;
   var actionHtml = canSell
     ? '<div style="display:flex;flex-direction:column;gap:10px;margin-top:1.25rem;">'
-        +'<button onclick="ceAddToCart('+JSON.stringify(product).replace(/"/g,\'&quot;\')+',this)" style="width:100%;padding:14px;background:'+CE_PRIMARY+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Add to Cart</button>'
-        +'<button onclick="ceBuyNow('+JSON.stringify(product).replace(/"/g,\'&quot;\')+',this)" style="width:100%;padding:14px;background:#fff;color:'+CE_PRIMARY+';border:2px solid '+CE_PRIMARY+';border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Buy Now</button>'
+        +'<button id="ce-atc-btn" onclick="ceAddToCart(this)" style="width:100%;padding:14px;background:'+CE_PRIMARY+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Add to Cart</button>'
+        +'<button id="ce-buy-btn" onclick="ceBuyNow(this)" style="width:100%;padding:14px;background:#fff;color:'+CE_PRIMARY+';border:2px solid '+CE_PRIMARY+';border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Buy Now</button>'
         +'</div>'
     : '<div style="background:#f9fafb;border-radius:8px;padding:1.25rem;margin-top:1rem;">'
         +'<p style="font-weight:600;margin:0 0 12px;">Request a Quote</p>'
-        +'<form id="ce-quote-form" onsubmit="ceSendQuote(event,'+JSON.stringify(product).replace(/</g,'\\u003c').replace(/"/g,\'&quot;\')+');">'
+        +'<form id="ce-quote-form" onsubmit="ceSendQuote(event);">'
         +'<input name="name" type="text" required placeholder="Your name" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:8px;font-size:0.9375rem;box-sizing:border-box;">'
         +'<input name="email" type="email" required placeholder="Email address" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:8px;font-size:0.9375rem;box-sizing:border-box;">'
         +'<input name="phone" type="tel" placeholder="Phone (optional)" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:10px;font-size:0.9375rem;box-sizing:border-box;">'
@@ -239,21 +242,21 @@ function fmOpenProduct(product){
     +'<p style="font-size:0.875rem;color:#6b7280;margin:0 0 4px;">'+(product.category||'')+'</p>'
     +'<h2 style="font-size:1.375rem;font-weight:700;margin:0 0 8px;">'+product.title+'</h2>'
     +(product.description?'<p style="color:#4b5563;font-size:0.9375rem;margin:0 0 12px;">'+product.description+'</p>':'')
-    +'<div>'+priceHtml+'</div>'
+    +'<div style="margin-bottom:1rem;">'+priceHtml+'</div>'
     +actionHtml;
   document.getElementById('ce-product-modal').classList.add('open');
 }
-function ceAddToCart(product, btn) {
+function ceAddToCart(btn) {
+  var product = ceCurrentProduct;
+  if (!product) return;
   var orig = btn ? btn.textContent : '';
   if (btn) { btn.textContent = 'Adding...'; btn.disabled = true; }
-  var SESSION_ID = sessionStorage.getItem('fm_cart_sid');
-  if (!SESSION_ID) { SESSION_ID = Math.random().toString(36).slice(2)+Date.now().toString(36); sessionStorage.setItem('fm_cart_sid', SESSION_ID); }
-  fetch('/api/inventory/cart/'+CE_SITE_ID+'/add', {
+  fetch('/api/inventory/cart/'+CE_SITE_ID, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ sessionId: SESSION_ID, productId: product.id, quantity: 1 })
+    body: JSON.stringify({ sessionId: CE_SESSION_ID, item: { id: product.id, title: product.title, price: product.sale_price||product.price, quantity: 1, primary_image: product.primary_image||null, slug: product.slug||null } })
   }).then(function(r){return r.json();}).then(function(d){
-    if (d.success || d.items) {
-      if (btn) { btn.textContent = '\u2713 Added to Cart'; btn.style.background = '#16a34a'; }
+    if (d.items) {
+      if (btn) { btn.textContent = '\u2713 Added!'; btn.style.background='#16a34a'; }
       setTimeout(function(){ if(btn){btn.textContent=orig;btn.style.background=CE_PRIMARY;btn.disabled=false;} }, 2000);
       if (window.fmOpenCart) window.fmOpenCart();
     } else {
@@ -262,19 +265,22 @@ function ceAddToCart(product, btn) {
     }
   }).catch(function(){ if(btn){btn.textContent=orig;btn.disabled=false;} alert('Something went wrong.'); });
 }
-function ceBuyNow(product, btn) {
+function ceBuyNow(btn) {
+  var product = ceCurrentProduct;
+  if (!product) return;
   if (btn) { btn.textContent = 'Redirecting...'; btn.disabled = true; }
-  var SESSION_ID = sessionStorage.getItem('fm_cart_sid');
-  if (!SESSION_ID) { SESSION_ID = Math.random().toString(36).slice(2)+Date.now().toString(36); sessionStorage.setItem('fm_cart_sid', SESSION_ID); }
-  fetch('/api/inventory/cart/'+CE_SITE_ID+'/add', {
+  fetch('/api/inventory/cart/'+CE_SITE_ID, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ sessionId: SESSION_ID, productId: product.id, quantity: 1 })
+    body: JSON.stringify({ sessionId: CE_SESSION_ID, item: { id: product.id, title: product.title, price: product.sale_price||product.price, quantity: 1, primary_image: product.primary_image||null, slug: product.slug||null } })
   }).then(function(r){return r.json();}).then(function(){
-    window.location.href = '/api/inventory/checkout/'+CE_SITE_ID+'?session='+SESSION_ID+'&direct=1';
+    if (window.fmCheckout) { window.fmCheckout(); }
+    else { window.location.href='/api/inventory/checkout/'+CE_SITE_ID+'?session='+CE_SESSION_ID; }
   }).catch(function(){ if(btn){btn.textContent='Buy Now';btn.disabled=false;} alert('Something went wrong.'); });
 }
-function ceSendQuote(e,product){
+function ceSendQuote(e){
   e.preventDefault();
+  var product = ceCurrentProduct;
+  if (!product) return;
   var form=e.target;
   var btn=form.querySelector('button[type=submit]');
   if(btn){btn.textContent='Sending...';btn.disabled=true;}
