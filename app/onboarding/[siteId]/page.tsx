@@ -247,7 +247,7 @@ Return ONLY a valid JSON object with these exact keys, no markdown, no backticks
 
       setGenStatus('Saving your content...');
 
-      // ── Save business info ────────────────────────────────────────────────
+      // ── Build content rows ────────────────────────────────────────────────
       const contentRows = [
         { field_key: 'businessInfo.businessName', value: form.businessName },
         { field_key: 'businessInfo.phone',        value: form.phone },
@@ -263,38 +263,31 @@ Return ONLY a valid JSON object with these exact keys, no markdown, no backticks
         { field_key: 'businessInfo.yearsInBusiness', value: form.yearsInBusiness },
         // AI generated copy
         ...Object.entries(copy).map(([field_key, value]) => ({ field_key, value: value as string })),
-      ];
+      ].filter(r => r.value);
 
-      // Upsert all content
-      for (const row of contentRows) {
-        if (!row.value) continue;
-        await supabase.from('site_content').upsert(
-          { site_id: site.id, field_key: row.field_key, value: row.value },
-          { onConflict: 'site_id,field_key' }
-        );
+      // ── Build manufacturer rows ───────────────────────────────────────────
+      const selectedLibraryBrands = brands.filter((b: LibraryBrand) => form.selectedBrands.includes(b.slug));
+      const manufacturerRows = selectedLibraryBrands.map((b: LibraryBrand) => ({
+        name: b.name,
+        description: b.description || null,
+        website_url: b.website_url || null,
+      }));
+
+      // ── Save everything via server-side API (bypasses RLS) ────────────────
+      const saveResponse = await fetch('/api/save-onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          siteId: site.id,
+          contentRows,
+          manufacturers: manufacturerRows,
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        const err = await saveResponse.json();
+        throw new Error(err.error || 'Failed to save content');
       }
-
-      // ── Save selected brands ──────────────────────────────────────────────
-      if (form.selectedBrands.length > 0) {
-        setGenStatus('Adding your brands...');
-        const selectedLibraryBrands = brands.filter(b => form.selectedBrands.includes(b.slug));
-        const manufacturerRows = selectedLibraryBrands.map((b, i) => ({
-          site_id: site.id,
-          name: b.name,
-          description: b.description || null,
-          website_url: b.website_url || null,
-          logo_url: null,
-          display_order: i,
-          is_featured: false,
-        }));
-
-        if (manufacturerRows.length > 0) {
-          await supabase.from('manufacturers').insert(manufacturerRows);
-        }
-      }
-
-      // ── Mark site as having completed onboarding ──────────────────────────
-      await supabase.from('sites').update({ onboarding_completed: true }).eq('id', site.id);
 
       setGenStatus('Almost done...');
       await new Promise(r => setTimeout(r, 800));
