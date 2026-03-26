@@ -201,6 +201,11 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabl
     .container-corporate { max-width: 80rem; margin: 0 auto; padding-left: 1rem; padding-right: 1rem; }
     @media(min-width:640px){ .container-corporate { padding-left: 1.5rem; padding-right: 1.5rem; } }
     @media(min-width:1024px){ .container-corporate { padding-left: 2rem; padding-right: 2rem; } }
+    :root {
+      --color-primary: ${colors.primary};
+      --color-secondary: ${colors.secondary};
+      --color-accent: ${colors.accent};
+    }
   </style>
 </head>
 <body class="antialiased">
