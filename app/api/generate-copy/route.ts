@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, siteId } = await request.json();
+    const { prompt, siteId, rawText } = await request.json();
 
     if (!prompt || !siteId) {
       return NextResponse.json({ error: 'Missing prompt or siteId' }, { status: 400 });
@@ -33,7 +33,12 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     const text = data.content?.[0]?.text || '';
 
-    // Strip any accidental markdown fences
+    // Raw text mode — for AI assist on textarea fields
+    if (rawText) {
+      return NextResponse.json({ copy: text.trim(), text: text.trim() });
+    }
+
+    // JSON mode — for full site copy generation
     const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
     let copy: Record<string, string>;

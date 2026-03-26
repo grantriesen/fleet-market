@@ -132,6 +132,7 @@ export default function OnboardingPage({ params }: { params: { siteId: string } 
   const [genStatus,      setGenStatus]      = useState('');
   const [error,          setError]          = useState('');
   const [brandSearch,    setBrandSearch]    = useState('');
+  const [aiAssisting,    setAiAssisting]    = useState<'services' | 'about' | null>(null);
   const [brandCategory,  setBrandCategory]  = useState('all');
 
   const steps = site ? getSteps(site.addons || []) : [];
@@ -185,6 +186,78 @@ export default function OnboardingPage({ params }: { params: { siteId: string } 
       case 'rentals':  return !!(form.rentalManagementSystem);
       case 'ai':       return !!(form.businessDescription.trim());
       default:         return true;
+    }
+  }
+
+  async function handleAiAssist(field: 'services' | 'about') {
+    setAiAssisting(field);
+    try {
+      const isServices = field === 'services';
+      const hasExisting = isServices ? form.servicesDescription.trim() : form.businessDescription.trim();
+
+      const prompt = isServices
+        ? hasExisting
+          ? `You are helping a local outdoor power equipment dealer improve their services description for their website onboarding form.
+
+Business: ${form.businessName || 'an equipment dealer'}
+Location: ${form.city || ''}, ${form.state || ''}
+Brands: ${form.selectedBrands.join(', ') || 'various brands'}
+
+Their draft: "${form.servicesDescription}"
+
+Enhance this description to be more compelling and specific while keeping their voice. Keep it to 3-5 sentences. Return only the enhanced text, no quotes, no preamble.`
+          : `You are helping a local outdoor power equipment dealer write a services description for their website onboarding form.
+
+Business: ${form.businessName || 'an equipment dealer'}
+Location: ${form.city || ''}, ${form.state || ''}
+Brands: ${form.selectedBrands.join(', ') || 'various brands'}
+Hours: ${form.weekdayHours || ''}
+
+Write a natural, specific 3-5 sentence description of what services a dealer like this would typically offer — equipment sales, service/repair, parts, and anything else relevant. Write it in first person plural (we/our). Return only the description text, no quotes, no preamble.`
+        : hasExisting
+          ? `You are helping a local outdoor power equipment dealer improve their business description for their website.
+
+Business: ${form.businessName || 'an equipment dealer'}
+Location: ${form.city || ''}, ${form.state || ''}
+Years in business: ${form.yearsInBusiness || 'established'}
+Service area: ${form.serviceArea || 'local area'}
+Services: ${form.servicesDescription || ''}
+Brands: ${form.selectedBrands.join(', ') || 'various brands'}
+
+Their draft: "${form.businessDescription}"
+
+Enhance this to be more compelling and personal while keeping their authentic voice. Keep it to 4-6 sentences. Return only the enhanced text, no quotes, no preamble.`
+          : `You are helping a local outdoor power equipment dealer write an "about us" description for their website.
+
+Business: ${form.businessName || 'an equipment dealer'}
+Location: ${form.city || ''}, ${form.state || ''}
+Years in business: ${form.yearsInBusiness || 'established'}
+Service area: ${form.serviceArea || 'local area'}
+Services: ${form.servicesDescription || ''}
+Brands: ${form.selectedBrands.join(', ') || 'various brands'}
+Hours: ${form.weekdayHours || ''}
+
+Write a warm, authentic 4-6 sentence "about us" description in first person plural (we/our) that captures what makes a local equipment dealer trustworthy and community-focused. Reference their specific details where possible. Return only the description text, no quotes, no preamble.`;
+
+      const response = await fetch('/api/generate-copy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, siteId: params.siteId, rawText: true }),
+      });
+
+      if (!response.ok) throw new Error('AI assist failed');
+      const data = await response.json();
+      const text = data.copy || data.text || '';
+
+      if (isServices) {
+        update('servicesDescription', text);
+      } else {
+        update('businessDescription', text);
+      }
+    } catch (err) {
+      console.error('AI assist error:', err);
+    } finally {
+      setAiAssisting(null);
     }
   }
 
@@ -666,14 +739,31 @@ function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
       return (
         <div>
           <StepHeader icon={Wrench} title="What services do you offer?" subtitle="Describe what you do — sales, service, rentals, installations, anything. The AI will use this to write your website copy." />
-          <textarea
-            className={`${inputCls} resize-none`}
-            rows={6}
-            value={form.servicesDescription}
-            onChange={e => update('servicesDescription', e.target.value)}
-            placeholder="We sell and service commercial and residential outdoor power equipment. We specialize in zero-turn mowers, chainsaws, trimmers, and blowers. We also have a full-service repair shop for all major brands, including warranty work..."
-          />
-          <p className="text-xs text-slate-500 mt-2">The more detail you give, the better your website copy will be.</p>
+          <div className="relative">
+            <textarea
+              className={`${inputCls} resize-none`}
+              rows={6}
+              value={form.servicesDescription}
+              onChange={e => update('servicesDescription', e.target.value)}
+              placeholder="We sell and service commercial and residential outdoor power equipment. We specialize in zero-turn mowers, chainsaws, trimmers, and blowers. We also have a full-service repair shop for all major brands, including warranty work..."
+            />
+          </div>
+          <div className="flex items-center justify-between mt-3">
+            <p className="text-xs text-slate-500">The more detail you give, the better your website copy will be.</p>
+            <button
+              onClick={() => handleAiAssist('services')}
+              disabled={aiAssisting === 'services'}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 disabled:opacity-50"
+            >
+              {aiAssisting === 'services' ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Writing...</>
+              ) : form.servicesDescription.trim() ? (
+                <><Sparkles className="w-3.5 h-3.5" /> Enhance with AI</>
+              ) : (
+                <><Sparkles className="w-3.5 h-3.5" /> Write with AI</>
+              )}
+            </button>
+          </div>
         </div>
       );
 
@@ -830,13 +920,31 @@ function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
             title="Tell us about your business"
             subtitle="Describe your dealership in your own words — your story, what makes you different, who you serve. Our AI will use this to write all the copy for your website."
           />
-          <textarea
-            className={`${inputCls} resize-none`}
-            rows={8}
-            value={form.businessDescription}
-            onChange={e => update('businessDescription', e.target.value)}
-            placeholder="We've been serving farmers and landscapers in the Platte Valley for over 30 years. What sets us apart is our service department — we have four factory-trained techs and most repairs are done in 48 hours or less. We're not a big box store, we're your neighbors. We stock parts for everything we sell and stand behind every piece of equipment we put out the door..."
-          />
+          <div className="relative">
+            <textarea
+              className={`${inputCls} resize-none`}
+              rows={8}
+              value={form.businessDescription}
+              onChange={e => update('businessDescription', e.target.value)}
+              placeholder="We've been serving farmers and landscapers in the Platte Valley for over 30 years. What sets us apart is our service department — we have four factory-trained techs and most repairs are done in 48 hours or less. We're not a big box store, we're your neighbors. We stock parts for everything we sell and stand behind every piece of equipment we put out the door..."
+            />
+          </div>
+          <div className="flex items-center justify-between mt-3">
+            <p className="text-xs text-slate-500">The AI uses everything you've entered to generate your site copy.</p>
+            <button
+              onClick={() => handleAiAssist('about')}
+              disabled={aiAssisting === 'about'}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 disabled:opacity-50"
+            >
+              {aiAssisting === 'about' ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Writing...</>
+              ) : form.businessDescription.trim() ? (
+                <><Sparkles className="w-3.5 h-3.5" /> Enhance with AI</>
+              ) : (
+                <><Sparkles className="w-3.5 h-3.5" /> Write with AI</>
+              )}
+            </button>
+          </div>
           <div className="mt-4 p-4 bg-slate-900 border border-slate-700 rounded-xl flex gap-3">
             <Info className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-slate-400">
