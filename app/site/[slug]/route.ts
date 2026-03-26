@@ -127,38 +127,16 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   }
 
   // Inject cart system if dealer has inventory addon
-  // Guard against double injection (green-valley and vibe-dynamics inject their own)
-  // CE always gets the cart system since its product cards always call fmOpenProduct
-  const needsCartSystem = templateSlug === 'corporate-edge'
-    ? true
-    : (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync'));
+  // Guard against double injection (green-valley, vibe-dynamics, and corporate-edge inject their own)
+  const needsCartSystem = templateSlug !== 'green-valley-industrial'
+    && templateSlug !== 'vibe-dynamics'
+    && templateSlug !== 'corporate-edge'
+    && (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync'));
 
-  console.log('[FM Cart Debug]', {
-    templateSlug,
-    needsCartSystem,
-    htmlLength: html.length,
-    hasBody: html.includes('</body>'),
-    hasModal: html.includes('fm-product-modal'),
-  });
-
-  if (needsCartSystem && (templateSlug === 'corporate-edge' || !html.includes('fm-product-modal'))) {
+  if (needsCartSystem && !html.includes('fm-product-modal')) {
     const checkoutMode = site.checkout_mode || 'quote_only';
     const cartHtml = injectCartSystem(siteId, checkoutMode, colors.primary);
-    const drainScript = `<script>
-(function(){
-  var q = window._fmQueue || [];
-  for(var i=0;i<q.length;i++){
-    var fn=q[i][0];
-    if(fn==='fmOpenProduct' && window.fmOpenProduct) window.fmOpenProduct(q[i][1]);
-    if(fn==='fmSubmitForm' && window.fmSubmitForm) window.fmSubmitForm(q[i][1],q[i][2],q[i][3],q[i][4]);
-  }
-  window._fmQueue=[];
-})();
-</script>`;
-    html = html.includes('</body>')
-      ? html.replace('</body>', cartHtml + drainScript + '\n</body>')
-      : html + cartHtml + drainScript;
-    console.log('[FM Cart Debug] Cart injected, new length:', html.length);
+    html = html.includes('</body>') ? html.replace('</body>', cartHtml + '\n</body>') : html + cartHtml;
   }
 
   return html;

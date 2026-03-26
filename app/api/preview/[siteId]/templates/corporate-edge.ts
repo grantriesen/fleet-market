@@ -154,7 +154,7 @@ export async function renderCorporateEdgePage(
     default: body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors, manufacturers, baseUrl); break;
   }
 
-  return ceHtmlShell(
+  const shell = ceHtmlShell(
     getContent('business.name') || 'Premier Equipment',
     fonts,
     colors,
@@ -166,6 +166,11 @@ export async function renderCorporateEdgePage(
     checkoutMode,
     stripeConnected
   );
+
+  return shell
+    + (enabledFeatures && enabledFeatures.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : '')
+    + injectCartSystem(siteId, checkoutMode, colors.primary)
+    + '\n</body>\n</html>';
 }
 
 // ── HTML Shell ──
@@ -193,110 +198,10 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabl
     .container-corporate { max-width: 80rem; margin: 0 auto; padding-left: 1rem; padding-right: 1rem; }
     @media(min-width:640px){ .container-corporate { padding-left: 1.5rem; padding-right: 1.5rem; } }
     @media(min-width:1024px){ .container-corporate { padding-left: 2rem; padding-right: 2rem; } }
-    #ce-product-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9998; align-items:center; justify-content:center; padding:1rem; }
-    #ce-product-modal.open { display:flex; }
   </style>
 </head>
 <body class="antialiased">
-<!-- CE Product Modal -->
-<div id="ce-product-modal" onclick="if(event.target===this)ceCloseModal()">
-  <div style="background:#fff;border-radius:12px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-    <button onclick="ceCloseModal()" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#6b7280;z-index:1;width:32px;height:32px;">&#x2715;</button>
-    <div id="ce-modal-content" style="padding:2rem;"></div>
-  </div>
-</div>
 <script>
-var CE_SITE_ID = '${siteId}';
-var CE_PRIMARY = '${colors.primary}';
-var CE_CHECKOUT_MODE = '${checkoutMode}';
-var CE_STRIPE = ${stripeConnected ? 'true' : 'false'};
-var CE_SESSION_ID = sessionStorage.getItem('fm_cart_sid') || (function(){var s=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('fm_cart_sid',s);return s;})();
-var ceCurrentProduct = null;
-function ceCloseModal(){document.getElementById('ce-product-modal').classList.remove('open');}
-function ceBuildModal(product){
-  ceCurrentProduct = product;
-  var content=document.getElementById('ce-modal-content');
-  if(!content)return;
-  var price=product.sale_price||product.price;
-  var priceHtml=price
-    ?(product.sale_price
-      ?'<span style="text-decoration:line-through;color:#9ca3af;margin-right:8px;font-size:1rem;">$'+Number(product.price).toLocaleString()+'</span><span style="font-weight:700;font-size:1.5rem;color:#dc2626;">$'+Number(product.sale_price).toLocaleString()+'</span>'
-      :'<span style="font-weight:700;font-size:1.5rem;color:'+CE_PRIMARY+';">$'+Number(price).toLocaleString()+'</span>')
-    :'<span style="font-weight:600;color:#6b7280;">Call for Price</span>';
-  var canSell = CE_CHECKOUT_MODE === 'online' && CE_STRIPE && price;
-  var actionHtml = canSell
-    ? '<div style="display:flex;flex-direction:column;gap:10px;margin-top:1.25rem;">'
-        +'<button id="ce-atc-btn" onclick="ceAddToCart(this)" style="width:100%;padding:14px;background:'+CE_PRIMARY+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Add to Cart</button>'
-        +'<button id="ce-buy-btn" onclick="ceBuyNow(this)" style="width:100%;padding:14px;background:#fff;color:'+CE_PRIMARY+';border:2px solid '+CE_PRIMARY+';border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Buy Now</button>'
-        +'</div>'
-    : '<div style="background:#f9fafb;border-radius:8px;padding:1.25rem;margin-top:1rem;">'
-        +'<p style="font-weight:600;margin:0 0 12px;">Request a Quote</p>'
-        +'<form id="ce-quote-form" onsubmit="ceSendQuote(event);">'
-        +'<input name="name" type="text" required placeholder="Your name" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:8px;font-size:0.9375rem;box-sizing:border-box;">'
-        +'<input name="email" type="email" required placeholder="Email address" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:8px;font-size:0.9375rem;box-sizing:border-box;">'
-        +'<input name="phone" type="tel" placeholder="Phone (optional)" style="width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:10px;font-size:0.9375rem;box-sizing:border-box;">'
-        +'<button type="submit" style="width:100%;padding:12px;background:'+CE_PRIMARY+';color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;">Request Quote</button>'
-        +'</form></div>';
-  content.innerHTML=''
-    +(product.primary_image?'<img src="'+product.primary_image+'" alt="'+product.title+'" style="width:100%;max-height:300px;object-fit:contain;border-radius:8px;background:#f3f4f6;padding:1rem;margin-bottom:1rem;">':'')
-    +'<p style="font-size:0.875rem;color:#6b7280;margin:0 0 4px;">'+(product.category||'')+'</p>'
-    +'<h2 style="font-size:1.375rem;font-weight:700;margin:0 0 8px;">'+product.title+'</h2>'
-    +(product.description?'<p style="color:#4b5563;font-size:0.9375rem;margin:0 0 12px;">'+product.description+'</p>':'')
-    +'<div style="margin-bottom:1rem;">'+priceHtml+'</div>'
-    +actionHtml;
-  document.getElementById('ce-product-modal').classList.add('open');
-}
-// Define now so onclick works immediately, then redefine after load to win over cart system
-window.fmOpenProduct = ceBuildModal;
-window.addEventListener('load', function(){ window.fmOpenProduct = ceBuildModal; });
-function ceAddToCart(btn) {
-  var product = ceCurrentProduct;
-  if (!product) return;
-  // Delegate to shared cart system if available
-  if (window.fmAddToCart) { ceCloseModal(); window.fmAddToCart(product, 1); return; }
-  var orig = btn ? btn.textContent : '';
-  if (btn) { btn.textContent = 'Adding...'; btn.disabled = true; }
-  fetch('/api/inventory/cart/'+CE_SITE_ID, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ sessionId: CE_SESSION_ID, item: { id: product.id, title: product.title, price: product.sale_price||product.price, quantity: 1, primary_image: product.primary_image||null, slug: product.slug||null } })
-  }).then(function(r){return r.json();}).then(function(d){
-    if (d.items) {
-      if (btn) { btn.textContent = '\u2713 Added!'; btn.style.background='#16a34a'; }
-      setTimeout(function(){ if(btn){btn.textContent=orig;btn.style.background=CE_PRIMARY;btn.disabled=false;} }, 2000);
-    } else {
-      if (btn) { btn.textContent = orig; btn.disabled = false; }
-      alert(d.error || 'Could not add to cart.');
-    }
-  }).catch(function(){ if(btn){btn.textContent=orig;btn.disabled=false;} alert('Something went wrong.'); });
-}
-function ceBuyNow(btn) {
-  var product = ceCurrentProduct;
-  if (!product) return;
-  // Delegate to shared cart system if available
-  if (window.fmBuyNow) { ceCloseModal(); window.fmBuyNow(product); return; }
-  if (btn) { btn.textContent = 'Redirecting...'; btn.disabled = true; }
-  fetch('/api/inventory/cart/'+CE_SITE_ID, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ sessionId: CE_SESSION_ID, item: { id: product.id, title: product.title, price: product.sale_price||product.price, quantity: 1, primary_image: product.primary_image||null, slug: product.slug||null } })
-  }).then(function(r){return r.json();}).then(function(){
-    if (window.fmCheckout) { window.fmCheckout(); }
-    else { window.location.href='/api/inventory/checkout/'+CE_SITE_ID+'?session='+CE_SESSION_ID; }
-  }).catch(function(){ if(btn){btn.textContent='Buy Now';btn.disabled=false;} alert('Something went wrong.'); });
-}
-function ceSendQuote(e){
-  e.preventDefault();
-  var product = ceCurrentProduct;
-  if (!product) return;
-  var form=e.target;
-  var btn=form.querySelector('button[type=submit]');
-  if(btn){btn.textContent='Sending...';btn.disabled=true;}
-  fetch('/api/submit-form',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({site_id:CE_SITE_ID,form_type:'contact',name:form.name.value,email:form.email.value,phone:form.phone.value||null,extra_data:{product_id:product.id,product_title:product.title,inquiry_type:'quote_request'}})
-  }).then(function(r){return r.json();}).then(function(d){
-    if(d.success){document.getElementById('ce-modal-content').innerHTML='<div style="text-align:center;padding:3rem 2rem;"><div style="font-size:3rem;margin-bottom:1rem;">\u2713</div><h3 style="font-size:1.25rem;font-weight:700;margin:0 0 8px;">Quote Request Sent!</h3><p style="color:#6b7280;">We will be in touch shortly.</p></div>';}
-    else{if(btn){btn.textContent='Request Quote';btn.disabled=false;}alert('Something went wrong. Please try again.');}
-  }).catch(function(){if(btn){btn.textContent='Request Quote';btn.disabled=false;}});
-}
 function fmSubmitForm(form,siteId,formType,extraFn){
   var btn=form.querySelector('button[type="submit"]');
   var orig=btn?btn.innerHTML:'';
@@ -314,9 +219,7 @@ function fmSubmitForm(form,siteId,formType,extraFn){
   }).catch(function(){if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');});
 }
 </script>
-${body}${enabledFeatures && typeof enabledFeatures.has === 'function' && enabledFeatures.has('rental_scheduling') ? rentalModalBlock('fm', siteId || '') : ''}
-</body>
-</html>`;
+${body}`;
 }
 
 // ── Header ──
@@ -1168,3 +1071,4 @@ function ceFormSection(siteId: string, heading: string, description: string) {
 }
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
 import { productCardOnclick } from './shared';
+import { injectCartSystem } from './shared';

@@ -226,27 +226,15 @@ async function generateTemplateHTML(
   }
 
   // Inject cart system if needed
-  // CE always gets the cart system since its product cards always call fmOpenProduct
-  const needsCartSystem = templateSlug === 'corporate-edge'
-    ? true
-    : (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync'));
+  // Guard against double injection (green-valley, vibe-dynamics, and corporate-edge inject their own)
+  const needsCartSystem = templateSlug !== 'green-valley-industrial'
+    && templateSlug !== 'vibe-dynamics'
+    && templateSlug !== 'corporate-edge'
+    && (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync'));
 
-  if (needsCartSystem && (templateSlug === 'corporate-edge' || !html.includes('fm-product-modal'))) {
+  if (needsCartSystem && !html.includes('fm-product-modal')) {
     const cartHtml = injectCartSystem(siteId, site.checkout_mode || 'quote_only', colors.primary);
-    const drainScript = `<script>
-(function(){
-  var q = window._fmQueue || [];
-  for(var i=0;i<q.length;i++){
-    var fn=q[i][0];
-    if(fn==='fmOpenProduct' && window.fmOpenProduct) window.fmOpenProduct(q[i][1]);
-    if(fn==='fmSubmitForm' && window.fmSubmitForm) window.fmSubmitForm(q[i][1],q[i][2],q[i][3],q[i][4]);
-  }
-  window._fmQueue=[];
-})();
-</script>`;
-    html = html.includes('</body>')
-      ? html.replace('</body>', cartHtml + drainScript + '\n</body>')
-      : html + cartHtml + drainScript;
+    html = html.includes('</body>') ? html.replace('</body>', cartHtml + '\n</body>') : html + cartHtml;
   }
 
   return html;
