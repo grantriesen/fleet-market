@@ -709,10 +709,10 @@ function ceServicePage(siteId: string, getContent: Function,
   const ces4t = getContent('servicePage.service4Title'); const ces4d = getContent('servicePage.service4Text') || getContent('servicePage.service4Description');
   if (ces1t || ces2t || ces3t) {
     services = [
-      ces1t ? { icon: '🔧', title: ces1t, description: ces1d } : null,
-      ces2t ? { icon: '⏱', title: ces2t, description: ces2d } : null,
-      ces3t ? { icon: '🛡', title: ces3t, description: ces3d } : null,
-      ces4t ? { icon: '🚚', title: ces4t, description: ces4d } : null,
+      ces1t ? { icon: '🔧', title: ces1t, description: ces1d, image: getContent('servicePage.service1Image') } : null,
+      ces2t ? { icon: '⏱', title: ces2t, description: ces2d, image: getContent('servicePage.service2Image') } : null,
+      ces3t ? { icon: '🛡', title: ces3t, description: ces3d, image: getContent('servicePage.service3Image') } : null,
+      ces4t ? { icon: '🚚', title: ces4t, description: ces4d, image: getContent('servicePage.service4Image') } : null,
     ].filter(Boolean);
   } else {
     try { services = JSON.parse(getContent('services.items') || '[]'); } catch {}
@@ -722,7 +722,7 @@ function ceServicePage(siteId: string, getContent: Function,
   const hasScheduling = enabledFeatures.has('service_scheduling') || enabledFeatures.has('service');
 
   return `
-  ${cePageHeader(getContent('servicePage.heading') || getContent('services.heading') || 'Service Department', getContent('servicePage.subheading') || getContent('services.description') || '', primaryColor)}
+  ${cePageHeader(getContent('servicePage.heading') || getContent('services.heading') || 'Service Department', getContent('servicePage.subheading') || getContent('services.description') || '', primaryColor, getContent('servicePage.heroImage'))}
 
   <section class="py-16 bg-white">
     <div class="container-corporate">
@@ -732,13 +732,16 @@ function ceServicePage(siteId: string, getContent: Function,
       </div>
       <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         ${services.map((s: any) => `
-        <div class="border border-gray-200 rounded transition-corporate hover:shadow-lg bg-white p-6">
-          <div class="w-12 h-12 bg-blue-50 rounded flex items-center justify-center mb-4">
-            <span class="text-xl">${s.icon || '🔧'}</span>
+        <div class="border border-gray-200 rounded transition-corporate hover:shadow-lg bg-white overflow-hidden">
+          ${s.image ? `<div class="aspect-video overflow-hidden"><img src="${s.image}" alt="${s.title}" class="w-full h-full object-cover"></div>` : ''}
+          <div class="p-6">
+            <div class="w-12 h-12 bg-blue-50 rounded flex items-center justify-center mb-4">
+              <span class="text-xl">${s.icon || '🔧'}</span>
+            </div>
+            <h3 class="font-heading font-semibold text-xl text-gray-900 mb-3">${s.title}</h3>
+            <p class="text-gray-500 mb-4 text-sm leading-relaxed">${s.description}</p>
+            ${s.features ? `<ul class="space-y-2">${s.features.map((f: string) => `<li class="flex items-center gap-2 text-sm"><div class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>${f}</li>`).join('')}</ul>` : ''}
           </div>
-          <h3 class="font-heading font-semibold text-xl text-gray-900 mb-3">${s.title}</h3>
-          <p class="text-gray-500 mb-4 text-sm leading-relaxed">${s.description}</p>
-          ${s.features ? `<ul class="space-y-2">${s.features.map((f: string) => `<li class="flex items-center gap-2 text-sm"><div class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>${f}</li>`).join('')}</ul>` : ''}
         </div>`).join('')}
       </div>
     </div>
@@ -983,7 +986,7 @@ function ceContactPage(siteId: string, getContent: Function, weekdayHours: strin
   const address = getContent('business.address') || '';
 
   return `
-  ${cePageHeader(getContent('contactPage.heading') || getContent('contact.heading') || 'Contact Us', getContent('contactPage.subheading') || getContent('contact.description') || '', primaryColor)}
+  ${cePageHeader(getContent('contactPage.heading') || getContent('contact.heading') || 'Contact Us', getContent('contactPage.subheading') || getContent('contact.description') || '', primaryColor, getContent('contactPage.heroImage'))}
 
   <section class="py-16 bg-white">
     <div class="container-corporate">
@@ -1041,7 +1044,7 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[],
   const categories = ['All', ...new Set(products.map((p: any) => p.category).filter(Boolean))];
 
   return `
-  ${cePageHeader(getContent('inventoryPage.heading') || getContent('inventory.heading') || 'Equipment Inventory', getContent('inventoryPage.subheading') || getContent('inventory.description') || '', primaryColor)}
+  ${cePageHeader(getContent('inventoryPage.heading') || getContent('inventory.heading') || 'Equipment Inventory', getContent('inventoryPage.subheading') || getContent('inventory.description') || '', primaryColor, getContent('inventoryPage.heroImage'))}
 
   <!-- Category Filter -->
   <section class="bg-white border-b border-gray-200 sticky top-[104px] z-40">
@@ -1178,7 +1181,7 @@ async function ceRentalsPage(
   </section>` : '';
 
   return `
-  ${cePageHeader(heading, subheading, primaryColor)}
+  ${cePageHeader(heading, subheading, primaryColor, getContent('rentalsPage.heroImage'))}
   ${inventoryHtml || staticFallback}
   <!-- Rental Terms -->
   <section class="py-16 bg-gray-100">
@@ -1227,7 +1230,7 @@ function ceManufacturersPage(siteId: string, getContent: Function,
   const mfgList = manufacturers.length > 0 ? manufacturers : Object.keys(fallbackDescriptions).map(name => ({ name, logo_url: fallbackLogos[name] || '', description: fallbackDescriptions[name] }));
 
   return `
-  ${cePageHeader(getContent('manufacturersPage.heading') || getContent('manufacturers.heading') || 'Our Manufacturers', getContent('manufacturersPage.subheading') || getContent('manufacturers.description') || '', primaryColor)}
+  ${cePageHeader(getContent('manufacturersPage.heading') || getContent('manufacturers.heading') || 'Our Manufacturers', getContent('manufacturersPage.subheading') || getContent('manufacturers.description') || '', primaryColor, getContent('manufacturersPage.heroImage'))}
 
   <section class="py-16 bg-white">
     <div class="container-corporate">
@@ -1286,10 +1289,11 @@ function ceManufacturersPage(siteId: string, getContent: Function,
 }
 
 // ── Shared Helpers ──
-function cePageHeader(title: string, description: string, primaryColor: string = '#1e3a8a') {
+function cePageHeader(title: string, description: string, primaryColor: string = '#1e3a8a', heroImage: string = '') {
   return `
-  <section class="py-12 md:py-16" style="background-color: ${primaryColor};">
-    <div class="container-corporate">
+  <section class="py-12 md:py-16 relative overflow-hidden" style="background-color: ${primaryColor};">
+    ${heroImage ? `<div class="absolute inset-0 bg-cover bg-center" style="background-image:url('${heroImage}');opacity:0.2;"></div>` : ''}
+    <div class="relative container-corporate">
       <h1 class="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">${title}</h1>
       <p class="text-white/80 text-base md:text-lg max-w-2xl">${description}</p>
     </div>
