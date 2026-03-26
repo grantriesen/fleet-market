@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { renderGreenValleyPage } from './templates/green-valley-industrial';
+import { renderVibeDynamicsPage } from './templates/vibe-dynamics';
+import { renderCorporateEdgePage } from './templates/corporate-edge';
+import { renderZenithLawnPage } from './templates/zenith-lawn';
+import { renderModernLawnPage } from './templates/modern-lawn-solutions';
+import { renderWarmEarthPage } from './templates/warm-earth-designs';
+import { injectCartSystem } from './templates/shared';
 
 export async function GET(
   request: NextRequest,
@@ -25,7 +32,7 @@ export async function GET(
       }
     );
 
-    // Load site data with subscription_tier
+    // Load site data
     const { data: site } = await supabase
       .from('sites')
       .select(`
@@ -33,6 +40,8 @@ export async function GET(
         site_name,
         slug,
         subscription_tier,
+        addons,
+        checkout_mode,
         template:templates (
           name,
           slug,
@@ -86,16 +95,25 @@ export async function GET(
       .eq('site_id', params.siteId)
       .order('display_order');
 
-    // Generate HTML based on template
+    // Load featured inventory (same as live site)
+    const { data: featuredItems } = await supabase
+      .from('inventory_items')
+      .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, featured, status')
+      .eq('site_id', params.siteId).eq('featured', true).eq('status', 'available')
+      .order('display_order').limit(8);
+
+    // Use the same render pipeline as the live site
     const html = await generateTemplateHTML(
-      site, 
-      content, 
-      customizations, 
-      manufacturers || [], 
+      site,
+      content,
+      customizations,
+      manufacturers || [],
+      featuredItems || [],
       sectionVisibility,
       pageVisibility,
       page,
-      supabase
+      supabase,
+      params.siteId
     );
 
     return new NextResponse(html, {
@@ -115,43 +133,34 @@ async function generateTemplateHTML(
   content: Record<string, string>,
   customizations: any,
   manufacturers: any[],
+  featuredItems: any[],
   sectionVisibility: Record<string, boolean>,
   pageVisibility: Record<string, boolean>,
   page: string,
-  supabase: any
+  supabase: any,
+  siteId: string
 ): Promise<string> {
   const template = site.template;
   const config = template.config_json;
   const templateSlug = template.slug;
-  const siteId = site.id;
-  
-  // Helper to get content value
+
   const getContent = (key: string) => {
     if (content[key]) return content[key];
-    
-    // Try to get default from config
     const parts = key.split('.');
-    if (parts.length === 2) {
-      const [section, field] = parts;
-      return config.sections?.[section]?.[field]?.default || '';
-    }
+    if (parts.length === 2) { const [section, field] = parts; return config.sections?.[section]?.[field]?.default || ''; }
     return '';
   };
 
-  // Get colors
   const colors = {
     primary: customizations.colors?.primary || config.colors?.primary?.default || '#2D5016',
     secondary: customizations.colors?.secondary || config.colors?.secondary?.default || '#F97316',
     accent: customizations.colors?.accent || config.colors?.accent?.default || '#059669',
   };
-
-  // Get fonts
   const fonts = {
     heading: customizations.fonts?.heading || config.fonts?.heading?.default || 'Inter',
     body: customizations.fonts?.body || config.fonts?.body?.default || 'Inter',
   };
 
-  // Get available pages
   const availablePages = (config.pages || []).filter((p: any) => {
     const isVisible = pageVisibility[p.slug] !== false;
     if (!isVisible) return false;
@@ -159,266 +168,76 @@ async function generateTemplateHTML(
     return site.subscription_tier !== 'basic';
   });
 
-  // Route to template-specific renderer
- // Route to template-specific renderer
-  let pageContent = '';
-  
-  if (page === 'home' || page === 'index') {
-    switch (templateSlug) {
-      case 'green-valley-industrial':
-        pageContent = renderGreenValleyHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-        break;
-      case 'modern-lawn-solutions':
-        pageContent = renderModernLawnHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-        break;
-      case 'corporate-edge':
-        pageContent = renderCorporateEdgeHome(getContent, colors, manufacturers, sectionVisibility, site.subscription_tier || 'basic', siteId);
-        break;
-      case 'vibe-dynamics':
-        pageContent = renderVibeDynamicsHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-        break;
-      case 'zenith-lawn':
-        pageContent = renderZenithLawnHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-        break;
-      case 'warm-earth-designs':
-        pageContent = renderWarmEarthHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-        break;
-      default:
-        pageContent = renderGenericHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-    }
-  } else if (page === 'manufacturers') {
-    pageContent = renderManufacturersPageContent(config, getContent, colors, manufacturers, templateSlug);
-  } else if (page === 'contact') {
-    pageContent = renderContactPageContent(config, getContent, colors, templateSlug);
-  } else if (page === 'service') {
-    pageContent = await renderServicePageWithIntegration(site.id, config, getContent, colors, supabase, site.subscription_tier || 'basic', templateSlug);
-  } else if (page === 'inventory') {
-    if (site.subscription_tier === 'basic') {
-      pageContent = renderPremiumPlaceholder('Inventory', config, getContent, colors);
-    } else {
-      pageContent = await renderInventoryPageWithIntegration(site.id, config, getContent, colors, supabase);
-    }
-  } else if (page === 'rentals') {
-    if (site.subscription_tier === 'basic') {
-      pageContent = renderPremiumPlaceholder('Rentals', config, getContent, colors);
-    } else {
-      pageContent = await renderRentalsPageWithIntegration(site.id, config, getContent, colors, supabase);
-    }
-  } else {
-    pageContent = renderGenericHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-  }
-
-  // Build Google Fonts URL
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const googleFontsUrl = Array.from(fontFamilies)
-    .map(font => `family=${font.replace(' ', '+')}:wght@300;400;500;600;700;800;900`)
+    .map((f: any) => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700;800;900`)
     .join('&');
 
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${site.site_name}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?${googleFontsUrl}&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --color-primary: ${colors.primary};
-      --color-secondary: ${colors.secondary};
-      --color-accent: ${colors.accent};
-      --font-heading: '${fonts.heading}', sans-serif;
-      --font-body: '${fonts.body}', sans-serif;
-    }
-    
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    html {
-      scroll-behavior: smooth;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    
-    body {
-      font-family: var(--font-body);
-      color: #1f2937;
-      line-height: 1.7;
-      font-size: 1rem;
-      background-color: #ffffff;
-    }
-    
-    h1, h2, h3, h4, h5, h6 {
-      font-family: var(--font-heading);
-      font-weight: 700;
-      line-height: 1.15;
-    }
+  const isRealProducts = featuredItems.length > 0;
+  const displayProducts = isRealProducts
+    ? featuredItems.slice(0, 4)
+    : [1,2,3,4].map(i => ({ id: `placeholder-${i}`, title: `Featured Product ${i}`, description: 'Professional-grade equipment', price: null, sale_price: null, primary_image: null, category: 'Equipment', condition: 'new', slug: null }));
 
-    img {
-      max-width: 100%;
-      height: auto;
-    }
+  const fmtPrice = (price: number | null) => {
+    if (price === null || price === undefined) return 'Call for Price';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(price);
+  };
 
-    a {
-      transition: opacity 0.2s ease, color 0.2s ease;
-    }
+  // Build enabled features
+  const enabledFeatures = new Set<string>();
+  const addonToFeatureMap: Record<string, string[]> = {
+    'inventory': ['inventory', 'inventory_sync'],
+    'service':   ['service', 'service_scheduling'],
+    'rentals':   ['rentals', 'rental_scheduling'],
+  };
+  (site.addons || []).forEach((addon: string) => {
+    enabledFeatures.add(addon);
+    addonToFeatureMap[addon]?.forEach((f: string) => enabledFeatures.add(f));
+  });
+  try {
+    const { data: features } = await supabase.from('site_features').select('feature_key').eq('site_id', siteId).eq('enabled', true);
+    if (features) features.forEach((f: any) => enabledFeatures.add(f.feature_key));
+  } catch {}
 
-    a:hover {
-      opacity: 0.85;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 2rem;
-    }
+  const vis: Record<string, boolean> = {};
+  Object.entries(sectionVisibility).forEach(([k, v]) => { vis[k] = v as boolean; });
 
-    @media (max-width: 768px) {
-      .container { padding: 0 1.25rem; }
-    }
-  </style>
-</head>
-<body>
-  <!-- Navigation -->
-  <nav style="background-color: white; box-shadow: 0 1px 2px rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 50; border-bottom: 1px solid #f1f5f9;">
-    <div class="container" style="display: flex; justify-content: space-between; align-items: center; padding-top: 1.25rem; padding-bottom: 1.25rem;">
-      <div style="display: flex; align-items: center; gap: 0.75rem;">
-        ${getContent('businessInfo.logoImage') ? 
-          `<img src="${getContent('businessInfo.logoImage')}" alt="${getContent('businessInfo.businessName')}" style="max-height: 60px; max-width: 200px; object-fit: contain;">` :
-          `<span style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${getContent('businessInfo.businessName')}</span>`
-        }
-      </div>
-      <div style="display: flex; gap: 2.5rem; align-items: center;">
-        ${availablePages.map((p: any) => `
-          <a href="/api/preview/${siteId}?page=${p.slug}" style="color: ${p.slug === page || (p.slug === 'index' && (page === 'home' || page === 'index')) ? colors.primary : '#64748b'}; text-decoration: none; font-weight: ${p.slug === page || (p.slug === 'index' && (page === 'home' || page === 'index')) ? '600' : '500'}; font-size: 0.9375rem; letter-spacing: 0.01em;">
-            ${p.name}
-          </a>
-        `).join('')}
-      </div>
-    </div>
-  </nav>
-  
-  ${pageContent}
+  // Use preview base URL so nav links stay within the preview iframe
+  const previewBase = `/api/preview/${siteId}?page=`;
 
-  <!-- Footer -->
-  <footer style="background-color: ${colors.primary}; color: white; padding: 4rem 0 2rem;">
-    <div class="container">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 3rem;">
-        <div>
-          <h3 style="color: white; margin-bottom: 1rem; font-size: 1.125rem;">${getContent('businessInfo.businessName')}</h3>
-          <p style="color: rgba(255,255,255,0.65); font-size: 0.9375rem; line-height: 1.7;">${getContent('businessInfo.tagline')}</p>
-        </div>
-        <div>
-          <h4 style="color: white; margin-bottom: 1rem; font-size: 0.9375rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Contact</h4>
-          <p style="color: rgba(255,255,255,0.65); font-size: 0.9375rem; line-height: 2;">${getContent('businessInfo.phone')}</p>
-          <p style="color: rgba(255,255,255,0.65); font-size: 0.9375rem; line-height: 2;">${getContent('businessInfo.email')}</p>
-        </div>
-        <div>
-          <h4 style="color: white; margin-bottom: 1rem; font-size: 0.9375rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Hours</h4>
-          <p style="color: rgba(255,255,255,0.65); font-size: 0.9375rem; line-height: 2;">${getContent('hours.weekdays') || getContent('hours.hours') || 'Mon-Fri: 8am-6pm'}</p>
-          <p style="color: rgba(255,255,255,0.65); font-size: 0.9375rem; line-height: 2;">${getContent('hours.saturday') || 'Sat: 9am-4pm'}</p>
-          <p style="color: rgba(255,255,255,0.65); font-size: 0.9375rem; line-height: 2;">${getContent('hours.sunday') || 'Sun: Closed'}</p>
-        </div>
-      </div>
-      <div style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.15); text-align: center; color: rgba(255,255,255,0.45); font-size: 0.8125rem;">
-        <p>&copy; ${new Date().getFullYear()} ${getContent('businessInfo.businessName')}. All rights reserved.</p>
-      </div>
-    </div>
-  </footer>
+  // ── Route to the SAME template functions used by the live site ──
+  let html = '';
+  if (templateSlug === 'green-valley-industrial') {
+    html = await renderGreenValleyPage(getContent, colors, fonts, manufacturers, sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only');
+  } else if (templateSlug === 'vibe-dynamics') {
+    html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers, sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only');
+  } else if (templateSlug === 'corporate-edge') {
+    html = renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase);
+  } else if (templateSlug === 'zenith-lawn') {
+    html = renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, previewBase);
+  } else if (templateSlug === 'modern-lawn-solutions') {
+    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, previewBase);
+  } else if (templateSlug === 'warm-earth-designs') {
+    html = renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase);
+  } else {
+    // Fallback for unknown templates
+    html = '<p style="padding:2rem;">Preview not available for this template.</p>';
+  }
 
-  <script>
-    // ── Page View Tracking ──
-    (function() {
-      try {
-        var siteId = '${siteId}';
-        var page = '${page}';
-        var sessionId = sessionStorage.getItem('sf_sid');
-        if (!sessionId) {
-          sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
-          sessionStorage.setItem('sf_sid', sessionId);
-        }
-        // Only track if not in customizer iframe
-        var isInCustomizer = false;
-        try { isInCustomizer = window.self !== window.top && document.referrer.includes('/customize'); } catch(e) {}
-        if (!isInCustomizer) {
-          fetch('/api/track', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ siteId: siteId, page: page, referrer: document.referrer, sessionId: sessionId }),
-            keepalive: true
-          }).catch(function() {});
-        }
-      } catch(e) {}
-    })();
+  // Inject cart system if needed
+  if (
+    (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync')) &&
+    !html.includes('fm-product-modal')
+  ) {
+    const cartHtml = injectCartSystem(siteId, site.checkout_mode || 'quote_only', colors.primary);
+    html = html.includes('</body>') ? html.replace('</body>', cartHtml + '\n</body>') : html + cartHtml;
+  }
 
-    console.log('🎨 [Preview] REALTIME UPDATES VERSION LOADED - Debug mode active');
-    
-    const sections = document.querySelectorAll('section[data-section]');
-    let currentSection = '';
+  return html;
 
-    function detectSection() {
-      const scrollPos = window.scrollY + window.innerHeight / 3;
-      sections.forEach((section) => {
-        const sectionId = section.getAttribute('data-section');
-        if (section.offsetTop <= scrollPos && section.offsetTop + section.offsetHeight > scrollPos) {
-          if (currentSection !== sectionId) {
-            currentSection = sectionId;
-            // REMOVED: This was causing snap-back issues in customizer
-            // window.parent.postMessage({ type: 'scroll', section: sectionId }, '*');
-          }
-        }
-      });
-    }
 
-    // Simple approach: Reload iframe on any change for instant preview
-    // This is fast enough and ensures accuracy
-    function reloadPreview() {
-      // Small delay to batch multiple rapid changes
-      clearTimeout(window.reloadTimer);
-      window.reloadTimer = setTimeout(() => {
-        window.location.reload();
-      }, 300); // 300ms debounce
-    }
-
-    // DISABLED: Scroll detection was causing snap-back issues
-    // window.addEventListener('scroll', detectSection);
-    
-    window.addEventListener('message', (event) => {
-      console.log('📨 [Preview] Received message:', event.data);
-      
-      if (event.data.type === 'scrollToSection') {
-        console.log('📍 [Preview] Scrolling to section:', event.data.section);
-        const section = document.querySelector(\`[data-section="\${event.data.section}"]\`);
-        console.log('🎯 [Preview] Section element found:', !!section);
-        if (section) {
-          console.log('⬇️ [Preview] Calling scrollIntoView');
-          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          console.log('✅ [Preview] scrollIntoView called');
-        } else {
-          console.log('❌ [Preview] Section not found for:', event.data.section);
-        }
-      }
-      
-      // Handle real-time updates - reload preview
-      if (event.data.type === 'updateContent' || event.data.type === 'updateColor' || event.data.type === 'updateFont') {
-        console.log('[Preview] Triggering reload for:', event.data.type);
-        reloadPreview();
-      }
-    });
-    
-    // DISABLED: detectSection() call removed
-    // detectSection();
-  </script>
-</body>
-</html>
-  `.trim();
 }
+
 
 // ============================================
 // TEMPLATE #1: GREEN VALLEY INDUSTRIAL
