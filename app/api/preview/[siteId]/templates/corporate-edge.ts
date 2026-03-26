@@ -706,13 +706,11 @@ function ceServicePage(siteId: string, getContent: Function,
   const ces1t = getContent('servicePage.service1Title'); const ces1d = getContent('servicePage.service1Text') || getContent('servicePage.service1Description');
   const ces2t = getContent('servicePage.service2Title'); const ces2d = getContent('servicePage.service2Text') || getContent('servicePage.service2Description');
   const ces3t = getContent('servicePage.service3Title'); const ces3d = getContent('servicePage.service3Text') || getContent('servicePage.service3Description');
-  const ces4t = getContent('servicePage.service4Title'); const ces4d = getContent('servicePage.service4Text') || getContent('servicePage.service4Description');
   if (ces1t || ces2t || ces3t) {
     services = [
       ces1t ? { icon: '🔧', title: ces1t, description: ces1d, image: getContent('servicePage.service1Image') } : null,
       ces2t ? { icon: '⏱', title: ces2t, description: ces2d, image: getContent('servicePage.service2Image') } : null,
       ces3t ? { icon: '🛡', title: ces3t, description: ces3d, image: getContent('servicePage.service3Image') } : null,
-      ces4t ? { icon: '🚚', title: ces4t, description: ces4d, image: getContent('servicePage.service4Image') } : null,
     ].filter(Boolean);
   } else {
     try { services = JSON.parse(getContent('services.items') || '[]'); } catch {}
