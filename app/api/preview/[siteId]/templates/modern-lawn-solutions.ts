@@ -4,7 +4,7 @@
 //         shadcn-inspired card system, muted gray backgrounds.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { sharedPreviewScript } from './shared';
+import { sharedPreviewScript, injectCartSystem, serviceFormHtml } from './shared';
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
 
 /* ── DEMO overrides ── */
@@ -162,12 +162,15 @@ export async function renderModernLawnPage(
     currentPage,
     mlsHeader(siteId, currentPage, pages, getContent, colors, baseUrl) +
     body +
-    mlsFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl)
+    mlsFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl),
+    enabledFeatures,
+    checkoutMode,
+    stripeConnected
   );
 }
 
 // ── HTML Shell ──
-function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, page: string, body: string) {
+function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, page: string, body: string, enabledFeatures?: Set<string>, checkoutMode: string = 'quote_only', stripeConnected: boolean = false) {
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const googleFontsUrl = Array.from(fontFamilies)
     .map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700;800`)
@@ -283,7 +286,9 @@ function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, pa
 </head>
 <body>
   ${body}
-  ${sharedPreviewScript(siteId, page)}${enabledFeatures && enabledFeatures.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
+  ${sharedPreviewScript(siteId, page)}
+  ${enabledFeatures?.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
+  ${injectCartSystem(siteId, checkoutMode, colors.primary)}
 </body>
 </html>`;
 }
