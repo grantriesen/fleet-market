@@ -180,7 +180,7 @@ export async function renderCorporateEdgePage(
 function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabledFeatures?: Set<string>, siteId?: string, checkoutMode: string = 'quote_only', stripeConnected: boolean = false) {
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const googleFontsUrl = Array.from(fontFamilies)
-    .map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700;800;900`)
+    .map(f => `family=${f.replace(/ /g, '+')}:wght@400;600;700`)
     .join('&');
 
   return `<!DOCTYPE html>
@@ -190,10 +190,7 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabl
   <title>${title}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?${googleFontsUrl}&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-  tailwind.config = { theme: { extend: { fontFamily: { heading: ['${fonts.heading}', 'sans-serif'], body: ['${fonts.body}', 'sans-serif'] } } } }
-  </script>
+  <link rel="stylesheet" href="/css/ce.css">
   <style>
     .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0; }
     .focus\:not-sr-only:focus { position:static;width:auto;height:auto;padding:0;margin:0;overflow:visible;clip:auto;white-space:normal; }
@@ -561,7 +558,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
           <div class="group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" onclick="${onclick}">
             <div class="aspect-square relative overflow-hidden bg-gray-100">
               ${hasImage
-                ? `<img src="${imgUrl}" alt="${p.name || p.title}" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
+                ? `<img src="${imgUrl}" alt="${p.name || p.title}" loading="lazy" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
                 : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
                     <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                   </div>`}
@@ -736,7 +733,7 @@ function ceServicePage(siteId: string, getContent: Function,
       <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         ${services.map((s: any) => `
         <div class="border border-gray-200 rounded transition-corporate hover:shadow-lg bg-white overflow-hidden">
-          ${s.image ? `<div class="aspect-video overflow-hidden"><img src="${s.image}" alt="${s.title}" class="w-full h-full object-cover"></div>` : ''}
+          ${s.image ? `<div class="aspect-video overflow-hidden"><img src="${s.image}" alt="${s.title}" loading="lazy" class="w-full h-full object-cover"></div>` : ''}
           <div class="p-6 text-center">
             <div class="w-12 h-12 bg-blue-50 rounded flex items-center justify-center mb-4 mx-auto">
               <span class="text-xl">${s.icon || '🔧'}</span>
@@ -1075,7 +1072,7 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[],
         <div class="ce-product group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" data-category="${p.category || ''}" onclick="${productCardOnclick(p)}">
           <div class="aspect-square relative overflow-hidden bg-gray-100">
             ${hasImage
-              ? `<img src="${imgUrl}" alt="${p.name || p.title}" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
+              ? `<img src="${imgUrl}" alt="${p.name || p.title}" loading="lazy" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
               : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
                   <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                 </div>`}
@@ -1245,7 +1242,7 @@ function ceManufacturersPage(siteId: string, getContent: Function,
         <div class="border border-gray-200 rounded transition-corporate hover:shadow-lg hover:border-blue-200 group bg-white p-6">
           <div class="aspect-[3/2] flex items-center justify-center bg-gray-50 rounded mb-4 p-4">
             ${logoSrc
-              ? `<img src="${logoSrc}" alt="${m.name}" style="max-height: 60px; max-width: 80%; object-fit: contain;">`
+              ? `<img src="${logoSrc}" alt="${m.name}" loading="lazy" style="max-height: 60px; max-width: 80%; object-fit: contain;">`
               : `<span class="font-bold text-gray-400 text-lg">${m.name}</span>`
             }
           </div>

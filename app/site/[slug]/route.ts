@@ -181,7 +181,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
     html = injectTrackingScript(html, site.id);
 
     return new NextResponse(html, {
-      headers: { 'Content-Type': 'text/html', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+      headers: { 'Content-Type': 'text/html', 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
     });
   } catch (error: any) {
     console.error('Public site error:', error);
