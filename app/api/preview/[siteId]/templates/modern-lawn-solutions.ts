@@ -848,7 +848,7 @@ function mlsContactPage(siteId: string, gc: (k: string) => string, weekday: stri
       <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
         <div class="card-mls" style="padding: 2rem;">
           <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">${gc('contactPage.formHeading') || 'Send Us a Message'}</h3>
-          <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'contact', null);">>
+          <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'contact', null);">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
               <div><label class="form-label">Name *</label><input class="form-input" required placeholder="Your name"></div>
               <div><label class="form-label">Email *</label><input class="form-input" type="email" required placeholder="your@email.com"></div>
@@ -1038,17 +1038,22 @@ function mlsContactSidebarFull(gc: (k: string) => string, weekday: string, satur
       Business Hours
     </h4>
     <div style="font-size: 0.875rem; color: #6b7280; display: flex; flex-direction: column; gap: 0.375rem;">
-      <div style="display: flex; justify-content: space-between;"><span>Mon - Fri</span><span style="font-weight:500;color:#111827;">${weekday}</span></div>
-      <div style="display: flex; justify-content: space-between;"><span>Saturday</span><span style="font-weight:500;color:#111827;">${saturday}</span></div>
-      <div style="display: flex; justify-content: space-between;"><span>Sunday</span><span style="font-weight:500;color:#111827;">${sunday}</span></div>
+      ${(() => {
+        const wkday = gc('businessInfo.hours') || gc('hours.monday') || weekday;
+        const sat = gc('businessInfo.saturdayHours') || gc('hours.saturday') || saturday;
+        const sun = gc('businessInfo.sundayHours') || gc('hours.sunday') || sunday;
+        const rows = [];
+        if (wkday) rows.push(`<div style="display:flex;justify-content:space-between;"><span>Mon – Fri</span><span style="font-weight:500;color:#111827;">${wkday}</span></div>`);
+        if (sat) rows.push(`<div style="display:flex;justify-content:space-between;"><span>Saturday</span><span style="font-weight:500;color:#111827;">${sat}</span></div>`);
+        if (sun) rows.push(`<div style="display:flex;justify-content:space-between;"><span>Sunday</span><span style="font-weight:500;color:#111827;">${sun}</span></div>`);
+        return rows.join('');
+      })()}
     </div>
   </div>
-  <div class="card-mls" style="padding: 0;">
-    <div style="height: 200px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; border-radius: 0.75rem;">
-      <div style="text-align: center; color: #9ca3af;">
-        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin: 0 auto 0.5rem;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <p style="font-size: 0.875rem; margin: 0;">Map placeholder</p>
-      </div>
-    </div>
-  </div>`;
+  ${address ? `<div class="card-mls" style="padding: 0; overflow: hidden;">
+    <iframe
+      src="https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed"
+      width="100%" height="200" style="border:0;display:block;" allowfullscreen loading="lazy"
+      title="Business location map"></iframe>
+  </div>` : ''}`;
 }
