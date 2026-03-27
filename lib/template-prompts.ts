@@ -145,8 +145,6 @@ export const TEMPLATE_PROMPTS: Record<string, TemplatePromptConfig> = {
       'inventoryPage.heading': 'Inventory page heading (2-4 words, professional)',
       'inventoryPage.subheading': 'Inventory page description (1 sentence, for commercial buyers)',
       'inventoryPage.filterLabel': 'Filter label (2-4 words)',
-      'inventoryPage.contentHeading': 'Optional inventory content heading (3-6 words, e.g. Financing Available)',
-      'inventoryPage.contentText': 'Optional inventory content paragraph (2-3 sentences about equipment financing, trade-ins, or commercial programs)',
     },
     serviceFields: {
       'servicePage.heading': 'Service page heading (3-5 words)',
