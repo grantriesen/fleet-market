@@ -146,7 +146,7 @@ export async function renderModernLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl, manufacturers || []); break;
-    case 'service': body = mlsServicePage(siteId, getContent, baseUrl, enabledFeatures); break;
+    case 'service': body = mlsServicePage(siteId, getContent, baseUrl, enabledFeatures, colors); break;
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice, baseUrl); break;
     case 'rentals': body = await mlsRentalsPage(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
@@ -637,7 +637,8 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
 // ══════════════════════════════════════════════════
 function mlsServicePage(siteId: string, gc: (k: string) => string,
   baseUrl: string = '',
-  enabledFeatures: Set<string> = new Set()
+  enabledFeatures: Set<string> = new Set(),
+  colors: any = {}
 ): string {
   let serviceItems: any[] = [];
   const ms1t = gc('servicePage.service1Title'); const ms1d = gc('servicePage.service1Text') || gc('servicePage.service1Description');
@@ -675,7 +676,7 @@ function mlsServicePage(siteId: string, gc: (k: string) => string,
         <div class="card-mls" style="padding: 2rem; text-align: center;">
           <div style="margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center;">
             ${s.image
-              ? `<img src="${s.image}" alt="${s.title}" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">`
+              ? `<img src="${s.image}" alt="${s.title}" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 3px solid ${colors.primary || '#10b981'};">`
               : `<span style="font-size: 2.5rem;">${s.icon || '🔧'}</span>`}
           </div>
           <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 0.75rem; color: #111827;">${s.title}</h3>
