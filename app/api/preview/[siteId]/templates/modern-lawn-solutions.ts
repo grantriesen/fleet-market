@@ -150,7 +150,7 @@ export async function renderModernLawnPage(
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice, baseUrl); break;
     case 'rentals': body = await mlsRentalsPage(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
-    case 'manufacturers': body = mlsManufacturersPage(siteId, getContent, baseUrl); break;
+    case 'manufacturers': body = mlsManufacturersPage(siteId, getContent, baseUrl, manufacturers || []); break;
     default: body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl, manufacturers || []); break;
   }
 
@@ -824,17 +824,10 @@ async function mlsRentalsPage(
 //  MANUFACTURERS PAGE
 // ══════════════════════════════════════════════════
 function mlsManufacturersPage(siteId: string, gc: (k: string) => string,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  manufacturers: any[] = []
 ): string {
-  const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'Exmark': '/images/logos/exmark.png', 'ECHO': '/images/logos/Echo.png', 'Honda': '/images/logos/Honda.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Kubota': '/images/logos/kubota.jpg' };
-  const brands = [
-    { name: 'Toro', tagline: 'Count on it' },
-    { name: 'Exmark', tagline: 'The next cut above' },
-    { name: 'ECHO', tagline: 'Professional-grade outdoor power' },
-    { name: 'Honda', tagline: 'The power of dreams' },
-    { name: 'Husqvarna', tagline: 'Rethink the outdoors' },
-    { name: 'Kubota', tagline: 'For Earth, For Life' },
-  ];
+  const brandsToShow = manufacturers.length > 0 ? manufacturers : [];
 
   return `
   ${(() => {
@@ -847,14 +840,19 @@ function mlsManufacturersPage(siteId: string, gc: (k: string) => string,
   <section data-section="manufacturersList" style="padding: 3rem 0 4rem;">
     <div class="container-mls">
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem;">
-        ${brands.map(b => `
+        ${brandsToShow.map((b: any) => {
+          const logoSrc = b.logo_url || b.logoUrl || b.logo || b.image_url || '';
+          return `
         <div class="card-mls" style="padding: 2rem; text-align: center;">
           <div style="height: 4rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-            <img src="${logos[b.name] || ''}" alt="${b.name}" style="height: 48px; width: auto;">
+            ${logoSrc
+              ? `<img src="${logoSrc}" alt="${b.name}" loading="lazy" style="max-height: 48px; max-width: 120px; width: auto; object-fit: contain;">`
+              : `<span style="font-weight: 700; color: #111827; font-size: 1rem;">${b.name}</span>`}
           </div>
-          ${b.tagline ? `<p style="color: #6b7280; font-size: 0.875rem; margin: 0 0 1rem;">${b.tagline}</p>` : ''}
+          ${b.tagline || b.description ? `<p style="color: #6b7280; font-size: 0.875rem; margin: 0 0 1rem;">${b.tagline || b.description}</p>` : ''}
           <a href="${baseUrl}contact" style="display:inline-flex;align-items:center;gap:0.25rem;font-size:0.875rem;font-weight:600;color:var(--color-primary);text-decoration:none;">Learn More →</a>
-        </div>`).join('')}
+        </div>`;
+        }).join('')}
       </div>
     </div>
   </section>`;
