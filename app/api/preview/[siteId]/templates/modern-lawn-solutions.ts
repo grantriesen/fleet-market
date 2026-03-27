@@ -862,7 +862,6 @@ function mlsContactPage(siteId: string, gc: (k: string) => string, weekday: stri
           ${mlsContactSidebarFull(gc, weekday, saturday, sunday)}
         </div>
       </div>
-      ${gc('contactPage.mapEmbed') ? `<div style="margin-top: 2rem; border-radius: 0.75rem; overflow: hidden; border: 1px solid #e5e7eb;">${gc('contactPage.mapEmbed')}</div>` : ''}
     </div>
   </section>`;
 }
@@ -1039,13 +1038,13 @@ function mlsContactSidebarFull(gc: (k: string) => string, weekday: string, satur
     </h4>
     <div style="font-size: 0.875rem; color: #6b7280; display: flex; flex-direction: column; gap: 0.375rem;">
       ${(() => {
-        const wkday = gc('businessInfo.hours') || gc('hours.monday') || weekday;
-        const sat = gc('businessInfo.saturdayHours') || gc('hours.saturday') || saturday;
-        const sun = gc('businessInfo.sundayHours') || gc('hours.sunday') || sunday;
+        const wkday = gc('businessInfo.hours') || weekday;
+        const sat = gc('businessInfo.saturdayHours') || saturday;
+        const sun = gc('businessInfo.sundayHours') || sunday;
         const rows = [];
-        if (wkday) rows.push(`<div style="display:flex;justify-content:space-between;"><span>Mon – Fri</span><span style="font-weight:500;color:#111827;">${wkday}</span></div>`);
-        if (sat) rows.push(`<div style="display:flex;justify-content:space-between;"><span>Saturday</span><span style="font-weight:500;color:#111827;">${sat}</span></div>`);
-        if (sun) rows.push(`<div style="display:flex;justify-content:space-between;"><span>Sunday</span><span style="font-weight:500;color:#111827;">${sun}</span></div>`);
+        if (wkday) rows.push(`<div style="color:#374151;">${wkday}</div>`);
+        if (sat) rows.push(`<div style="color:#374151;">${sat}</div>`);
+        if (sun) rows.push(`<div style="color:#374151;">${sun}</div>`);
         return rows.join('');
       })()}
     </div>
