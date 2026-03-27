@@ -495,7 +495,8 @@ async function mlsHome(siteId: string, gc: (k: string) => string, products: any[
             const logoSrc = m.logo_url || m.logoUrl || m.logo || m.image_url || '';
             return `
           <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transition: box-shadow 0.3s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
-            ${logoSrc ? `<img src="${logoSrc}" alt="${m.name}" loading="lazy" style="height: 44px; width: auto; margin-bottom: 0.5rem;">` : `<span style="font-weight: 600; color: #374151; font-size: 0.875rem;">${m.name}</span>`}
+            ${logoSrc ? `<img src="${logoSrc}" alt="${m.name}" loading="lazy" style="height: 44px; width: auto; margin-bottom: 0.5rem;">` : ''}
+            <span style="font-size: 0.8125rem; font-weight: 600; color: #374151; margin-top: 0.375rem;">${m.name}</span>
           </div>`;
           }).join('')}
         </div>
