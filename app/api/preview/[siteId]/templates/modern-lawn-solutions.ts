@@ -243,7 +243,7 @@ function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, pa
     .btn-primary:hover { opacity: 0.9; }
     .btn-outline { display: inline-flex; align-items: center; gap: 0.5rem; background: transparent; color: ${colors.primary}; padding: 0.75rem 1.5rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 0.9375rem; border: 2px solid ${colors.primary}; cursor: pointer; transition: all 0.2s; }
     .btn-outline:hover { background: ${colors.primary}; color: #fff; }
-    .page-header-mls { background: #f9fafb; padding: 3rem 0; text-align: center; }
+    .page-header-mls { background: #f9fafb; padding: 5rem 0; text-align: center; }
     .page-header-mls h1 { font-size: 2.25rem; font-weight: 700; color: #111827; margin: 0; }
     .page-header-mls p { color: #6b7280; margin-top: 0.5rem; font-size: 1.0625rem; }
     input, textarea, select { font-family: '${fonts.body}', system-ui, sans-serif; }
@@ -568,7 +568,7 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
   ${(() => {
     const _img = gc('inventoryPage.heroImage');
     return _img
-      ? `<section data-section="inventoryHero" style="padding:3rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${gc('inventoryPage.heading') || gc('inventory.heading') || 'Equipment Inventory'}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${gc('inventoryPage.subheading') || gc('inventory.description') || 'Browse our complete selection of lawn care equipment.'}</p></div></section>`
+      ? `<section data-section="inventoryHero" style="padding:6rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${gc('inventoryPage.heading') || gc('inventory.heading') || 'Equipment Inventory'}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${gc('inventoryPage.subheading') || gc('inventory.description') || 'Browse our complete selection of lawn care equipment.'}</p></div></section>`
       : `<section data-section="inventoryHero" class="page-header-mls"><div class="container-mls"><h1>${gc('inventoryPage.heading') || gc('inventory.heading') || 'Equipment Inventory'}</h1><p>${gc('inventoryPage.subheading') || gc('inventory.description') || 'Browse our complete selection of lawn care equipment.'}</p></div></section>`;
   })()}
 
@@ -663,7 +663,7 @@ function mlsServicePage(siteId: string, gc: (k: string) => string,
   ${(() => {
     const _img = gc('servicePage.heroImage');
     return _img
-      ? `<section data-section="serviceHero" style="padding:3rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${gc('servicePage.heading') || gc('services.heading') || 'Equipment Service'}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${gc('servicePage.subheading') || gc('services.description') || 'Professional maintenance and repair services.'}</p></div></section>`
+      ? `<section data-section="serviceHero" style="padding:6rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${gc('servicePage.heading') || gc('services.heading') || 'Equipment Service'}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${gc('servicePage.subheading') || gc('services.description') || 'Professional maintenance and repair services.'}</p></div></section>`
       : `<section data-section="serviceHero" class="page-header-mls"><div class="container-mls"><h1>${gc('servicePage.heading') || gc('services.heading') || 'Equipment Service'}</h1><p>${gc('servicePage.subheading') || gc('services.description') || 'Professional maintenance and repair services.'}</p></div></section>`;
   })()}
 
@@ -721,7 +721,7 @@ function mlsContactPage(siteId: string, gc: (k: string) => string, weekday: stri
   ${(() => {
     const _img = gc('contactPage.heroImage');
     return _img
-      ? `<section data-section="contactHero" style="padding:3rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${gc('contactPage.heading') || gc('contact.heading') || 'Contact Us'}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${gc('contactPage.subheading') || gc('contact.description') || "We'd love to hear from you."}</p></div></section>`
+      ? `<section data-section="contactHero" style="padding:6rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${gc('contactPage.heading') || gc('contact.heading') || 'Contact Us'}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${gc('contactPage.subheading') || gc('contact.description') || "We'd love to hear from you."}</p></div></section>`
       : `<section data-section="contactHero" class="page-header-mls"><div class="container-mls"><h1>${gc('contactPage.heading') || gc('contact.heading') || 'Contact Us'}</h1><p>${gc('contactPage.subheading') || gc('contact.description') || "We'd love to hear from you."}</p></div></section>`;
   })()}
 
@@ -797,17 +797,13 @@ async function mlsRentalsPage(
           </div>
         </div>
       </section>
-      
-
-  <!-- Rental Booking Modal (fm) -->
-  <script src="/fm-rental-datepicker.js"></script>
-`;
+      `;
     }
   }
 
   const _img = gc('rentalsPage.heroImage');
   const heroSection = _img
-    ? `<section data-section="rentalsHero" style="padding:3rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${heading}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${subheading}</p></div></section>`
+    ? `<section data-section="rentalsHero" style="padding:6rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${heading}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${subheading}</p></div></section>`
     : `<section data-section="rentalsHero" class="page-header-mls"><div class="container-mls"><h1>${heading}</h1><p>${subheading}</p></div></section>`;
 
   const fallback = !inventorySection ? `
@@ -818,7 +814,16 @@ async function mlsRentalsPage(
     </div>
   </section>` : '';
 
-  return heroSection + (inventorySection || fallback);
+  const contentSection = (gc('rentalsPage.contentHeading') || gc('rentalsPage.contentText') || gc('rentalsPage.pricingNote')) ? `
+  <section data-section="rentalsContent" style="padding: 2.5rem 0 0;">
+    <div class="container-mls" style="max-width: 48rem; margin: 0 auto; text-align: center;">
+      ${gc('rentalsPage.contentHeading') ? `<h2 style="font-size: 1.625rem; font-weight: 700; color: #111827; margin: 0 0 0.75rem;">${gc('rentalsPage.contentHeading')}</h2>` : ''}
+      ${gc('rentalsPage.contentText') ? `<p style="color: #6b7280; line-height: 1.7; margin: 0 0 1rem;">${gc('rentalsPage.contentText')}</p>` : ''}
+      ${gc('rentalsPage.pricingNote') ? `<p style="font-size: 0.9375rem; color: #374151; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.875rem 1.25rem; margin: 0;">${gc('rentalsPage.pricingNote')}</p>` : ''}
+    </div>
+  </section>` : '';
+
+  return heroSection + contentSection + (inventorySection || fallback);
 }
 // ══════════════════════════════════════════════════
 //  MANUFACTURERS PAGE
@@ -833,7 +838,7 @@ function mlsManufacturersPage(siteId: string, gc: (k: string) => string,
   ${(() => {
     const _img = gc('manufacturersPage.heroImage');
     return _img
-      ? `<section data-section="mfgHero" style="padding:3rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading') || 'Our Manufacturers'}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription') || 'Trusted brands we proudly represent.'}</p></div></section>`
+      ? `<section data-section="mfgHero" style="padding:6rem 0;text-align:center;position:relative;background-image:url('${_img}');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(17,24,39,0.65);"></div><div class="container-mls" style="position:relative;z-index:1;"><h1 style="font-size:2.25rem;font-weight:700;color:#fff;margin:0;">${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading') || 'Our Manufacturers'}</h1><p style="color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.0625rem;">${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription') || 'Trusted brands we proudly represent.'}</p></div></section>`
       : `<section data-section="mfgHero" class="page-header-mls"><div class="container-mls"><h1>${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading') || 'Our Manufacturers'}</h1><p>${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription') || 'Trusted brands we proudly represent.'}</p></div></section>`;
   })()}
 
