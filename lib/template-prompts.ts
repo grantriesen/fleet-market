@@ -168,7 +168,7 @@ export const TEMPLATE_PROMPTS: Record<string, TemplatePromptConfig> = {
       'rentalsPage.subheading': 'Rentals page description (1-2 sentences)',
       'rentalsPage.pricingNote': 'Pricing note about volume discounts or contractor rates (1-2 sentences)',
       'rentalsPage.termsHeading': 'Rental terms section heading (3-5 words, e.g. Rental Terms & Conditions)',
-      'rentalsPage.includedHeading': 'What is included card heading (2-4 words, e.g. What's Included)',
+      'rentalsPage.includedHeading': 'What is included card heading (2-4 words, e.g. What is Included)',
       'rentalsPage.included1': 'First included item (short phrase, e.g. Equipment orientation and training)',
       'rentalsPage.included2': 'Second included item (short phrase)',
       'rentalsPage.included3': 'Third included item (short phrase)',
