@@ -45,7 +45,16 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   const sectionVisibility = customizations.section_visibility || {};
   const pageVisibility = customizations.page_visibility || {};
 
-  const { data: manufacturers } = await supabase.from('manufacturers').select('*').eq('site_id', siteId).order('display_order');
+  // Join manufacturers with manufacturer_library to get logo fallback
+  const { data: manufacturersRaw } = await supabase
+    .from('manufacturers')
+    .select('*, manufacturer_library(logo_url, slug, website_url)')
+    .eq('site_id', siteId)
+    .order('display_order');
+  const manufacturers = (manufacturersRaw || []).map((m: any) => ({
+    ...m,
+    logo_url: m.logo_url || m.manufacturer_library?.logo_url || null,
+  }));
 
   const { data: featuredItems } = await supabase
     .from('inventory_items')

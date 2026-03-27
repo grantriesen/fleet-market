@@ -89,12 +89,16 @@ export async function GET(
       }
     }
 
-    // Load manufacturers
-    const { data: manufacturers } = await supabase
+    // Load manufacturers with library join for logo fallback
+    const { data: manufacturersRaw } = await supabase
       .from('manufacturers')
-      .select('*')
+      .select('*, manufacturer_library(logo_url, slug, website_url)')
       .eq('site_id', params.siteId)
       .order('display_order');
+    const manufacturers = (manufacturersRaw || []).map((m: any) => ({
+      ...m,
+      logo_url: m.logo_url || m.manufacturer_library?.logo_url || null,
+    }));
 
     // Load featured inventory (same as live site)
     const { data: featuredItems } = await supabase
