@@ -1049,10 +1049,9 @@ function mlsContactSidebarFull(gc: (k: string) => string, weekday: string, satur
       })()}
     </div>
   </div>
-  ${address ? `<div class="card-mls" style="padding: 0; overflow: hidden;">
-    <iframe
-      src="https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed"
-      width="100%" height="200" style="border:0;display:block;" allowfullscreen loading="lazy"
-      title="Business location map"></iframe>
+  ${(gc('contactPage.mapEmbed') || address) ? `<div class="card-mls" style="padding: 0; overflow: hidden; border-radius: 0.75rem;">
+    ${gc('contactPage.mapEmbed')
+      ? gc('contactPage.mapEmbed')
+      : `<iframe src="https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed" width="100%" height="200" style="border:0;display:block;" allowfullscreen loading="lazy" title="Business location map"></iframe>`}
   </div>` : ''}`;
 }
