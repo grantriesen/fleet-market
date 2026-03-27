@@ -411,7 +411,8 @@ function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => stri
 //  HOME PAGE
 // ══════════════════════════════════════════════════
 async function mlsHome(siteId: string, gc: (k: string) => string, products: any[], vis: Record<string, boolean>, colors: any, fmtPrice: (p: number | null) => string, supabase?: any,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  manufacturers: any[] = []
 ): Promise<string> {
   let html = '';
 
