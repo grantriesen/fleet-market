@@ -966,6 +966,13 @@ function mlsManufacturersPage(siteId: string, gc: (k: string) => string,
       : `<section data-section="mfgHero" class="page-header-mls"><div class="container-mls"><h1>${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading') || 'Our Manufacturers'}</h1><p>${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription') || 'Trusted brands we proudly represent.'}</p></div></section>`;
   })()}
 
+  ${gc('manufacturersPage.introductionText') ? `
+  <section data-section="mfgIntro" style="padding: 2.5rem 0 0;">
+    <div class="container-mls" style="max-width: 48rem; margin: 0 auto; text-align: center;">
+      <p style="color: #6b7280; line-height: 1.75; font-size: 1.0625rem; margin: 0;">${gc('manufacturersPage.introductionText')}</p>
+    </div>
+  </section>` : ''}
+
   <section data-section="manufacturersList" style="padding: 3rem 0 4rem;">
     <div class="container-mls">
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem;">
