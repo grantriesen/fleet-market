@@ -823,7 +823,7 @@ async function mlsRentalsPage(
     </div>
   </section>` : '';
 
-  return heroSection + contentSection + (inventorySection || fallback);
+  return heroSection + (inventorySection || fallback) + contentSection;
 }
 // ══════════════════════════════════════════════════
 //  MANUFACTURERS PAGE
