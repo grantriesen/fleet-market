@@ -997,7 +997,7 @@ function mlsManufacturersPage(siteId: string, gc: (k: string) => string,
     <div class="container-mls" style="max-width: 48rem; margin: 0 auto; text-align: center;">
       ${gc('manufacturersPage.ctaHeading') ? `<h2 class="font-heading" style="font-size: 1.75rem; font-weight: 700; color: #111827; margin: 0 0 1rem;">${gc('manufacturersPage.ctaHeading')}</h2>` : ''}
       ${gc('manufacturersPage.ctaText') ? `<p style="color: #6b7280; line-height: 1.75; margin: 0 0 1.5rem;">${gc('manufacturersPage.ctaText')}</p>` : ''}
-      <a href="${baseUrl}contact" class="btn-primary">${gc('manufacturersPage.ctaButtonText') || 'Contact Us'}</a>
+      <a href="${gc('manufacturersPage.button1.destination') === '__custom' ? gc('manufacturersPage.button1.destination_url') : `${baseUrl}${gc('manufacturersPage.button1.destination') || 'contact'}`}" class="btn-primary">${gc('manufacturersPage.button1.text') || 'Contact Us'}</a>
     </div>
   </section>` : ''}`;
 }
