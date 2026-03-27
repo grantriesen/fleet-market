@@ -146,7 +146,7 @@ export async function renderModernLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl, manufacturers || []); break;
-    case 'service': body = mlsServicePage(siteId, getContent, baseUrl); break;
+    case 'service': body = mlsServicePage(siteId, getContent, baseUrl, enabledFeatures); break;
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice, baseUrl); break;
     case 'rentals': body = await mlsRentalsPage(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
@@ -636,7 +636,8 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
 //  SERVICE PAGE
 // ══════════════════════════════════════════════════
 function mlsServicePage(siteId: string, gc: (k: string) => string,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  enabledFeatures: Set<string> = new Set()
 ): string {
   let serviceItems: any[] = [];
   const ms1t = gc('servicePage.service1Title'); const ms1d = gc('servicePage.service1Text') || gc('servicePage.service1Description');
@@ -644,9 +645,9 @@ function mlsServicePage(siteId: string, gc: (k: string) => string,
   const ms3t = gc('servicePage.service3Title'); const ms3d = gc('servicePage.service3Text') || gc('servicePage.service3Description');
   if (ms1t || ms2t || ms3t) {
     serviceItems = [
-      ms1t ? { icon: '🔧', title: ms1t, description: ms1d } : null,
-      ms2t ? { icon: '⏱', title: ms2t, description: ms2d } : null,
-      ms3t ? { icon: '🛡', title: ms3t, description: ms3d } : null,
+      ms1t ? { icon: gc('servicePage.service1Icon') || '🔧', image: gc('servicePage.service1Image'), title: ms1t, description: ms1d } : null,
+      ms2t ? { icon: gc('servicePage.service2Icon') || '⏱', image: gc('servicePage.service2Image'), title: ms2t, description: ms2d } : null,
+      ms3t ? { icon: gc('servicePage.service3Icon') || '🛡', image: gc('servicePage.service3Image'), title: ms3t, description: ms3d } : null,
     ].filter(Boolean);
   } else {
     try { serviceItems = JSON.parse(gc('services.items') || '[]'); } catch {}
@@ -671,8 +672,12 @@ function mlsServicePage(siteId: string, gc: (k: string) => string,
     <div class="container-mls">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
         ${serviceItems.map(s => `
-        <div class="card-mls" style="padding: 2rem;">
-          <div style="font-size: 2.5rem; margin-bottom: 1rem;">${s.icon || '🔧'}</div>
+        <div class="card-mls" style="padding: 2rem; text-align: center;">
+          <div style="margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center;">
+            ${s.image
+              ? `<img src="${s.image}" alt="${s.title}" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">`
+              : `<span style="font-size: 2.5rem;">${s.icon || '🔧'}</span>`}
+          </div>
           <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 0.75rem; color: #111827;">${s.title}</h3>
           <p style="color: #6b7280; margin: 0; line-height: 1.7; font-size: 0.9375rem;">${s.description}</p>
         </div>`).join('')}
@@ -684,24 +689,8 @@ function mlsServicePage(siteId: string, gc: (k: string) => string,
     <div class="container-mls">
       <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
         <div class="card-mls" style="padding: 2rem;">
-          <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">Request Service</h3>
-          <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var s=f.querySelector('select');return s?{equipment_type:s.value}:null;});">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div><label class="form-label">Name *</label><input class="form-input" required placeholder="Your name"></div>
-              <div><label class="form-label">Email *</label><input class="form-input" type="email" required placeholder="your@email.com"></div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div><label class="form-label">Phone *</label><input class="form-input" type="tel" required placeholder="(555) 123-4567"></div>
-              <div><label class="form-label">Equipment Type *</label>
-                <select class="form-input" required>
-                  <option value="">Select type</option>
-                  <option>Mower</option><option>Trimmer</option><option>Blower</option><option>Chainsaw</option><option>Tractor</option><option>Other</option>
-                </select>
-              </div>
-            </div>
-            <div style="margin-bottom: 1rem;"><label class="form-label">Description of Issue *</label><textarea class="form-input" rows="5" required placeholder="Please describe the issue or service needed..."></textarea></div>
-            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Submit Service Request</button>
-          </form>
+          <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">${enabledFeatures.has('service_scheduling') ? 'Schedule Service' : 'Request Service'}</h3>
+          ${serviceFormHtml(siteId, enabledFeatures, 'form-input', 'btn-primary', 'form-input', 'form-label')}
         </div>
         <div style="display: flex; flex-direction: column; gap: 1.5rem;">
           ${mlsContactSidebar(gc)}
