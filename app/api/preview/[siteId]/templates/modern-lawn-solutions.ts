@@ -814,16 +814,22 @@ async function mlsRentalsPage(
     </div>
   </section>` : '';
 
-  const contentSection = (gc('rentalsPage.contentHeading') || gc('rentalsPage.contentText') || gc('rentalsPage.pricingNote')) ? `
-  <section data-section="rentalsContent" style="padding: 2.5rem 0 0;">
+  const introSection = (gc('rentalsPage.contentHeading') || gc('rentalsPage.contentText')) ? `
+  <section data-section="rentalsIntro" style="padding: 2.5rem 0 0;">
     <div class="container-mls" style="max-width: 48rem; margin: 0 auto; text-align: center;">
       ${gc('rentalsPage.contentHeading') ? `<h2 style="font-size: 1.625rem; font-weight: 700; color: #111827; margin: 0 0 0.75rem;">${gc('rentalsPage.contentHeading')}</h2>` : ''}
-      ${gc('rentalsPage.contentText') ? `<p style="color: #6b7280; line-height: 1.7; margin: 0 0 1rem;">${gc('rentalsPage.contentText')}</p>` : ''}
-      ${gc('rentalsPage.pricingNote') ? `<p style="font-size: 0.9375rem; color: #374151; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.875rem 1.25rem; margin: 0;">${gc('rentalsPage.pricingNote')}</p>` : ''}
+      ${gc('rentalsPage.contentText') ? `<p style="color: #6b7280; line-height: 1.7; margin: 0;">${gc('rentalsPage.contentText')}</p>` : ''}
     </div>
   </section>` : '';
 
-  return heroSection + (inventorySection || fallback) + contentSection;
+  const pricingNoteSection = gc('rentalsPage.pricingNote') ? `
+  <section data-section="rentalsPricingNote" style="padding: 2rem 0 4rem;">
+    <div class="container-mls" style="max-width: 48rem; margin: 0 auto; text-align: center;">
+      <p style="font-size: 0.9375rem; color: #374151; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.875rem 1.25rem; margin: 0;">${gc('rentalsPage.pricingNote')}</p>
+    </div>
+  </section>` : '';
+
+  return heroSection + introSection + (inventorySection || fallback) + pricingNoteSection;
 }
 // ══════════════════════════════════════════════════
 //  MANUFACTURERS PAGE
