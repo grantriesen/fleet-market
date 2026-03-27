@@ -1029,9 +1029,11 @@ function ceContactPage(siteId: string, getContent: Function, weekdayHours: strin
           <div class="border border-gray-200 rounded bg-white p-6">
             <h3 class="font-heading font-semibold text-lg text-gray-900 mb-4">Business Hours</h3>
             <div class="space-y-2 text-sm text-gray-600">
-              <div class="flex justify-between"><span>Monday – Friday</span><span class="font-medium text-gray-900">${weekdayHours}</span></div>
-              <div class="flex justify-between"><span>Saturday</span><span class="font-medium text-gray-900">${saturdayHours}</span></div>
-              <div class="flex justify-between"><span>Sunday</span><span class="font-medium text-gray-900">${sundayHours}</span></div>
+              ${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(day => {
+                const h = getContent('hours.' + day.toLowerCase());
+                if (!h) return '';
+                return `<div class="flex justify-between"><span>${day}</span><span class="font-medium text-gray-900">${h}</span></div>`;
+              }).filter(Boolean).join('')}
             </div>
           </div>
         </div>
