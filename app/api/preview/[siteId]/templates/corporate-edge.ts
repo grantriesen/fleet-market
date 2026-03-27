@@ -190,8 +190,7 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabl
   <title>${title}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" href="https://fonts.googleapis.com/css2?${googleFontsUrl}&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link href="https://fonts.googleapis.com/css2?${googleFontsUrl}&display=swap" rel="stylesheet"></noscript>
+  <link href="https://fonts.googleapis.com/css2?${googleFontsUrl}&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com" defer></script>
   <script>
   tailwind.config = { theme: { extend: { fontFamily: { heading: ['${fonts.heading}', 'sans-serif'], body: ['${fonts.body}', 'sans-serif'] } } } }
