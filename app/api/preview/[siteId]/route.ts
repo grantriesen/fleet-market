@@ -89,16 +89,15 @@ export async function GET(
       }
     }
 
-    // Load manufacturers with library join for logo fallback
-    const { data: manufacturersRaw } = await supabase
-      .from('manufacturers')
-      .select('*, manufacturer_library(logo_url, slug, website_url)')
-      .eq('site_id', params.siteId)
-      .order('display_order');
-    const manufacturers = (manufacturersRaw || []).map((m: any) => ({
-      ...m,
-      logo_url: m.logo_url || m.manufacturer_library?.logo_url || null,
-    }));
+    // Load manufacturers with library fallback for logos
+    const { data: manufacturersRaw } = await supabase.from('manufacturers').select('*').eq('site_id', params.siteId).order('display_order');
+    const mfgMissingLogos = (manufacturersRaw || []).filter((m: any) => !m.logo_url).map((m: any) => m.name);
+    const { data: libraryLogos } = mfgMissingLogos.length > 0
+      ? await supabase.from('manufacturer_library').select('name, logo_url').in('name', mfgMissingLogos)
+      : { data: [] };
+    const libraryLogoMap: Record<string, string> = {};
+    (libraryLogos || []).forEach((l: any) => { if (l.logo_url) libraryLogoMap[l.name] = l.logo_url; });
+    const manufacturers = (manufacturersRaw || []).map((m: any) => ({ ...m, logo_url: m.logo_url || libraryLogoMap[m.name] || null }));
 
     // Load featured inventory (same as live site)
     const { data: featuredItems } = await supabase
