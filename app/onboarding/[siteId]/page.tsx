@@ -380,6 +380,12 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
         ...Object.entries(copy).map(([field_key, value]) => ({ field_key, value: value as string })),
       ].filter(r => r.value);
 
+      // Deduplicate — if same field_key appears twice, last one wins
+      const deduped = Object.values(
+        contentRows.reduce((acc: any, r: any) => { acc[r.field_key] = r; return acc; }, {})
+      ) as typeof contentRows;
+      const contentRows2 = deduped;
+
       // ── Build manufacturer rows ───────────────────────────────────────────
       const selectedLibraryBrands = brands.filter((b: LibraryBrand) => form.selectedBrands.includes(b.slug));
       const manufacturerRows = selectedLibraryBrands.map((b: LibraryBrand) => ({
@@ -394,7 +400,7 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           siteId: site.id,
-          contentRows,
+          contentRows: contentRows2,
           manufacturers: manufacturerRows,
           colors: {
             primary: form.colorPrimary,
