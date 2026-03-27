@@ -4,7 +4,7 @@
 //         shadcn-inspired card system, muted gray backgrounds.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { sharedPreviewScript, injectCartSystem, serviceFormHtml } from './shared';
+import { sharedPreviewScript } from './shared';
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
 
 /* ── DEMO overrides ── */
@@ -90,7 +90,8 @@ export async function renderModernLawnPage(
   baseUrl: string = '',
   siteAddons: string[] = [],
   checkoutMode: string = 'quote_only',
-  stripeConnected: boolean = false
+  stripeConnected: boolean = false,
+  manufacturers: any[] = []
 ) {
   // Content resolution: passed content (from route) > customizations > config > demo overrides
   const MLS_KEY_ALIASES: Record<string,string> = {
@@ -144,13 +145,13 @@ export async function renderModernLawnPage(
 
   let body = '';
   switch (currentPage) {
-    case 'home': case 'index': body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl); break;
-    case 'service': body = mlsServicePage(siteId, getContent, baseUrl, enabledFeatures); break;
+    case 'home': case 'index': body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl, manufacturers || []); break;
+    case 'service': body = mlsServicePage(siteId, getContent, baseUrl); break;
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice, baseUrl); break;
     case 'rentals': body = await mlsRentalsPage(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
     case 'manufacturers': body = mlsManufacturersPage(siteId, getContent, baseUrl); break;
-    default: body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl); break;
+    default: body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl, manufacturers || []); break;
   }
 
   return mlsHtmlShell(
@@ -161,15 +162,12 @@ export async function renderModernLawnPage(
     currentPage,
     mlsHeader(siteId, currentPage, pages, getContent, colors, baseUrl) +
     body +
-    mlsFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl),
-    enabledFeatures,
-    checkoutMode,
-    stripeConnected
+    mlsFooter(siteId, pages, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl)
   );
 }
 
 // ── HTML Shell ──
-function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, page: string, body: string, enabledFeatures?: Set<string>, checkoutMode: string = 'quote_only', stripeConnected: boolean = false) {
+function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, page: string, body: string) {
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const googleFontsUrl = Array.from(fontFamilies)
     .map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700;800`)
@@ -252,7 +250,6 @@ function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, pa
     select.form-input:hover { border-color: #9ca3af; }
     select.form-input option { padding: 0.5rem; }
     .form-label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.375rem; }
-    :root { --color-primary: ${colors.primary}; --color-secondary: ${colors.secondary}; --color-accent: ${colors.accent}; }
 
     /* ── Mobile Responsive ── */
     @media (max-width: 768px) {
@@ -286,9 +283,7 @@ function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, pa
 </head>
 <body>
   ${body}
-  ${sharedPreviewScript(siteId, page)}
-  ${enabledFeatures?.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
-  ${injectCartSystem(siteId, checkoutMode, colors.primary)}
+  ${sharedPreviewScript(siteId, page)}${enabledFeatures && enabledFeatures.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
 </body>
 </html>`;
 }
@@ -480,25 +475,30 @@ async function mlsHome(siteId: string, gc: (k: string) => string, products: any[
 
   // ── Manufacturers ──
   if (vis.manufacturers !== false) {
-    const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'Exmark': '/images/logos/exmark.png', 'ECHO': '/images/logos/Echo.png', 'Honda': '/images/logos/Honda.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Kubota': '/images/logos/kubota.jpg' };
-    html += `
+    const mfgToShow = manufacturers.length > 0 ? manufacturers.slice(0, 6) : [];
+    if (mfgToShow.length > 0) {
+      html += `
     <section data-section="manufacturers" style="padding: 5rem 0; background: #f9fafb;">
       <div class="container-mls">
         <div style="text-align: center; margin-bottom: 3rem;">
-          <h2 class="font-heading" style="font-size: 2rem; font-weight: 700; margin: 0 0 0.5rem; color: #111827;">${gc('manufacturers.heading')}</h2>
-          <p style="color: #6b7280; margin: 0;">${gc('manufacturers.subheading')}</p>
+          <h2 class="font-heading" style="font-size: 2rem; font-weight: 700; margin: 0 0 0.5rem; color: #111827;">${gc('manufacturers.heading') || 'Authorized Dealer'}</h2>
+          <p style="color: #6b7280; margin: 0;">${gc('manufacturers.subheading') || "We carry the industry's leading brands"}</p>
         </div>
         <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem;">
-          ${['Toro', 'Exmark', 'ECHO', 'Honda', 'Husqvarna', 'Kubota'].map(brand => `
+          ${mfgToShow.map((m: any) => {
+            const logoSrc = m.logo_url || m.logoUrl || m.logo || m.image_url || '';
+            return `
           <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transition: box-shadow 0.3s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
-            <img src="${logos[brand] || ''}" alt="${brand}" style="height: 44px; width: auto; margin-bottom: 0.5rem;">
-          </div>`).join('')}
+            ${logoSrc ? `<img src="${logoSrc}" alt="${m.name}" loading="lazy" style="height: 44px; width: auto; margin-bottom: 0.5rem;">` : `<span style="font-weight: 600; color: #374151; font-size: 0.875rem;">${m.name}</span>`}
+          </div>`;
+          }).join('')}
         </div>
         <div style="text-align: center; margin-top: 2.5rem;">
           <a href="${baseUrl}manufacturers" class="btn-outline">View All Brands <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
         </div>
       </div>
     </section>`;
+    }
   }
 
   // ── Testimonials ──
@@ -515,7 +515,9 @@ async function mlsHome(siteId: string, gc: (k: string) => string, products: any[
     html += `
     <section data-section="testimonials" style="padding: 5rem 0;">
       <div class="container-mls">
-        <h2 class="font-heading" style="font-size: 2rem; font-weight: 700; text-align: center; margin: 0 0 3rem; color: #111827;">${gc('testimonials.heading')}</h2>
+        <div style="text-align: center; margin-bottom: 3rem;">
+          <h2 class="font-heading" style="font-size: 2rem; font-weight: 700; margin: 0 0 0.5rem; color: #111827;">${gc('testimonials.heading') || 'What Our Customers Say'}</h2>
+        </div>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
           ${testimonials.map(t => `
           <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1.5rem; display: flex; flex-direction: column; height: 100%;">
@@ -628,8 +630,7 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
 //  SERVICE PAGE
 // ══════════════════════════════════════════════════
 function mlsServicePage(siteId: string, gc: (k: string) => string,
-  baseUrl: string = '',
-  enabledFeatures: Set<string> = new Set()
+  baseUrl: string = ''
 ): string {
   let serviceItems: any[] = [];
   const ms1t = gc('servicePage.service1Title'); const ms1d = gc('servicePage.service1Text') || gc('servicePage.service1Description');
@@ -677,8 +678,24 @@ function mlsServicePage(siteId: string, gc: (k: string) => string,
     <div class="container-mls">
       <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
         <div class="card-mls" style="padding: 2rem;">
-          <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">${enabledFeatures.has('service_scheduling') ? 'Schedule Service' : 'Request Service'}</h3>
-          ${serviceFormHtml(siteId, enabledFeatures, 'form-input', 'btn-primary', 'form-input', 'form-label')}
+          <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">Request Service</h3>
+          <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var s=f.querySelector('select');return s?{equipment_type:s.value}:null;});">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div><label class="form-label">Name *</label><input class="form-input" required placeholder="Your name"></div>
+              <div><label class="form-label">Email *</label><input class="form-input" type="email" required placeholder="your@email.com"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div><label class="form-label">Phone *</label><input class="form-input" type="tel" required placeholder="(555) 123-4567"></div>
+              <div><label class="form-label">Equipment Type *</label>
+                <select class="form-input" required>
+                  <option value="">Select type</option>
+                  <option>Mower</option><option>Trimmer</option><option>Blower</option><option>Chainsaw</option><option>Tractor</option><option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-bottom: 1rem;"><label class="form-label">Description of Issue *</label><textarea class="form-input" rows="5" required placeholder="Please describe the issue or service needed..."></textarea></div>
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Submit Service Request</button>
+          </form>
         </div>
         <div style="display: flex; flex-direction: column; gap: 1.5rem;">
           ${mlsContactSidebar(gc)}
