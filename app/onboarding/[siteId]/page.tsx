@@ -361,6 +361,16 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
         { field_key: 'businessInfo.state',        value: form.state },
         { field_key: 'businessInfo.zip',          value: form.zip },
         { field_key: 'businessInfo.hours',        value: form.weekdayHours },
+        // MLS uses individual day fields
+        ...(site.template?.slug === 'modern-lawn-solutions' ? [
+          { field_key: 'hours.monday',    value: form.weekdayHours },
+          { field_key: 'hours.tuesday',   value: form.weekdayHours },
+          { field_key: 'hours.wednesday', value: form.weekdayHours },
+          { field_key: 'hours.thursday',  value: form.weekdayHours },
+          { field_key: 'hours.friday',    value: form.weekdayHours },
+          { field_key: 'hours.saturday',  value: form.saturdayHours },
+          { field_key: 'hours.sunday',    value: form.sundayHours },
+        ] : []),
         { field_key: 'businessInfo.saturdayHours',value: form.saturdayHours },
         { field_key: 'businessInfo.sundayHours',  value: form.sundayHours },
         { field_key: 'businessInfo.serviceArea',  value: form.serviceArea },
