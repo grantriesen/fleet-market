@@ -367,7 +367,7 @@ function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => stri
 
   return `
   <footer style="background: #111827; color: #e5e7eb;">
-    <div class="container-mls" style="padding: 4rem 0 3rem;">
+    <div class="container-mls" style="padding-top: 4rem; padding-bottom: 3rem;">
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem;">
         <!-- Business Info -->
         <div>
