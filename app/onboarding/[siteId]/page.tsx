@@ -6,7 +6,7 @@ import { buildOnboardingPrompt } from '@/lib/template-prompts';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import {
-  Building2, Phone, Mail, MapPin, Clock, Wrench,
+  Building2, Phone, Mail, MapPin, Clock, Wrench, BarChart3,
   ChevronRight, ChevronLeft, Check, Loader2, Sparkles,
   Package, Calendar, Tag, AlertCircle, Info
 } from 'lucide-react';
@@ -61,6 +61,9 @@ interface FormData {
   // Rentals addon
   rentalManagementSystem: string;
   rentalManagementSystemName: string;
+  // CE-specific stats
+  machinesServiced: string;
+  customerSatisfaction: string;
   // Brand colors
   colorPrimary: string;
   colorSecondary: string;
@@ -81,6 +84,8 @@ const INITIAL_FORM: FormData = {
   posSystem: '', posSystemName: '',
   serviceSchedulingSystem: '', serviceSchedulingSystemName: '',
   rentalManagementSystem: '', rentalManagementSystemName: '',
+  machinesServiced: '',
+  customerSatisfaction: '98%',
   colorPrimary: '#2D5016',
   colorSecondary: '#F97316',
   colorAccent: '#059669',
@@ -99,10 +104,11 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 // ─── Step Config ──────────────────────────────────────────────────────────────
-function getSteps(addons: string[]) {
+function getSteps(addons: string[], templateSlug?: string) {
   const hasInventory = addons.includes('inventory');
   const hasService   = addons.includes('service');
   const hasRentals   = addons.includes('rentals');
+  const isCE = templateSlug === 'corporate-edge';
 
   const steps = [
     { id: 'basics',   label: 'Business Info',  icon: Building2 },
@@ -111,6 +117,7 @@ function getSteps(addons: string[]) {
     { id: 'brands',   label: 'Brands',         icon: Tag },
   ];
 
+  if (isCE) steps.push({ id: 'ce-stats', label: 'Your Stats', icon: BarChart3 });
   if (hasInventory) steps.push({ id: 'inventory', label: 'Inventory',  icon: Package });
   if (hasService)   steps.push({ id: 'service',   label: 'Service',    icon: Wrench });
   if (hasRentals)   steps.push({ id: 'rentals',   label: 'Rentals',    icon: Calendar });
@@ -137,7 +144,7 @@ export default function OnboardingPage({ params }: { params: { siteId: string } 
   const [aiAssisting,    setAiAssisting]    = useState<'services' | 'about' | null>(null);
   const [brandCategory,  setBrandCategory]  = useState('all');
 
-  const steps = site ? getSteps(site.addons || []) : [];
+  const steps = site ? getSteps(site.addons || [], site.template?.slug) : [];
   const currentStep = steps[step];
   const isLast = step === steps.length - 1;
 
@@ -183,10 +190,36 @@ export default function OnboardingPage({ params }: { params: { siteId: string } 
       case 'hours':    return !!(form.weekdayHours.trim());
       case 'services': return !!(form.servicesDescription.trim());
       case 'brands':   return true; // optional
+      case 'ce-stats':  return true; // optional — AI fills what's missing
       case 'inventory':return !!(form.inventorySystem && form.posSystem);
       case 'service':  return !!(form.serviceSchedulingSystem);
       case 'rentals':  return !!(form.rentalManagementSystem);
-      case 'ai':       return !!(form.businessDescription.trim());
+      case 'ce-stats':
+      return (
+        <div>
+          <StepHeader icon={BarChart3} title="Let's add some credibility numbers" subtitle="These stats appear prominently on your homepage. Fill in what you know — the AI will fill in anything you leave blank." />
+          <div className="grid grid-cols-1 gap-5">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Machines Serviced</label>
+                <input className={inputCls} value={form.machinesServiced} onChange={e => update('machinesServiced', e.target.value)} placeholder="e.g. 500+" />
+                <p className="text-xs text-slate-500 mt-1">Approx. total units your shop has serviced</p>
+              </div>
+              <div>
+                <label className={labelCls}>Customer Satisfaction</label>
+                <input className={inputCls} value={form.customerSatisfaction} onChange={e => update('customerSatisfaction', e.target.value)} placeholder="e.g. 98%" />
+                <p className="text-xs text-slate-500 mt-1">Your satisfaction rate or review score</p>
+              </div>
+            </div>
+            <div className="p-4 bg-slate-900 border border-slate-700 rounded-xl flex gap-3">
+              <Info className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-slate-400">Years in business and brand count are pulled from your earlier answers automatically.</p>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'ai':       return !!(form.businessDescription.trim());
       default:         return true;
     }
   }
@@ -298,6 +331,8 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
           servicesDescription: form.servicesDescription,
           selectedBrands: form.selectedBrands,
           businessDescription: form.businessDescription,
+          machinesServiced: form.machinesServiced,
+          customerSatisfaction: form.customerSatisfaction,
         },
         site.addons || []
       );
@@ -330,6 +365,17 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
         { field_key: 'businessInfo.sundayHours',  value: form.sundayHours },
         { field_key: 'businessInfo.serviceArea',  value: form.serviceArea },
         { field_key: 'businessInfo.yearsInBusiness', value: form.yearsInBusiness },
+        // CE-specific stats (saved directly, not AI-generated)
+        ...(site.template?.slug === 'corporate-edge' ? [
+          { field_key: 'stats.stat1Number', value: form.yearsInBusiness ? form.yearsInBusiness + '+' : '' },
+          { field_key: 'stats.stat1Label',  value: 'Years in Business' },
+          { field_key: 'stats.stat2Number', value: form.machinesServiced || '' },
+          { field_key: 'stats.stat2Label',  value: 'Machines Serviced' },
+          { field_key: 'stats.stat3Number', value: form.selectedBrands.length > 0 ? form.selectedBrands.length + '+' : '' },
+          { field_key: 'stats.stat3Label',  value: 'Brand Partners' },
+          { field_key: 'stats.stat4Number', value: form.customerSatisfaction || '' },
+          { field_key: 'stats.stat4Label',  value: 'Customer Satisfaction' },
+        ] : []),
         // AI generated copy
         ...Object.entries(copy).map(([field_key, value]) => ({ field_key, value: value as string })),
       ].filter(r => r.value);
@@ -510,6 +556,7 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
           error={error}
           aiAssisting={aiAssisting}
           handleAiAssist={handleAiAssist}
+          templateSlug={site?.template?.slug}
         />
 
         {/* Nav */}
@@ -551,7 +598,7 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
 function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
   filteredBrands, brandsByCategory, brandSearch, setBrandSearch,
   brandCategory, setBrandCategory, siteName, siteId, error,
-  aiAssisting, handleAiAssist }: any) {
+  aiAssisting, handleAiAssist, templateSlug }: any) {
 
   const inputCls = "w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors text-sm";
   const labelCls = "block text-sm font-medium text-slate-300 mb-2";
@@ -860,6 +907,31 @@ function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
             conditionalPlaceholder="e.g. Point of Rental, Rentman, EZRentOut..."
             inputCls={inputCls}
           />
+        </div>
+      );
+
+    case 'ce-stats':
+      return (
+        <div>
+          <StepHeader icon={BarChart3} title="Let's add some credibility numbers" subtitle="These stats appear prominently on your homepage. Fill in what you know — the AI will fill in anything you leave blank." />
+          <div className="grid grid-cols-1 gap-5">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Machines Serviced</label>
+                <input className={inputCls} value={form.machinesServiced} onChange={e => update('machinesServiced', e.target.value)} placeholder="e.g. 500+" />
+                <p className="text-xs text-slate-500 mt-1">Approx. total units your shop has serviced</p>
+              </div>
+              <div>
+                <label className={labelCls}>Customer Satisfaction</label>
+                <input className={inputCls} value={form.customerSatisfaction} onChange={e => update('customerSatisfaction', e.target.value)} placeholder="e.g. 98%" />
+                <p className="text-xs text-slate-500 mt-1">Your satisfaction rate or review score</p>
+              </div>
+            </div>
+            <div className="p-4 bg-slate-900 border border-slate-700 rounded-xl flex gap-3">
+              <Info className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-slate-400">Years in business and brand count are pulled from your earlier answers automatically.</p>
+            </div>
+          </div>
         </div>
       );
 

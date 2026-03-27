@@ -95,14 +95,11 @@ export const TEMPLATE_PROMPTS: Record<string, TemplatePromptConfig> = {
       'hero.subheading': 'Hero subheading (1-2 sentences, target commercial/professional customers)',
       'hero.button1.text': 'Primary CTA button text (2-4 words)',
       'hero.button2.text': 'Secondary CTA button text (2-4 words)',
-      'stats.stat1Number': 'Years in business number (just the number/value like "25+" based on their years in business)',
+      // Stats numbers are saved directly from dealer input, not AI-generated
       'stats.stat1Label': 'Stat 1 label (2-4 words, e.g. Years in Business)',
-      'stats.stat2Number': 'Machines serviced number (realistic estimate like "500+")',
-      'stats.stat2Label': 'Stat 2 label (2-4 words)',
-      'stats.stat3Number': 'Brand partners number based on their selected brands',
-      'stats.stat3Label': 'Stat 3 label (2-4 words)',
-      'stats.stat4Number': 'Customer satisfaction percentage (e.g. "98%")',
-      'stats.stat4Label': 'Stat 4 label (2-4 words)',
+      'stats.stat2Label': 'Stat 2 label (2-4 words, e.g. Machines Serviced)',
+      'stats.stat3Label': 'Stat 3 label (2-4 words, e.g. Brand Partners)',
+      'stats.stat4Label': 'Stat 4 label (2-4 words, e.g. Customer Satisfaction)',
       'featured.heading': 'Featured equipment section heading (2-4 words)',
       'featured.subheading': 'Featured equipment subheading (1 short sentence for professionals)',
       'trustBadges.badge1Title': 'Trust badge 1 title (2-3 words)',
@@ -437,6 +434,8 @@ export function buildOnboardingPrompt(
     servicesDescription: string;
     selectedBrands: string[];
     businessDescription: string;
+    machinesServiced?: string;
+    customerSatisfaction?: string;
   },
   addons: string[]
 ): string {
@@ -477,7 +476,7 @@ Service Area: ${form.serviceArea || 'local area'}
 Services Offered: ${form.servicesDescription}
 Brands Carried: ${form.selectedBrands.join(', ') || 'various brands'}
 
-In their own words: "${form.businessDescription}"
+In their own words: "${form.businessDescription}"${form.machinesServiced ? `\nMachines Serviced: ${form.machinesServiced}` : ''}${form.customerSatisfaction ? `\nCustomer Satisfaction: ${form.customerSatisfaction}` : ''}
 
 INSTRUCTIONS:
 - Use the tone instructions above strictly — this is critical for brand consistency
