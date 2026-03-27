@@ -688,15 +688,143 @@ function mlsServicePage(siteId: string, gc: (k: string) => string,
 
   <section data-section="serviceForm" style="padding: 3rem 0 4rem; background: #f9fafb;">
     <div class="container-mls">
+      ${enabledFeatures.has('service_scheduling') ? `
+      <div style="max-width: 48rem; margin: 0 auto;">
+        <h2 class="font-heading" style="font-size: 1.625rem; font-weight: 700; text-align: center; margin: 0 0 0.5rem; color: #111827;">Schedule Service Online</h2>
+        <p style="text-align: center; color: #6b7280; margin: 0 0 2rem; font-size: 0.9375rem;">Pick a service, choose your time, and we'll take care of the rest.</p>
+        <div id="mls-sf-booking-form" class="card-mls" style="padding: 2rem;">
+          <div id="mls-sf-step-1">
+            <p style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: ${colors.primary || '#10b981'}; margin: 0 0 1rem;">1. Select a Service</p>
+            <div id="mls-sf-service-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="text-align: center; padding: 1.5rem; color: #6b7280;">Loading services...</div>
+            </div>
+          </div>
+          <div id="mls-sf-step-2" style="display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb;">
+            <p style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: ${colors.primary || '#10b981'}; margin: 0 0 1rem;">2. Choose Date & Time</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div><label class="form-label">Preferred Date *</label><input type="date" id="mls-sf-date" required class="form-input"></div>
+              <div><label class="form-label">Preferred Time *</label><select id="mls-sf-time" required class="form-input"><option value="">Select time</option></select></div>
+            </div>
+          </div>
+          <div id="mls-sf-step-3" style="display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb;">
+            <p style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: ${colors.primary || '#10b981'}; margin: 0 0 1rem;">3. Your Information</p>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div><label class="form-label">Name *</label><input type="text" id="mls-sf-name" required class="form-input" placeholder="John Smith"></div>
+                <div><label class="form-label">Phone *</label><input type="tel" id="mls-sf-phone" required class="form-input" placeholder="(555) 123-4567"></div>
+              </div>
+              <div><label class="form-label">Email *</label><input type="email" id="mls-sf-email" required class="form-input" placeholder="john@company.com"></div>
+              <div><label class="form-label">Equipment Details</label><input type="text" id="mls-sf-equipment" class="form-input" placeholder='e.g., Toro TimeCutter 54"'></div>
+              <div><label class="form-label">Notes</label><textarea id="mls-sf-notes" rows="3" class="form-input" style="resize: vertical;" placeholder="Describe the issue or any additional details..."></textarea></div>
+              <button id="mls-sf-submit" class="btn-primary" style="justify-content: center; width: 100%;">Schedule Service</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script>
+        (function() {
+          var siteId = '${siteId}';
+          var selectedService = null;
+          fetch('/api/service/types/' + siteId)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              var list = document.getElementById('mls-sf-service-list');
+              if (!list) return;
+              var types = data.types || data.serviceTypes || data || [];
+              if (!types.length) {
+                list.innerHTML = '<div style="text-align:center;padding:1rem;color:#6b7280;">No services configured yet. Please contact us directly.</div>';
+                return;
+              }
+              list.innerHTML = '';
+              types.forEach(function(st) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.style.cssText = 'text-align:left;padding:1rem;border:2px solid #e5e7eb;border-radius:0.5rem;background:#fff;cursor:pointer;transition:border-color 0.15s,background 0.15s;width:100%;';
+                btn.setAttribute('data-id', st.id);
+                var dur = st.duration_minutes ? ' · ' + st.duration_minutes + ' min' : '';
+                var price = (st.price_estimate || st.price) ? ' · ' + (st.price_estimate || st.price) : '';
+                btn.innerHTML = '<div style="font-weight:600;color:#111827;">' + st.name + '</div>' +
+                  (st.description ? '<div style="font-size:0.8125rem;color:#6b7280;margin-top:0.25rem;">' + st.description + dur + price + '</div>' : '');
+                btn.addEventListener('mouseover', function() { if (!this.classList.contains('selected')) this.style.borderColor = '${colors.primary || "#10b981"}'; });
+                btn.addEventListener('mouseout', function() { if (!this.classList.contains('selected')) this.style.borderColor = '#e5e7eb'; });
+                btn.addEventListener('click', function() {
+                  document.querySelectorAll('#mls-sf-service-list button').forEach(function(b) {
+                    b.style.borderColor = '#e5e7eb'; b.style.background = '#fff'; b.classList.remove('selected');
+                  });
+                  this.style.borderColor = '${colors.primary || "#10b981"}'; this.style.background = '#f0fdf4'; this.classList.add('selected');
+                  selectedService = st;
+                  document.getElementById('mls-sf-step-2').style.display = '';
+                  var sel = document.getElementById('mls-sf-time');
+                  sel.innerHTML = '<option value="">Select time</option>';
+                  ['8:00 AM','8:30 AM','9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM',
+                   '12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM','3:00 PM','3:30 PM','4:00 PM','4:30 PM'].forEach(function(t) {
+                    var o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o);
+                  });
+                });
+                list.appendChild(btn);
+              });
+            })
+            .catch(function() {
+              var list = document.getElementById('mls-sf-service-list');
+              if (list) list.innerHTML = '<div style="text-align:center;padding:1rem;color:#6b7280;">Unable to load services. Please call us directly.</div>';
+            });
+          var dateInput = document.getElementById('mls-sf-date');
+          var timeInput = document.getElementById('mls-sf-time');
+          if (dateInput) { dateInput.min = new Date().toISOString().split('T')[0]; dateInput.addEventListener('change', checkStep3); }
+          if (timeInput) timeInput.addEventListener('change', checkStep3);
+          function checkStep3() { if (dateInput.value && timeInput.value) document.getElementById('mls-sf-step-3').style.display = ''; }
+          var submitBtn = document.getElementById('mls-sf-submit');
+          if (submitBtn) {
+            submitBtn.addEventListener('click', function() {
+              var name = document.getElementById('mls-sf-name').value;
+              var phone = document.getElementById('mls-sf-phone').value;
+              var email = document.getElementById('mls-sf-email').value;
+              if (!name || !phone || !email || !selectedService) { alert('Please fill in all required fields.'); return; }
+              submitBtn.textContent = 'Scheduling...'; submitBtn.disabled = true;
+              fetch('/api/service/book/' + siteId, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  siteId: siteId, serviceTypeId: selectedService.id, serviceTypeName: selectedService.name,
+                  preferredDate: dateInput.value, preferredTime: timeInput.value,
+                  customerName: name, customerPhone: phone, customerEmail: email,
+                  equipmentType: document.getElementById('mls-sf-equipment').value,
+                  customerNotes: document.getElementById('mls-sf-notes').value
+                })
+              }).then(function(r) { return r.json(); }).then(function(res) {
+                if (res.error) { alert('Error: ' + res.error); submitBtn.textContent = 'Schedule Service'; submitBtn.disabled = false; }
+                else { document.getElementById('mls-sf-booking-form').innerHTML = '<div style="text-align:center;padding:3rem 0;"><div style="width:4rem;height:4rem;background:${colors.primary || "#10b981"};border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg></div><h3 style="font-size:1.5rem;font-weight:700;margin:0 0 0.5rem;color:#111827;">Service Scheduled!</h3><p style="color:#6b7280;">We will confirm your appointment within 1 business day.</p></div>'; }
+              }).catch(function() { alert('Something went wrong.'); submitBtn.textContent = 'Schedule Service'; submitBtn.disabled = false; });
+            });
+          }
+        })();
+      <\/script>
+      ` : `
       <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
         <div class="card-mls" style="padding: 2rem;">
-          <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">${enabledFeatures.has('service_scheduling') ? 'Schedule Service' : 'Request Service'}</h3>
-          ${serviceFormHtml(siteId, enabledFeatures, 'form-input', 'btn-primary', 'form-input', 'form-label')}
+          <h3 class="font-heading" style="font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: #111827;">Request Service</h3>
+          <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var s=f.querySelector('select');return s?{equipment_type:s.value}:null;});">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div><label class="form-label">Name *</label><input class="form-input" required placeholder="Your name"></div>
+              <div><label class="form-label">Email *</label><input class="form-input" type="email" required placeholder="your@email.com"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div><label class="form-label">Phone *</label><input class="form-input" type="tel" required placeholder="(555) 123-4567"></div>
+              <div><label class="form-label">Equipment Type *</label>
+                <select class="form-input" required>
+                  <option value="">Select type</option>
+                  <option>Mower</option><option>Trimmer</option><option>Blower</option><option>Chainsaw</option><option>Tractor</option><option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-bottom: 1rem;"><label class="form-label">Description of Issue *</label><textarea class="form-input" rows="5" required placeholder="Please describe the issue or service needed..."></textarea></div>
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Submit Service Request</button>
+          </form>
         </div>
         <div style="display: flex; flex-direction: column; gap: 1.5rem;">
           ${mlsContactSidebar(gc)}
         </div>
       </div>
+      `}
     </div>
   </section>`;
 }
