@@ -256,7 +256,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
   const phone = getContent('businessInfo.phone') || getContent('business.phone') || '';
   const initials = businessName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
   // Read weekday hours directly from plain text config fields (fallback to parsed JSON hours)
-  const mondayHours = getContent('hours.monday') || weekdayHours;
+  const mondayHours = getContent('businessInfo.hours') || getContent('hours.monday') || weekdayHours;
 
   const navLinks = pages
     .filter((p: any) => p.is_visible !== false)
@@ -410,11 +410,16 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
           <div class="mt-6 pt-6 border-t border-white/10">
             <h4 class="font-semibold mb-2">Business Hours</h4>
             <div class="text-white/70 text-sm space-y-1">
-              ${['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map(day => {
-                const h = getContent('hours.' + day);
-                if (!h) return '';
-                return `<p>${day.charAt(0).toUpperCase() + day.slice(1)}: ${h}</p>`;
-              }).filter(Boolean).join('')}
+              ${(() => {
+                const wkday = getContent('businessInfo.hours') || getContent('hours.monday') || weekdayHours;
+                const sat = getContent('businessInfo.saturdayHours') || getContent('hours.saturday') || saturdayHours;
+                const sun = getContent('businessInfo.sundayHours') || getContent('hours.sunday') || sundayHours;
+                const rows = [];
+                if (wkday) rows.push(`<p>Mon – Fri: ${wkday}</p>`);
+                if (sat) rows.push(`<p>Saturday: ${sat}</p>`);
+                if (sun) rows.push(`<p>Sunday: ${sun}</p>`);
+                return rows.join('');
+              })()}
             </div>
           </div>
         </div>
@@ -1029,11 +1034,16 @@ function ceContactPage(siteId: string, getContent: Function, weekdayHours: strin
           <div class="border border-gray-200 rounded bg-white p-6">
             <h3 class="font-heading font-semibold text-lg text-gray-900 mb-4">Business Hours</h3>
             <div class="space-y-2 text-sm text-gray-600">
-              ${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(day => {
-                const h = getContent('hours.' + day.toLowerCase());
-                if (!h) return '';
-                return `<div class="flex justify-between"><span>${day}</span><span class="font-medium text-gray-900">${h}</span></div>`;
-              }).filter(Boolean).join('')}
+              ${(() => {
+                const wkday = getContent('businessInfo.hours') || getContent('business.hours') || weekdayHours;
+                const sat = getContent('businessInfo.saturdayHours') || saturdayHours;
+                const sun = getContent('businessInfo.sundayHours') || sundayHours;
+                const rows = [];
+                if (wkday) rows.push(`<div class="flex justify-between"><span>Mon – Fri</span><span class="font-medium text-gray-900">${wkday}</span></div>`);
+                if (sat) rows.push(`<div class="flex justify-between"><span>Saturday</span><span class="font-medium text-gray-900">${sat}</span></div>`);
+                if (sun) rows.push(`<div class="flex justify-between"><span>Sunday</span><span class="font-medium text-gray-900">${sun}</span></div>`);
+                return rows.join('');
+              })()}
             </div>
           </div>
         </div>
