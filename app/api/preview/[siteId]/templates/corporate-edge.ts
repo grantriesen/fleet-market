@@ -189,7 +189,9 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabl
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>${title}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?${googleFontsUrl}&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?${googleFontsUrl}&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?${googleFontsUrl}&display=swap" rel="stylesheet"></noscript>
   <script src="https://cdn.tailwindcss.com" defer></script>
   <script>
   tailwind.config = { theme: { extend: { fontFamily: { heading: ['${fonts.heading}', 'sans-serif'], body: ['${fonts.body}', 'sans-serif'] } } } }
@@ -289,7 +291,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
       <div class="flex items-center justify-between h-16">
         <a href="${baseUrl}index" class="flex items-center gap-3">
           ${logoImage
-            ? `<img src="${logoImage}" alt="${businessName}" style="max-height:48px;max-width:160px;object-fit:contain;">`
+            ? `<img src="${logoImage}" alt="${businessName}" width="160" height="48" style="max-height:48px;max-width:160px;object-fit:contain;">`
             : `<div class="bg-white rounded p-2"><span class="font-heading font-bold text-lg" style="color: ${colors.primary};">${initials}</span></div>`
           }
           <span class="hidden sm:block font-heading font-bold text-white text-lg">${businessName}</span>
@@ -383,7 +385,7 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
         <div>
           <div class="flex items-center gap-3 mb-6">
             ${logoImage
-              ? `<img src="${logoImage}" alt="${businessName}" style="max-height:48px;max-width:160px;object-fit:contain;">`
+              ? `<img src="${logoImage}" alt="${businessName}" width="160" height="48" style="max-height:48px;max-width:160px;object-fit:contain;">`
               : `<div class="bg-white rounded p-2"><span class="font-heading font-bold text-lg" style="color:${primary};">${initials}</span></div>`
             }
             <span class="font-heading font-bold text-xl">${businessName}</span>
@@ -561,7 +563,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
           <div class="group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" onclick="${onclick}">
             <div class="aspect-square relative overflow-hidden bg-gray-100">
               ${hasImage
-                ? `<img src="${imgUrl}" alt="${p.name || p.title}" loading="lazy" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
+                ? `<img src="${imgUrl}" alt="${p.name || p.title}" loading="lazy" width="400" height="300" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
                 : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
                     <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                   </div>`}
@@ -1075,7 +1077,7 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[],
         <div class="ce-product group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" data-category="${p.category || ''}" onclick="${productCardOnclick(p)}">
           <div class="aspect-square relative overflow-hidden bg-gray-100">
             ${hasImage
-              ? `<img src="${imgUrl}" alt="${p.name || p.title}" loading="lazy" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
+              ? `<img src="${imgUrl}" alt="${p.name || p.title}" loading="lazy" width="400" height="300" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
               : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
                   <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                 </div>`}
@@ -1245,7 +1247,7 @@ function ceManufacturersPage(siteId: string, getContent: Function,
         <div class="border border-gray-200 rounded transition-corporate hover:shadow-lg hover:border-blue-200 group bg-white p-6">
           <div class="aspect-[3/2] flex items-center justify-center bg-gray-50 rounded mb-4 p-4">
             ${logoSrc
-              ? `<img src="${logoSrc}" alt="${m.name}" loading="lazy" style="max-height: 60px; max-width: 80%; object-fit: contain;">`
+              ? `<img src="${logoSrc}" alt="${m.name}" loading="lazy" width="120" height="60" style="max-height: 60px; max-width: 80%; object-fit: contain;">`
               : `<span class="font-bold text-gray-400 text-lg">${m.name}</span>`
             }
           </div>
