@@ -298,6 +298,7 @@ function mlsHeader(siteId: string, currentPage: string, pages: any[], getContent
   baseUrl: string = ''
 ) {
   const businessName = getContent('business.name') || 'Modern Lawn Solutions';
+  const logoImage = getContent('businessInfo.logoImage');
   const phone = getContent('business.phone');
 
   const navItems = [
@@ -315,8 +316,10 @@ function mlsHeader(siteId: string, currentPage: string, pages: any[], getContent
   return `
   <header style="position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); border-bottom: 1px solid #e5e7eb;">
     <div class="container-mls" style="display: flex; align-items: center; justify-content: space-between; height: 4rem;">
-      <a href="${baseUrl}home" style="text-decoration: none; font-size: 1.25rem; font-weight: 700; color: ${colors.primary};" class="font-heading">
-        ${businessName}
+      <a href="${baseUrl}home" style="text-decoration: none; display: flex; align-items: center; gap: 0.75rem;">
+        ${logoImage
+          ? `<img src="${logoImage}" alt="${businessName}" style="max-height: 48px; max-width: 160px; object-fit: contain;">`
+          : `<span style="font-size: 1.25rem; font-weight: 700; color: ${colors.primary};" class="font-heading">${businessName}</span>`}
       </a>
       <nav class="mls-desktop-nav" style="display: flex; align-items: center; gap: 1.5rem;">
         ${navItems.map(n => {
@@ -364,7 +367,7 @@ function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => stri
 
   return `
   <footer style="background: #111827; color: #e5e7eb;">
-    <div class="container-mls" style="padding: 3rem 0;">
+    <div class="container-mls" style="padding: 4rem 0 3rem;">
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem;">
         <!-- Business Info -->
         <div>
@@ -396,12 +399,16 @@ function mlsFooter(siteId: string, pages: any[], getContent: (k: string) => stri
         <div>
           <h4 style="font-size: 1rem; font-weight: 600; color: #fff; margin: 0 0 1rem;">Business Hours</h4>
           <div style="font-size: 0.875rem; color: #9ca3af; display: flex; flex-direction: column; gap: 0.25rem;">
-            ${['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map(day => {
-              const h = getContent('hours.' + day);
-              if (!h) return '';
-              const label = day.charAt(0).toUpperCase() + day.slice(1);
-              return '<div style="display: flex; justify-content: space-between; gap: 1rem;"><span>' + label + '</span><span>' + h + '</span></div>';
-            }).filter(Boolean).join('')}
+            ${(() => {
+              const wkday = getContent('businessInfo.hours') || weekday;
+              const sat = getContent('businessInfo.saturdayHours') || saturday;
+              const sun = getContent('businessInfo.sundayHours') || sunday;
+              const rows = [];
+              if (wkday) rows.push('<div>' + wkday + '</div>');
+              if (sat) rows.push('<div>' + sat + '</div>');
+              if (sun) rows.push('<div>' + sun + '</div>');
+              return rows.join('');
+            })()}
           </div>
         </div>
       </div>
