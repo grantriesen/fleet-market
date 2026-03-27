@@ -432,8 +432,8 @@ async function mlsHome(siteId: string, gc: (k: string) => string, products: any[
             <h1 class="font-heading" style="font-size: 3.25rem; font-weight: 700; line-height: 1.1; margin: 0 0 1.5rem; color: #111827;">${gc('hero.heading')}</h1>
             <p style="font-size: 1.125rem; color: #6b7280; margin: 0 0 2rem; line-height: 1.7;">${gc('hero.subheading')}</p>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-              <a href="${baseUrl}${gc('hero.ctaPrimaryLink') || 'inventory'}" class="btn-primary">${gc('hero.ctaPrimary') || 'Browse Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-              <a href="${baseUrl}${gc('hero.ctaSecondaryLink') || 'contact'}" class="btn-outline">${gc('hero.ctaSecondary') || 'Contact Us'}</a>
+              <a href="${gc('hero.ctaButton.destination') === '__custom' ? gc('hero.ctaButton.destination_url') : `${baseUrl}${gc('hero.ctaButton.destination') || gc('hero.ctaPrimaryLink') || 'inventory'}`}" class="btn-primary">${gc('hero.ctaButton.text') || gc('hero.ctaPrimary') || 'Browse Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+              <a href="${gc('hero.ctaSecondaryButton.destination') === '__custom' ? gc('hero.ctaSecondaryButton.destination_url') : `${baseUrl}${gc('hero.ctaSecondaryButton.destination') || gc('hero.ctaSecondaryLink') || 'contact'}`}" class="btn-outline">${gc('hero.ctaSecondaryButton.text') || gc('hero.ctaSecondary') || 'Contact Us'}</a>
             </div>
           </div>
           <div style="border-radius: 0.75rem; overflow: hidden; height: 500px;">
@@ -473,7 +473,7 @@ async function mlsHome(siteId: string, gc: (k: string) => string, products: any[
           </div>`).join('')}
         </div>
         <div style="text-align: center; margin-top: 2.5rem;">
-          <a href="${baseUrl}${gc('featured.ctaLink') || 'inventory'}" class="btn-outline">${gc('featured.ctaText') || 'View All Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+          <a href="${gc('featured.ctaButton.destination') === '__custom' ? gc('featured.ctaButton.destination_url') : `${baseUrl}${gc('featured.ctaButton.destination') || gc('featured.ctaLink') || 'inventory'}`}" class="btn-outline">${gc('featured.ctaButton.text') || gc('featured.ctaText') || 'View All Equipment'} <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
         </div>
       </div>
     </section>`;
