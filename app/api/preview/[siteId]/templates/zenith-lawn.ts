@@ -129,12 +129,13 @@ export async function renderZenithLawnPage(
     zlHeader(siteId, currentPage, pages, getContent, baseUrl) + body + zlFooter(siteId, pages, getContent, hoursLine, baseUrl),
     siteId,
     enabledFeatures,
-    checkoutMode
+    checkoutMode,
+    currentPage
   );
 }
 
 // ── HTML Shell ──
-function zlShell(title: string, fonts: any, colors: any, body: string, siteId: string = '', enabledFeatures?: Set<string>, checkoutMode: string = 'quote_only') {
+function zlShell(title: string, fonts: any, colors: any, body: string, siteId: string = '', enabledFeatures?: Set<string>, checkoutMode: string = 'quote_only', currentPage: string = 'home') {
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const gUrl = Array.from(fontFamilies).map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700&display=swap`).join('&');
   return `<!DOCTYPE html>
@@ -167,6 +168,7 @@ function zlShell(title: string, fonts: any, colors: any, body: string, siteId: s
 <body>${body}<script>
   function fmSubmitForm(form,siteId,formType,extraFn){var btn=form.querySelector('button[type="submit"]');var orig=btn?btn.innerHTML:'';if(btn){btn.disabled=true;btn.innerHTML='Submitting...';}var nameEl=form.querySelector('input[type="text"]');var emailEl=form.querySelector('input[type="email"]');var phoneEl=form.querySelector('input[type="tel"]');var msgEl=form.querySelector('textarea');var data={site_id:siteId,form_type:formType,name:nameEl?nameEl.value:null,email:emailEl?emailEl.value:null,phone:phoneEl?phoneEl.value:null,message:msgEl?msgEl.value:null,extra_data:extraFn?extraFn(form):null};fetch('/api/submit-form',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json();}).then(function(res){if(res.success){var suc=form.parentElement?form.parentElement.querySelector('[data-fm-success]'):null;if(suc){form.style.display='none';suc.style.display='block';}else{form.reset();if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';}}}else{if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');}}).catch(function(){if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');});}
 </script>${enabledFeatures?.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
+  ${sharedPreviewScript(siteId, currentPage)}
   ${injectCartSystem(siteId, checkoutMode, colors.accent)}
 </body>
 </html>`;
@@ -238,7 +240,7 @@ function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine:
             ${(getContent('businessInfo.address') || getContent('business.address')) ? `<p>${getContent('businessInfo.address') || getContent('business.address')}</p>` : ''}
             ${(getContent('businessInfo.phone') || getContent('business.phone')) ? `<p>${getContent('businessInfo.phone') || getContent('business.phone')}</p>` : ''}
             ${(getContent('businessInfo.email') || getContent('business.email')) ? `<p>${getContent('businessInfo.email') || getContent('business.email')}</p>` : ''}
-            ${getContent('businessInfo.hours') || getContent('hours.hours') ? `<p>${getContent('businessInfo.hours') || getContent('hours.hours')}</p>` : (hoursLine && hoursLine !== 'Mon–Fri: Closed | Sat: Closed | Sun: Closed' ? `<p>${hoursLine}</p>` : '')}
+            ${(getContent('businessInfo.hours') || getContent('businessInfo.saturdayHours')) ? `<div style="display:flex;flex-direction:column;gap:0.25rem;">` + (getContent('businessInfo.hours') ? `<p>${getContent('businessInfo.hours')}</p>` : '') + (getContent('businessInfo.saturdayHours') ? `<p>${getContent('businessInfo.saturdayHours')}</p>` : '') + (getContent('businessInfo.sundayHours') ? `<p>${getContent('businessInfo.sundayHours')}</p>` : '') + `</div>` : (getContent('hours.hours') ? `<p>${getContent('hours.hours')}</p>` : '')}
           </div>
         </div>
       </div>
@@ -350,7 +352,7 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
       html += `
       <section data-section="cta" class="section-spacing border-t border-neutral-200">
         <div class="container-narrow">
-          <div style="background-color: ${colors.accent}; border-radius: 0.75rem; padding: 5% 10%; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, ${colors.accent}, ${colors.primary}); border-radius: 0.75rem; padding: 5% 10%; margin: 0 auto;">
             ${ctaHeading ? `<h2 class="text-3xl md:text-4xl font-light tracking-tight text-white mb-6">${ctaHeading}</h2>` : ''}
             ${ctaSubheading ? `<p class="text-lg mb-10" style="color: rgba(255,255,255,0.85);">${ctaSubheading}</p>` : ''}
             <a href="${ctaBtnDest}"
@@ -735,4 +737,4 @@ function zlPageHero(getContent: Function, pageKey: string, defaultHeading: strin
 }
 
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
-import { injectCartSystem } from './shared';
+import { injectCartSystem, sharedPreviewScript } from './shared';
