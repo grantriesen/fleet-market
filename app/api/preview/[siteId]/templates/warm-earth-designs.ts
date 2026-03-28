@@ -797,6 +797,15 @@ function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any, 
     { name: 'Cub Cadet', description: 'Strong. Reliable. Built to serve. Quality equipment for every property.' },
     { name: 'Honda', description: 'The Power of Dreams. Engines known for reliability and performance.' },
   ];
+
+  // CTA buttonFields
+  const btn1Dest = gc('manufacturersPage.button1.destination');
+  const btn1Url = btn1Dest === '__custom' ? gc('manufacturersPage.button1.destination_url') : `${baseUrl}${btn1Dest || gc('manufacturersPage.ctaPrimaryLink') || 'inventory'}`;
+  const btn1Text = gc('manufacturersPage.button1.text') || gc('manufacturersPage.ctaPrimaryText') || 'View Inventory';
+  const btn2Dest = gc('manufacturersPage.button2.destination');
+  const btn2Url = btn2Dest === '__custom' ? gc('manufacturersPage.button2.destination_url') : `${baseUrl}${btn2Dest || gc('manufacturersPage.ctaSecondaryLink') || 'contact'}`;
+  const btn2Text = gc('manufacturersPage.button2.text') || gc('manufacturersPage.ctaSecondaryText') || 'Visit Showroom';
+
   return `
   ${(() => {
     const mImg = gc('manufacturersPage.heroImage');
@@ -810,7 +819,6 @@ function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any, 
     <div class="cw">
       ${gc('manufacturersPage.contentHeading') ? `<h2 class="font-serif" style="font-size:1.75rem;font-weight:700;margin:0 0 1rem;color:${C.fg};">${gc('manufacturersPage.contentHeading')}</h2>` : ''}
       ${gc('manufacturersPage.contentText') ? `<p style="color:${C.mutedFg};line-height:1.8;margin:0 0 2rem;">${gc('manufacturersPage.contentText')}</p>` : ''}
-      ${gc('manufacturersPage.introText') ? `<p style="text-align:center;font-size:1.125rem;color:${C.mutedFg};max-width:700px;margin:0 auto 3rem;">${gc('manufacturersPage.introText')}</p>` : ''}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:2rem;">
         ${brands.map(b => `
         <div class="card-we" style="padding:2rem;text-align:center;">
@@ -838,8 +846,8 @@ function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any, 
       ${gc('manufacturersPage.ctaHeading') ? `<h2 class="font-serif" style="font-size:2rem;font-weight:700;margin:0 0 1rem;">${gc('manufacturersPage.ctaHeading')}</h2>` : ''}
       ${gc('manufacturersPage.ctaText') ? `<p style="font-size:1.125rem;opacity:0.85;margin:0 0 2rem;">${gc('manufacturersPage.ctaText')}</p>` : ''}
       <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
-        ${gc('manufacturersPage.ctaPrimaryText') ? `<a href="${baseUrl}${gc('manufacturersPage.ctaPrimaryLink') || 'inventory'}" class="btn-accent">${gc('manufacturersPage.ctaPrimaryText')}</a>` : ''}
-        ${gc('manufacturersPage.ctaSecondaryText') ? `<a href="${baseUrl}${gc('manufacturersPage.ctaSecondaryLink') || 'contact'}" class="btn-outline-we" style="color:${C.bg};border-color:${C.bg};">${gc('manufacturersPage.ctaSecondaryText')}</a>` : ''}
+        ${btn1Text ? `<a href="${btn1Url}" class="btn-accent">${btn1Text}</a>` : ''}
+        ${btn2Text ? `<a href="${btn2Url}" class="btn-outline-we" style="color:${C.bg};border-color:${C.bg};">${btn2Text}</a>` : ''}
       </div>
     </div>
   </section>` : ''}`;
