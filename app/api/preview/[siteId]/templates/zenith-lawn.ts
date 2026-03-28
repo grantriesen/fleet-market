@@ -115,7 +115,7 @@ export async function renderZenithLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = zlHome(siteId, getContent, products, vis, colors, baseUrl, manufacturers || []); break;
-    case 'service': body = zlService(siteId, getContent, baseUrl, colors); break;
+    case 'service': body = zlService(siteId, getContent, baseUrl, colors, enabledFeatures.has('service_scheduling')); break;
     case 'contact': body = zlContact(siteId, getContent, hoursLine, baseUrl); break;
     case 'inventory': body = zlInventory(siteId, getContent, products, baseUrl); break;
     case 'rentals': body = await zlRentals(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
@@ -408,15 +408,13 @@ function zlProductCard(siteId: string, p: any, baseUrl: string = '') {
 // ── Service ──
 function zlService(siteId: string, getContent: Function,
   baseUrl: string = '',
-  colors: any = {}
+  colors: any = {},
+  hasScheduler: boolean = false
 ) {
-  const formHeading = getContent('servicePage.formHeading') || 'Request Service';
-  // Build service cards from config fields
   const contentHeading = getContent('servicePage.contentHeading');
   const contentText = getContent('servicePage.contentText');
   const ctaHeading = getContent('servicePage.ctaHeading');
-  const ctaBtnText = getContent('servicePage.ctaButton.text') || getContent('servicePage.ctaButtonText') || 'Get In Touch';
-  const ctaBtnDest = getContent('servicePage.ctaButton.destination') === '__custom' ? getContent('servicePage.ctaButton.destination_url') : `${baseUrl}${getContent('servicePage.ctaButton.destination') || 'contact'}`;
+  const ctaBtnText = getContent('servicePage.ctaButton.text') || getContent('servicePage.ctaButtonText') || 'Schedule Service';
 
   // Build service cards from config fields
   const serviceCards = [1, 2, 3].map(i => {
@@ -436,20 +434,127 @@ function zlService(siteId: string, getContent: Function,
 
   const defaultServices = ['Routine maintenance & tune-ups','Engine diagnostics & repair','Blade sharpening & replacement','Electrical system repair','Seasonal winterization','Warranty service for authorized brands'];
 
+  // CTA section — button snap scrolls to form
   const ctaSection = ctaHeading ? `
   <section data-section="serviceCta" class="section-spacing border-t border-neutral-200">
     <div class="container-narrow">
       <div style="background: linear-gradient(135deg, ${colors.accent}, ${colors.primary}); border-radius: 0.75rem; padding: 5% 10%;">
         <h2 class="text-3xl md:text-4xl font-light tracking-tight text-white mb-6">${ctaHeading}</h2>
-        <a href="${ctaBtnDest}"
+        <button onclick="document.getElementById('zl-service-form').scrollIntoView({behavior:'smooth'})"
           class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium transition-slow hover:opacity-90"
           style="background-color: #fff; color: ${colors.accent};">
           ${ctaBtnText}
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-        </a>
+        </button>
       </div>
     </div>
   </section>` : '';
+
+  // Premium scheduler (GVI pattern) or simple form
+  const formSection = hasScheduler ? `
+  <section id="zl-service-form" data-section="serviceForm" class="section-spacing border-t border-neutral-200">
+    <div class="container-narrow">
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-2xl font-light mb-2">Schedule Service Online</h2>
+        <p class="text-neutral-500 mb-8">Pick a service, choose your time, and we'll take care of the rest.</p>
+        <div id="zl-sf-booking-form" class="border border-neutral-200 rounded p-8">
+          <div id="zl-sf-step-1">
+            <p class="text-xs uppercase tracking-widest mb-4" style="color: ${colors.accent};">1. Select a Service</p>
+            <div id="zl-sf-service-list" class="flex flex-col gap-2">
+              <div class="text-center py-6 text-neutral-400">Loading services...</div>
+            </div>
+          </div>
+          <div id="zl-sf-step-2" style="display:none;" class="mt-6 pt-6 border-t border-neutral-200">
+            <p class="text-xs uppercase tracking-widest mb-4" style="color: ${colors.accent};">2. Choose Date & Time</p>
+            <div class="grid md:grid-cols-2 gap-4">
+              <div><label class="text-xs uppercase tracking-wider text-neutral-400 mb-2 block">Preferred Date *</label><input type="date" id="zl-sf-date" required class="w-full border border-neutral-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-neutral-900"></div>
+              <div><label class="text-xs uppercase tracking-wider text-neutral-400 mb-2 block">Preferred Time *</label><select id="zl-sf-time" required class="w-full border border-neutral-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-neutral-900"><option value="">Select time</option></select></div>
+            </div>
+          </div>
+          <div id="zl-sf-step-3" style="display:none;" class="mt-6 pt-6 border-t border-neutral-200">
+            <p class="text-xs uppercase tracking-widest mb-4" style="color: ${colors.accent};">3. Your Information</p>
+            <div class="space-y-4">
+              <div class="grid md:grid-cols-2 gap-4">
+                <div><label class="text-xs uppercase tracking-wider text-neutral-400 mb-2 block">Name *</label><input type="text" id="zl-sf-name" required class="w-full border border-neutral-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-neutral-900"></div>
+                <div><label class="text-xs uppercase tracking-wider text-neutral-400 mb-2 block">Phone *</label><input type="tel" id="zl-sf-phone" required placeholder="(555) 123-4567" class="w-full border border-neutral-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-neutral-900"></div>
+              </div>
+              <div><label class="text-xs uppercase tracking-wider text-neutral-400 mb-2 block">Email *</label><input type="email" id="zl-sf-email" required class="w-full border border-neutral-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-neutral-900"></div>
+              <div><label class="text-xs uppercase tracking-wider text-neutral-400 mb-2 block">Equipment Details</label><input type="text" id="zl-sf-equipment" placeholder='e.g., John Deere X350' class="w-full border border-neutral-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-neutral-900"></div>
+              <div><label class="text-xs uppercase tracking-wider text-neutral-400 mb-2 block">Notes</label><textarea id="zl-sf-notes" rows="3" placeholder="Describe the issue..." class="w-full border border-neutral-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-neutral-900 resize-y"></textarea></div>
+              <button id="zl-sf-submit" class="w-full px-6 py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90" style="background-color: ${colors.accent};">Schedule Service</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <script>
+    (function() {
+      var siteId = '${siteId}';
+      var selectedService = null;
+      fetch('/api/service/types/' + siteId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var list = document.getElementById('zl-sf-service-list');
+          if (!list) return;
+          var types = data.types || data.serviceTypes || data || [];
+          if (!types.length) { list.innerHTML = '<div class="text-center py-4 text-neutral-400">No services configured yet. Please contact us directly.</div>'; return; }
+          list.innerHTML = '';
+          types.forEach(function(st) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.style.cssText = 'text-align:left;padding:0.75rem 1rem;border:1px solid #e5e5e5;border-radius:0.375rem;background:#fff;cursor:pointer;width:100%;transition:border-color 0.3s;';
+            btn.innerHTML = '<div style="font-size:0.9375rem;font-weight:500;color:#171717;">' + st.name + '</div>' + (st.description ? '<div style="font-size:0.8125rem;color:#737373;margin-top:0.25rem;">' + st.description + (st.duration_minutes ? ' · ' + st.duration_minutes + ' min' : '') + '</div>' : '');
+            btn.addEventListener('mouseover', function() { if (!this.classList.contains('selected')) this.style.borderColor = '${colors.accent}'; });
+            btn.addEventListener('mouseout', function() { if (!this.classList.contains('selected')) this.style.borderColor = '#e5e5e5'; });
+            btn.addEventListener('click', function() {
+              document.querySelectorAll('#zl-sf-service-list button').forEach(function(b) { b.style.borderColor='#e5e5e5'; b.style.background='#fff'; b.classList.remove('selected'); });
+              this.style.borderColor = '${colors.accent}'; this.style.background = '#fafafa'; this.classList.add('selected');
+              selectedService = st;
+              document.getElementById('zl-sf-step-2').style.display = '';
+              var sel = document.getElementById('zl-sf-time');
+              sel.innerHTML = '<option value="">Select time</option>';
+              ['8:00 AM','8:30 AM','9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM','3:00 PM','3:30 PM','4:00 PM','4:30 PM'].forEach(function(t) { var o=document.createElement('option'); o.value=t; o.textContent=t; sel.appendChild(o); });
+            });
+            list.appendChild(btn);
+          });
+        })
+        .catch(function() { var l=document.getElementById('zl-sf-service-list'); if(l) l.innerHTML='<div class="text-center py-4 text-neutral-400">Unable to load services. Please call us directly.</div>'; });
+      var dateInput = document.getElementById('zl-sf-date');
+      var timeInput = document.getElementById('zl-sf-time');
+      if (dateInput) { dateInput.min = new Date().toISOString().split('T')[0]; dateInput.addEventListener('change', checkStep3); }
+      if (timeInput) timeInput.addEventListener('change', checkStep3);
+      function checkStep3() { if (dateInput.value && timeInput.value) document.getElementById('zl-sf-step-3').style.display = ''; }
+      var submitBtn = document.getElementById('zl-sf-submit');
+      if (submitBtn) {
+        submitBtn.addEventListener('click', function() {
+          var name=document.getElementById('zl-sf-name').value, phone=document.getElementById('zl-sf-phone').value, email=document.getElementById('zl-sf-email').value;
+          if (!name||!phone||!email||!selectedService) { alert('Please fill in all required fields.'); return; }
+          submitBtn.textContent='Scheduling...'; submitBtn.disabled=true;
+          fetch('/api/service/book/' + siteId, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ siteId:siteId, serviceTypeId:selectedService.id, serviceTypeName:selectedService.name, preferredDate:dateInput.value, preferredTime:timeInput.value, customerName:name, customerPhone:phone, customerEmail:email, equipmentType:document.getElementById('zl-sf-equipment').value, customerNotes:document.getElementById('zl-sf-notes').value }) })
+          .then(function(r){return r.json();}).then(function(res){
+            if(res.error){alert('Error: '+res.error);submitBtn.textContent='Schedule Service';submitBtn.disabled=false;}
+            else{document.getElementById('zl-sf-booking-form').innerHTML='<div style="text-align:center;padding:3rem 0;"><div style="font-size:3rem;margin-bottom:1rem;">✓</div><h3 style="font-size:1.5rem;font-weight:300;margin:0 0 0.5rem;">Service Scheduled!</h3><p style="color:#737373;">We will confirm your appointment within 1 business day.</p></div>';}
+          }).catch(function(){alert('Something went wrong.');submitBtn.textContent='Schedule Service';submitBtn.disabled=false;});
+        });
+      }
+    })();
+  <\/script>` : `
+  <section id="zl-service-form" data-section="serviceForm" class="section-spacing border-t border-neutral-200">
+    <div class="container-narrow">
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-2xl font-light mb-8">Request Service</h2>
+        ${zlForm(siteId, [
+          { label: 'First Name', type: 'text', half: true },
+          { label: 'Last Name', type: 'text', half: true },
+          { label: 'Email', type: 'email' },
+          { label: 'Phone', type: 'tel' },
+          { label: 'Equipment Type & Model', type: 'text', placeholder: 'e.g., John Deere X350' },
+          { label: 'Issue Description', type: 'textarea', placeholder: 'Please describe the issue or service needed...' },
+        ], 'Submit Request')}
+      </div>
+    </div>
+  </section>`;
 
   return zlPageHero(getContent, 'servicePage', 'Service & Repair', getContent('servicePage.subheading') || '') + `
   <section data-section="serviceContent" class="section-spacing">
@@ -459,36 +564,16 @@ function zlService(siteId: string, getContent: Function,
         ${contentHeading ? `<h2 class="text-2xl font-light mb-4">${contentHeading}</h2>` : ''}
         ${contentText ? `<p class="text-neutral-500">${contentText}</p>` : ''}
       </div>` : ''}
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
-        <div>
-          ${serviceCards.length > 0
-            ? `<div class="grid grid-cols-1 sm:grid-cols-${Math.min(serviceCards.length, 3)} gap-6 mb-8">${serviceCards.join('')}</div>`
-            : `<div class="space-y-8">
-                <div>
-                  <h3 class="text-sm font-medium mb-3">Services Offered</h3>
-                  <ul class="space-y-2 text-sm text-neutral-500">${defaultServices.map(s => `<li>• ${s}</li>`).join('')}</ul>
-                </div>
-                <div>
-                  <h3 class="text-sm font-medium mb-3">Turnaround Time</h3>
-                  <p class="text-sm text-neutral-500">Most routine services completed within 3–5 business days. Priority service available for an additional fee.</p>
-                </div>
-              </div>`
-          }
-        </div>
-        <div>
-          <h2 class="text-xl font-light mb-8">${formHeading}</h2>
-          ${zlForm(siteId, [
-            { label: 'First Name', type: 'text', half: true },
-            { label: 'Last Name', type: 'text', half: true },
-            { label: 'Email', type: 'email' },
-            { label: 'Phone', type: 'tel' },
-            { label: 'Equipment Type & Model', type: 'text', placeholder: 'e.g., John Deere X350' },
-            { label: 'Issue Description', type: 'textarea', placeholder: 'Please describe the issue or service needed...' },
-          ], 'Submit Request')}
-        </div>
-      </div>
+      ${serviceCards.length > 0
+        ? `<div class="grid grid-cols-1 sm:grid-cols-${Math.min(serviceCards.length, 3)} gap-6">${serviceCards.join('')}</div>`
+        : `<div class="space-y-4">
+            <h3 class="text-sm font-medium">Services Offered</h3>
+            <ul class="space-y-2 text-sm text-neutral-500">${defaultServices.map(s => `<li>• ${s}</li>`).join('')}</ul>
+          </div>`
+      }
     </div>
-  </section>` + ctaSection;
+  </section>` + ctaSection + formSection;
+}
 }
 
 // ── Contact ──
