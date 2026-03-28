@@ -163,16 +163,16 @@ function weShell(title: string, C: any, siteId: string, page: string, body: stri
     * { margin: 0; box-sizing: border-box; }
     body { font-family: 'Lato', sans-serif; background: ${C.bg}; color: ${C.fg}; }
     .font-serif { font-family: 'Merriweather', Georgia, serif; }
-    .cw { max-width: 80rem; margin: 0 auto; padding-left: 1rem; padding-right: 1rem; }
-    @media(min-width:640px){ .cw { padding-left: 1.5rem; padding-right: 1.5rem; } }
-    @media(min-width:1024px){ .cw { padding-left: 2rem; padding-right: 2rem; } }
+    .cw { max-width: 80rem; margin: 0 auto; padding-left: 1.5rem; padding-right: 1.5rem; }
+    @media(min-width:640px){ .cw { padding-left: 2.5rem; padding-right: 2.5rem; } }
+    @media(min-width:1024px){ .cw { padding-left: 4rem; padding-right: 4rem; } }
     .card-we { background: ${C.card}; border: 2px solid #d4b896; border-radius: 1rem; overflow: hidden; transition: all 0.3s; }
     .card-we:hover { box-shadow: 0 10px 25px -5px rgba(217,119,6,0.2), 0 4px 10px -4px rgba(92,45,14,0.15); border-color: ${C.accent}80; }
     .btn-accent { display: inline-flex; align-items: center; gap: 0.5rem; background: ${C.accent}; color: ${C.bg}; padding: 0.875rem 2rem; border-radius: 9999px; text-decoration: none; font-weight: 600; border: none; cursor: pointer; transition: opacity 0.2s; font-size: 1rem; }
     .btn-accent:hover { opacity: 0.9; }
     .btn-outline-we { display: inline-flex; align-items: center; gap: 0.5rem; background: transparent; color: ${C.primary}; padding: 0.875rem 2rem; border-radius: 9999px; text-decoration: none; font-weight: 600; border: 2px solid ${C.primary}; cursor: pointer; transition: all 0.2s; }
     .btn-outline-we:hover { background: ${C.primary}; color: ${C.bg}; }
-    .page-hero-we { background: ${C.primary}; color: ${C.bg}; padding: 4rem 0; text-align: center; }
+    .page-hero-we { background: ${C.primary}; color: ${C.bg}; padding: 6rem 0; text-align: center; }
     .page-hero-we h1 { font-family: 'Merriweather', serif; font-size: 2.5rem; font-weight: 700; margin-bottom: 0.75rem; }
     .page-hero-we p { font-size: 1.125rem; opacity: 0.85; max-width: 600px; margin: 0 auto; }
     .form-we { width: 100%; padding: 0.75rem 1rem; border: 2px solid #d4b896; border-radius: 0.75rem; font-size: 0.9375rem; font-family: 'Lato', sans-serif; background: #fff; color: ${C.fg}; transition: border-color 0.2s; }
@@ -531,7 +531,7 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
   ${(() => {
     const iImg = gc('inventoryPage.heroImage');
     return iImg
-      ? `<section data-section="inventoryHero" style="background-image:url('${iImg}');background-size:cover;background-position:center;padding:4rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(92,45,14,0.7);"></div><div class="cw" style="position:relative;z-index:1;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:#fef3c7;">${gc('inventoryPage.heading') || gc('inventory.heading')}</h1><p style="font-size:1.125rem;opacity:0.9;max-width:600px;margin:0 auto;color:#fef3c7;">${gc('inventoryPage.subheading') || gc('inventory.description')}</p></div></section>`
+      ? `<section data-section="inventoryHero" style="background-image:url('${iImg}');background-size:cover;background-position:center;padding:6rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(92,45,14,0.7);"></div><div class="cw" style="position:relative;z-index:1;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:#fef3c7;">${gc('inventoryPage.heading') || gc('inventory.heading')}</h1><p style="font-size:1.125rem;opacity:0.9;max-width:600px;margin:0 auto;color:#fef3c7;">${gc('inventoryPage.subheading') || gc('inventory.description')}</p></div></section>`
       : `<section data-section="inventoryHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('inventoryPage.heading') || gc('inventory.heading')}</h1><p>${gc('inventoryPage.subheading') || gc('inventory.description')}</p></div></section>`;
   })()}
   <section data-section="inventoryGrid" style="padding:2.5rem 0 5rem;">
@@ -596,7 +596,7 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasSch
   ${(() => {
     const svcImg = gc('servicePage.heroImage');
     return svcImg
-      ? `<section data-section="serviceHero" style="background-image:url('${svcImg}');background-size:cover;background-position:center;padding:4rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(92,45,14,0.7);"></div><div class="cw" style="position:relative;z-index:1;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:#fef3c7;">${gc('servicePage.heading') || gc('services.heading')}</h1><p style="font-size:1.125rem;opacity:0.9;max-width:600px;margin:0 auto;color:#fef3c7;">${gc('servicePage.subheading') || gc('services.description')}</p></div></section>`
+      ? `<section data-section="serviceHero" style="background-image:url('${svcImg}');background-size:cover;background-position:center;padding:6rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(92,45,14,0.7);"></div><div class="cw" style="position:relative;z-index:1;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:#fef3c7;">${gc('servicePage.heading') || gc('services.heading')}</h1><p style="font-size:1.125rem;opacity:0.9;max-width:600px;margin:0 auto;color:#fef3c7;">${gc('servicePage.subheading') || gc('services.description')}</p></div></section>`
       : `<section data-section="serviceHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('servicePage.heading') || gc('services.heading')}</h1><p>${gc('servicePage.subheading') || gc('services.description')}</p></div></section>`;
   })()}
   <section data-section="serviceTypes" style="padding:6rem 0;">
@@ -652,7 +652,7 @@ function weContactPage(siteId: string, gc: (k: string) => string, C: any, wk: st
   ${(() => {
     const cImg = gc('contactPage.heroImage');
     return cImg
-      ? `<section data-section="contactHero" style="background-image:url('${cImg}');background-size:cover;background-position:center;padding:4rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(92,45,14,0.7);"></div><div class="cw" style="position:relative;z-index:1;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:#fef3c7;">${gc('contactPage.heading') || gc('contact.heading')}</h1><p style="font-size:1.125rem;opacity:0.9;max-width:600px;margin:0 auto;color:#fef3c7;">${gc('contactPage.subheading') || gc('contact.description')}</p></div></section>`
+      ? `<section data-section="contactHero" style="background-image:url('${cImg}');background-size:cover;background-position:center;padding:6rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(92,45,14,0.7);"></div><div class="cw" style="position:relative;z-index:1;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:#fef3c7;">${gc('contactPage.heading') || gc('contact.heading')}</h1><p style="font-size:1.125rem;opacity:0.9;max-width:600px;margin:0 auto;color:#fef3c7;">${gc('contactPage.subheading') || gc('contact.description')}</p></div></section>`
       : `<section data-section="contactHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('contactPage.heading') || gc('contact.heading')}</h1><p>${gc('contactPage.subheading') || gc('contact.description')}</p></div></section>`;
   })()}
   <section data-section="contactForm" style="padding:6rem 0;">
@@ -762,8 +762,8 @@ async function weRentalsPage(
 
   const rImg = gc('rentalsPage.heroImage');
   const heroSection = rImg
-    ? `<section data-section="rentalsHero" style="background-image:url('${rImg}');background-size:cover;background-position:center;padding:4rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(6,95,70,0.75);"></div><div class="cw" style="position:relative;z-index:1;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;color:white;margin:0 0 0.75rem;">${heading}</h1><p style="font-size:1.125rem;color:rgba(255,255,255,0.9);">${subheading}</p></div></section>`
-    : `<section data-section="rentalsHero" style="background:${C.secondary};color:${C.bg};padding:4rem 0;text-align:center;"><div class="cw"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;">${heading}</h1><p style="font-size:1.125rem;opacity:0.85;">${subheading}</p></div></section>`;
+    ? `<section data-section="rentalsHero" style="background-image:url('${rImg}');background-size:cover;background-position:center;padding:6rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(6,95,70,0.75);"></div><div class="cw" style="position:relative;z-index:1;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;color:white;margin:0 0 0.75rem;">${heading}</h1><p style="font-size:1.125rem;color:rgba(255,255,255,0.9);">${subheading}</p></div></section>`
+    : `<section data-section="rentalsHero" style="background:${C.secondary};color:${C.bg};padding:6rem 0;text-align:center;"><div class="cw"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;">${heading}</h1><p style="font-size:1.125rem;opacity:0.85;">${subheading}</p></div></section>`;
 
   const infoSection = `
   <section style="padding:3rem 0;background:${C.muted};">
@@ -810,8 +810,8 @@ function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any, 
   ${(() => {
     const mImg = gc('manufacturersPage.heroImage');
     return mImg
-      ? `<section data-section="mfgHero" style="background-image:url('${mImg}');background-size:cover;background-position:center;padding:4rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(6,95,70,0.75);"></div><div class="cw" style="position:relative;z-index:1;color:#fef3c7;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:#fef3c7;">${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading')}</h1><p style="font-size:1.125rem;opacity:0.9;color:#fef3c7;">${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription')}</p></div></section>`
-      : `<section data-section="mfgHero" style="background:${C.secondary};color:${C.bg};padding:4rem 0;text-align:center;" class="texture-wood"><div class="cw"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;">${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading')}</h1><p style="font-size:1.125rem;opacity:0.85;">${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription')}</p></div></section>`;
+      ? `<section data-section="mfgHero" style="background-image:url('${mImg}');background-size:cover;background-position:center;padding:6rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(6,95,70,0.75);"></div><div class="cw" style="position:relative;z-index:1;color:#fef3c7;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:#fef3c7;">${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading')}</h1><p style="font-size:1.125rem;opacity:0.9;color:#fef3c7;">${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription')}</p></div></section>`
+      : `<section data-section="mfgHero" style="background:${C.secondary};color:${C.bg};padding:6rem 0;text-align:center;" class="texture-wood"><div class="cw"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;">${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading')}</h1><p style="font-size:1.125rem;opacity:0.85;">${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription')}</p></div></section>`;
   })()}
   <section data-section="manufacturersList" style="padding:6rem 0;">
     <div class="cw">
