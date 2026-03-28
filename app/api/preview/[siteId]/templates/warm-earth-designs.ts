@@ -750,12 +750,9 @@ async function weRentalsPage(
           </div>
         </div>`).join('')}
           </div>
+          ${gc('rentalsPage.pricingNote') ? `<p style="text-align:center;color:${C.mutedFg};font-size:0.9375rem;margin-top:2rem;">${gc('rentalsPage.pricingNote')}</p>` : ''}
         </div>
       </section>
-      
-
-  <!-- Rental Booking Modal (fm) -->
-  <script src="/fm-rental-datepicker.js"></script>
 `;
     }
   }
@@ -770,9 +767,9 @@ async function weRentalsPage(
     <div class="cw">
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;text-align:center;">
         ${[
-          { icon: '📅', title: gc('rentalsPage.info1Title') || 'Flexible Terms', desc: gc('rentalsPage.info1Description') || 'Daily, weekly, or monthly rentals to fit your project' },
-          { icon: '⏱', title: gc('rentalsPage.info2Title') || 'Try Before You Buy', desc: gc('rentalsPage.info2Description') || 'Rental fees applied toward purchase of new equipment' },
-          { icon: '🌿', title: gc('rentalsPage.info3Title') || 'Well-Maintained', desc: gc('rentalsPage.info3Description') || 'All equipment serviced and inspected before each use' },
+          { icon: gc('rentalsPage.info1.icon') || '📅', title: gc('rentalsPage.info1.text') || 'Flexible Terms', desc: gc('rentalsPage.info1.description') || 'Daily, weekly, or monthly rentals to fit your project' },
+          { icon: gc('rentalsPage.info2.icon') || '⏱', title: gc('rentalsPage.info2.text') || 'Try Before You Buy', desc: gc('rentalsPage.info2.description') || 'Rental fees applied toward purchase of new equipment' },
+          { icon: gc('rentalsPage.info3.icon') || '🌿', title: gc('rentalsPage.info3.text') || 'Well-Maintained', desc: gc('rentalsPage.info3.description') || 'All equipment serviced and inspected before each use' },
         ].map(v => `<div><div style="background:${C.accent};border-radius:9999px;width:4rem;height:4rem;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;font-size:1.75rem;">${v.icon}</div><h3 class="font-serif" style="font-size:1.125rem;margin:0 0 0.5rem;font-weight:600;">${v.title}</h3><p style="color:${C.mutedFg};font-size:0.9375rem;margin:0;">${v.desc}</p></div>`).join('')}
       </div>
     </div>
@@ -780,8 +777,7 @@ async function weRentalsPage(
 
   const fallback = !inventorySection ? `
   <section style="padding:4rem 0;text-align:center;">
-    <div class="cw"><p style="font-size:1.125rem;color:${C.mutedFg};margin-bottom:1.5rem;">Contact us for current rental availability.</p>
-    <a href="${baseUrl}contact" class="btn-accent">${gc('rentalsPage.ctaButtonText') || 'Reserve Now'}</a></div>
+    <div class="cw"><p style="font-size:1.125rem;color:${C.mutedFg};">Contact us for current rental availability.</p></div>
   </section>` : '';
 
   return heroSection + infoSection + (inventorySection || fallback);
