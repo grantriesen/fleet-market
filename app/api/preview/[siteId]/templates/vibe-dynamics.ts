@@ -993,11 +993,11 @@ async function vdRentalsPage(
     </div>
   </section>`;
 
-  const rentalContentHtml = (getContent('rentalsPage.pageContentHeading') || getContent('rentalsPage.pageContentText') || getContent('rentalsPage.pricingNote')) ? `
+  const rentalContentHtml = (getContent('rentalsPage.contentHeading') || getContent('rentalsPage.contentText') || getContent('rentalsPage.pricingNote')) ? `
   <section data-section="rentalContent" class="py-10 bg-gray-50">
     <div class="max-w-3xl mx-auto px-6 text-center">
-      ${getContent('rentalsPage.pageContentHeading') ? `<h2 class="text-3xl font-heading font-black text-gray-900 mb-3">${getContent('rentalsPage.pageContentHeading')}</h2>` : ''}
-      ${getContent('rentalsPage.pageContentText') ? `<p class="text-gray-600 text-lg leading-relaxed mb-4">${getContent('rentalsPage.pageContentText')}</p>` : ''}
+      ${getContent('rentalsPage.contentHeading') ? `<h2 class="text-3xl font-heading font-black text-gray-900 mb-3">${getContent('rentalsPage.contentHeading')}</h2>` : ''}
+      ${getContent('rentalsPage.contentText') ? `<p class="text-gray-600 text-lg leading-relaxed mb-4">${getContent('rentalsPage.contentText')}</p>` : ''}
       ${getContent('rentalsPage.pricingNote') ? `<p class="text-sm text-gray-700 bg-white border-2 border-gray-200 rounded-xl px-5 py-3 inline-block">${getContent('rentalsPage.pricingNote')}</p>` : ''}
     </div>
   </section>` : '';
@@ -1010,5 +1010,20 @@ async function vdRentalsPage(
     </div>
   </section>` : '';
 
-  return heroHtml + (inventorySection || (infoHtml + rentalContentHtml + ctaHtml));
+  const contentAboveHtml = (getContent('rentalsPage.contentHeading') || getContent('rentalsPage.contentText')) ? `
+  <section data-section="rentalContent" class="py-10 bg-gray-50">
+    <div class="max-w-3xl mx-auto px-6 text-center">
+      ${getContent('rentalsPage.contentHeading') ? `<h2 class="text-3xl font-heading font-black text-gray-900 mb-3">${getContent('rentalsPage.contentHeading')}</h2>` : ''}
+      ${getContent('rentalsPage.contentText') ? `<p class="text-gray-600 text-lg leading-relaxed">${getContent('rentalsPage.contentText')}</p>` : ''}
+    </div>
+  </section>` : '';
+
+  const pricingNoteHtml = getContent('rentalsPage.pricingNote') ? `
+  <section data-section="rentalPricingNote" class="py-6 bg-white">
+    <div class="max-w-3xl mx-auto px-6 text-center">
+      <p class="text-sm text-gray-700 bg-gray-50 border-2 border-gray-200 rounded-xl px-5 py-3 inline-block">${getContent('rentalsPage.pricingNote')}</p>
+    </div>
+  </section>` : '';
+
+  return heroHtml + contentAboveHtml + (inventorySection || infoHtml) + pricingNoteHtml + ctaHtml;
 }
