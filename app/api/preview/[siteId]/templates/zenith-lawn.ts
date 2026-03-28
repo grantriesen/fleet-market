@@ -238,7 +238,7 @@ function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine:
             ${(getContent('businessInfo.address') || getContent('business.address')) ? `<p>${getContent('businessInfo.address') || getContent('business.address')}</p>` : ''}
             ${(getContent('businessInfo.phone') || getContent('business.phone')) ? `<p>${getContent('businessInfo.phone') || getContent('business.phone')}</p>` : ''}
             ${(getContent('businessInfo.email') || getContent('business.email')) ? `<p>${getContent('businessInfo.email') || getContent('business.email')}</p>` : ''}
-            ${getContent('businessInfo.hours') ? `<p>${getContent('businessInfo.hours')}</p>` : (hoursLine && hoursLine !== 'Mon–Fri: Closed | Sat: Closed | Sun: Closed' ? `<p>${hoursLine}</p>` : '')}
+            ${getContent('businessInfo.hours') || getContent('hours.hours') ? `<p>${getContent('businessInfo.hours') || getContent('hours.hours')}</p>` : (hoursLine && hoursLine !== 'Mon–Fri: Closed | Sat: Closed | Sun: Closed' ? `<p>${hoursLine}</p>` : '')}
           </div>
         </div>
       </div>
@@ -344,18 +344,18 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
   if (vis.cta !== false) {
     const ctaHeading = getContent('cta.heading');
     const ctaSubheading = getContent('cta.subheading');
-    const ctaBtnText = getContent('cta.button1.text') || getContent('cta.ctaPrimary') || 'Get Started';
+    const ctaBtnText = getContent('cta.button1.text') || getContent('cta.button') || getContent('cta.ctaPrimary') || 'Get Started';
     const ctaBtnDest = getContent('cta.button1.destination') === '__custom' ? getContent('cta.button1.destination_url') : `${baseUrl}${getContent('cta.button1.destination') || 'contact'}`;
     if (ctaHeading || ctaSubheading) {
       html += `
       <section data-section="cta" class="section-spacing border-t border-neutral-200">
         <div class="container-narrow">
-          <div class="max-w-2xl">
-            ${ctaHeading ? `<h2 class="text-3xl md:text-4xl font-light tracking-tight text-neutral-900 mb-6">${ctaHeading}</h2>` : ''}
-            ${ctaSubheading ? `<p class="text-lg text-neutral-500 mb-10">${ctaSubheading}</p>` : ''}
+          <div style="background-color: ${colors.accent}; border-radius: 0.75rem; padding: 5% 10%; margin: 0 auto;">
+            ${ctaHeading ? `<h2 class="text-3xl md:text-4xl font-light tracking-tight text-white mb-6">${ctaHeading}</h2>` : ''}
+            ${ctaSubheading ? `<p class="text-lg mb-10" style="color: rgba(255,255,255,0.85);">${ctaSubheading}</p>` : ''}
             <a href="${ctaBtnDest}"
-              class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90"
-              style="background-color: ${colors.accent};">
+              class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium transition-slow hover:opacity-90"
+              style="background-color: #fff; color: ${colors.accent};">
               ${ctaBtnText}
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
             </a>
