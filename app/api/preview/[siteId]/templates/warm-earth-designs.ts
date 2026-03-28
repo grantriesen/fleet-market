@@ -342,7 +342,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
     const img = gc('hero.image') || '/images/hero-mower.jpg';
     h += `
     <section data-section="hero" class="texture-wood" style="min-height:85vh;display:flex;align-items:center;background:linear-gradient(135deg,${C.bg},${C.card});position:relative;overflow:hidden;">
-      <div class="cw" style="padding:5rem 0;position:relative;z-index:1;">
+      <div class="cw" style="padding-top:5rem;padding-bottom:5rem;position:relative;z-index:1;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;">
           <div style="max-width:580px;">
             <div style="display:inline-flex;align-items:center;gap:0.5rem;background:${C.secondary}30;color:${C.secondary};padding:0.5rem 1rem;border-radius:9999px;font-size:0.875rem;font-weight:600;margin-bottom:2rem;">${weIcon(gc('hero.badge.icon') || gc('hero.badgeIcon') || '🏔', '🏔')} ${gc('hero.badge.text') || gc('hero.badgeText') || gc('hero.badge') || 'Family-Owned Since 1985'}</div>
