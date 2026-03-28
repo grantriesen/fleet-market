@@ -455,3 +455,70 @@ export const TEMPLATE_PROMPTS: Record<string, TemplatePromptConfig> = {
   },
 
 };
+// ─────────────────────────────────────────────────────────────────────────────
+// Build AI prompt from template config
+// ─────────────────────────────────────────────────────────────────────────────
+export function buildOnboardingPrompt(
+  templateSlug: string,
+  form: {
+    businessName: string;
+    city: string;
+    state: string;
+    phone: string;
+    email: string;
+    weekdayHours: string;
+    saturdayHours: string;
+    sundayHours: string;
+    yearsInBusiness: string;
+    serviceArea: string;
+    servicesDescription: string;
+    selectedBrands: string[];
+    businessDescription: string;
+    machinesServiced?: string;
+    customerSatisfaction?: string;
+  },
+  addons: string[]
+): string {
+  const config = TEMPLATE_PROMPTS[templateSlug] || TEMPLATE_PROMPTS['green-valley-industrial'];
+
+  const buildFieldSchema = (fields: Record<string, string>) =>
+    Object.entries(fields).map(([key, desc]) => `  "${key}": "${desc}"`).join(',\n');
+
+  const allFields = {
+    ...config.alwaysFields,
+    ...(addons.includes('inventory') ? config.inventoryFields : {}),
+    ...(addons.includes('service') ? config.serviceFields : {}),
+    ...(addons.includes('rentals') ? config.rentalsFields : {}),
+  };
+
+  const fieldSchema = buildFieldSchema(allFields);
+
+  return `You are writing website copy for an outdoor power equipment and landscape contractor dealer.
+
+TONE INSTRUCTIONS:
+${config.tone}
+
+BUSINESS INFORMATION:
+Business Name: ${form.businessName}
+Location: ${form.city}, ${form.state}
+Phone: ${form.phone}
+Email: ${form.email}
+Hours: ${form.weekdayHours}${form.saturdayHours ? ', ' + form.saturdayHours : ''}${form.sundayHours ? ', ' + form.sundayHours : ''}
+Years in Business: ${form.yearsInBusiness || 'established'}
+Service Area: ${form.serviceArea || 'local area'}
+Services Offered: ${form.servicesDescription}
+Brands Carried: ${form.selectedBrands.join(', ') || 'various brands'}
+
+In their own words: "${form.businessDescription}"${form.machinesServiced ? `\nMachines Serviced: ${form.machinesServiced}` : ''}${form.customerSatisfaction ? `\nCustomer Satisfaction: ${form.customerSatisfaction}` : ''}
+
+INSTRUCTIONS:
+- Use the tone instructions above strictly
+- Reference their specific details where possible
+- Do not use placeholder text — every field should be specific to this business
+
+Return ONLY a valid JSON object with these exact keys. No markdown, no backticks, no extra text:
+
+{
+${fieldSchema}
+}`;
+}
