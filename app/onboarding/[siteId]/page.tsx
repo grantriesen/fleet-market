@@ -361,6 +361,12 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
         { field_key: 'businessInfo.state',        value: form.state },
         { field_key: 'businessInfo.zip',          value: form.zip },
         { field_key: 'businessInfo.hours',        value: form.weekdayHours },
+        // VD uses hours.weekdays/saturday/sunday
+        ...(site.template?.slug === 'vibe-dynamics' ? [
+          { field_key: 'hours.weekdays', value: form.weekdayHours },
+          { field_key: 'hours.saturday', value: form.saturdayHours },
+          { field_key: 'hours.sunday',   value: form.sundayHours },
+        ] : []),
         // MLS uses individual day fields
         ...(site.template?.slug === 'modern-lawn-solutions' ? [
           { field_key: 'hours.monday',    value: form.weekdayHours },
