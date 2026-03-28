@@ -297,7 +297,7 @@ function weFooter(siteId: string, pages: any[], gc: (k: string) => string, C: an
           }
             <span class="font-serif" style="font-size:1.125rem;font-weight:700;">${name}</span>
           </div>
-          <p style="font-size:0.875rem;opacity:0.8;line-height:1.7;">${gc('businessInfo.description') || gc('footer.tagline') || ''}</p>
+          <p style="font-size:0.875rem;opacity:0.8;line-height:1.7;">${gc('footer.tagline') || gc('businessInfo.description') || ''}</p>
         </div>
         <div>
           <h4 class="font-serif" style="font-size:1rem;font-weight:600;margin-bottom:1rem;">Quick Links</h4>
@@ -438,7 +438,12 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
           </div>`).join('')}
         </div>
         <div style="text-align:center;margin-top:3rem;">
-          <a href="${baseUrl}${gc('featured.ctaLink') || 'inventory'}" class="btn-accent">${gc('featured.ctaText') || 'View All Equipment'} →</a>
+          ${(() => {
+            const dest = gc('featured.button1.destination');
+            const url = dest === '__custom' ? gc('featured.button1.destination_url') : `${baseUrl}${dest || gc('featured.ctaLink') || 'inventory'}`;
+            const text = gc('featured.button1.text') || gc('featured.ctaText') || 'View All Equipment';
+            return `<a href="${url}" class="btn-accent">${text} →</a>`;
+          })()}
         </div>
       </div>
     </section>`;
