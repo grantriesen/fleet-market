@@ -396,8 +396,8 @@ function vdHomeSections(
           <h2 class="text-xl md:text-2xl font-heading font-bold text-white mb-4">${getContent('hero.subtitle') || getContent('hero.subheading') || ''}</h2>
           <p class="text-base md:text-lg text-white/90 mb-8 max-w-lg">${getContent('hero.description') || ''}</p>
           <div class="flex flex-wrap gap-4">
-            <a href="${baseUrl}${getContent('hero.ctaPrimaryLink') || 'inventory'}" class="btn-gradient text-base md:text-lg px-6 md:px-8 py-3 md:py-4">${getContent('hero.ctaPrimary') || getContent('hero.ctaButton') || 'Shop Equipment'}</a>
-            <a href="${baseUrl}${getContent('hero.ctaSecondaryLink') || 'rentals'}" class="inline-flex items-center px-6 md:px-8 py-3 md:py-4 rounded-full font-heading font-bold text-base md:text-lg text-white border-3 md:border-4 border-white hover:bg-white hover:text-primary transition-all">${getContent('hero.ctaSecondary') || 'View Rentals'}</a>
+            <a href="${getContent('hero.button1.destination') === '__custom' ? getContent('hero.button1.destination_url') : `${baseUrl}${getContent('hero.button1.destination') || 'inventory'}`}" class="btn-gradient text-base md:text-lg px-6 md:px-8 py-3 md:py-4">${getContent('hero.button1.text') || 'Shop Equipment'}</a>
+            <a href="${getContent('hero.button2.destination') === '__custom' ? getContent('hero.button2.destination_url') : `${baseUrl}${getContent('hero.button2.destination') || 'rentals'}`}" class="inline-flex items-center px-6 md:px-8 py-3 md:py-4 rounded-full font-heading font-bold text-base md:text-lg text-white border-3 md:border-4 border-white hover:bg-white hover:text-primary transition-all">${getContent('hero.button2.text') || 'View Rentals'}</a>
           </div>
         </div>
       </div>
@@ -458,7 +458,6 @@ function vdHomeSections(
           }).join('')}
         </div>
         <div class="text-center mt-10">
-          <a href="${baseUrl}${getContent('featured.ctaLink') || 'inventory'}" class="inline-flex items-center px-8 py-4 rounded-full font-heading font-bold text-lg text-white border-4 border-white hover:bg-white hover:text-primary transition-all">${getContent('featured.ctaText') || 'View All Equipment →'}</a>
         </div>
       </div>
     </section>`;
@@ -515,12 +514,7 @@ function vdHomeSections(
     const cardBgs = ['var(--color-primary)', 'var(--color-secondary)', 'var(--color-accent)'];
     let testimonials: any[] = [];
     try { testimonials = JSON.parse(getContent('testimonials.items') || '[]'); } catch {}
-    if (!testimonials.length) testimonials = [
-      { quote: "VibePower set us up with an EGO battery fleet that changed our business.", name: 'Carlos Rivera', title: 'Owner', company: 'Rivera Lawn & Garden' },
-      { quote: "Fast service, great selection, and the staff actually knows what they're talking about.", name: 'Jessica Nguyen', title: 'Operations Manager', company: 'Sunshine Property Care' },
-      { quote: "Switched to battery-powered equipment with their help. Lower noise, zero emissions, and our clients love it.", name: 'Derek Williams', title: 'Founder', company: 'GreenWave Landscaping' },
-    ];
-    html += `
+    if (testimonials.length > 0) html += `
     <section data-section="testimonials" class="py-20 bg-white">
       <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-12">
@@ -555,10 +549,10 @@ function vdHomeSections(
         <h2 class="text-5xl md:text-6xl font-heading font-black text-white mb-6">${getContent('cta.heading') || 'READY TO GET STARTED?'}</h2>
         <p class="text-xl text-white/90 mb-10 max-w-2xl mx-auto">${getContent('cta.subheading') || ''}</p>
         <div class="flex flex-wrap justify-center gap-6">
-          <a href="${baseUrl}${getContent('cta.ctaPrimaryLink') || 'inventory'}" class="inline-block bg-white font-heading font-black text-xl px-10 py-4 rounded-full transition-all hover:-translate-y-1" style="color: var(--color-primary);">${getContent('cta.primaryText') || getContent('cta.primaryButton') || getContent('cta.button') || 'Browse Equipment'}</a>
+          <a href="${getContent('cta.button1.destination') === '__custom' ? getContent('cta.button1.destination_url') : `${baseUrl}${getContent('cta.button1.destination') || 'inventory'}`}" class="inline-block bg-white font-heading font-black text-xl px-10 py-4 rounded-full transition-all hover:-translate-y-1" style="color: var(--color-primary);">${getContent('cta.button1.text') || 'Browse Equipment'}</a>
           <a href="tel:${getContent('businessInfo.phone')}" class="inline-flex items-center px-10 py-4 rounded-full font-heading font-bold text-lg text-white border-4 border-white hover:bg-white hover:text-primary transition-all">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2A19.86 19.86 0 013.09 5.18 2 2 0 015.11 3h3a2 2 0 012 1.72c.12.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 11.91a16 16 0 006 6l2.27-2.27a2 2 0 012.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0122 16.92z"/></svg>
-            ${getContent('cta.secondaryText') || 'Call Now'}
+            ${getContent('cta.button2.text') || getContent('cta.secondaryText') || 'Call Now'}
           </a>
         </div>
         <p class="mt-8 text-white/70 text-lg">${getContent('cta.trustLine') || '⭐ Rated 4.9/5 by over 5,000 customers'}</p>
