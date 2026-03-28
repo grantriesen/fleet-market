@@ -785,7 +785,7 @@ async function zlRentals(
       getContent('rentalsPage.disclaimer2') || '• Delivery and pickup available for additional fee',
       getContent('rentalsPage.disclaimer3') || '• Long-term rates available for rentals exceeding 30 days',
     ].filter(Boolean).map(d => `<p style="font-size: 0.875rem; color: #737373; margin: 0.25rem 0; text-align: center;">${d}</p>`).join('')}
-  </div>
+  </div>`;
 }
 // ── Manufacturers ──
 function zlManufacturers(siteId: string, getContent: Function,
