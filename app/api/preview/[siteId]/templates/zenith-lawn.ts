@@ -128,12 +128,13 @@ export async function renderZenithLawnPage(
     fonts, colors,
     zlHeader(siteId, currentPage, pages, getContent, baseUrl) + body + zlFooter(siteId, pages, getContent, hoursLine, baseUrl),
     siteId,
-    enabledFeatures
+    enabledFeatures,
+    checkoutMode
   );
 }
 
 // ── HTML Shell ──
-function zlShell(title: string, fonts: any, colors: any, body: string, siteId: string = '', enabledFeatures?: Set<string>) {
+function zlShell(title: string, fonts: any, colors: any, body: string, siteId: string = '', enabledFeatures?: Set<string>, checkoutMode: string = 'quote_only') {
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const gUrl = Array.from(fontFamilies).map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700&display=swap`).join('&');
   return `<!DOCTYPE html>
@@ -165,7 +166,8 @@ function zlShell(title: string, fonts: any, colors: any, body: string, siteId: s
 </head>
 <body>${body}<script>
   function fmSubmitForm(form,siteId,formType,extraFn){var btn=form.querySelector('button[type="submit"]');var orig=btn?btn.innerHTML:'';if(btn){btn.disabled=true;btn.innerHTML='Submitting...';}var nameEl=form.querySelector('input[type="text"]');var emailEl=form.querySelector('input[type="email"]');var phoneEl=form.querySelector('input[type="tel"]');var msgEl=form.querySelector('textarea');var data={site_id:siteId,form_type:formType,name:nameEl?nameEl.value:null,email:emailEl?emailEl.value:null,phone:phoneEl?phoneEl.value:null,message:msgEl?msgEl.value:null,extra_data:extraFn?extraFn(form):null};fetch('/api/submit-form',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json();}).then(function(res){if(res.success){var suc=form.parentElement?form.parentElement.querySelector('[data-fm-success]'):null;if(suc){form.style.display='none';suc.style.display='block';}else{form.reset();if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';}}}else{if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');}}).catch(function(){if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');});}
-</script>${enabledFeatures && enabledFeatures.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
+</script>${enabledFeatures?.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
+  ${injectCartSystem(siteId, checkoutMode, colors.accent)}
 </body>
 </html>`;
 }
@@ -332,6 +334,31 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
               <p class="text-sm font-medium">${t.name || t.author || ''}</p>
               <p class="text-sm text-neutral-500">${t.role || t.title || t.company || ''}</p>
             </div>
+          </div>
+        </div>
+      </section>`;
+    }
+  }
+
+  // CTA
+  if (vis.cta !== false) {
+    const ctaHeading = getContent('cta.heading');
+    const ctaSubheading = getContent('cta.subheading');
+    const ctaBtnText = getContent('cta.button1.text') || getContent('cta.ctaPrimary') || 'Get Started';
+    const ctaBtnDest = getContent('cta.button1.destination') === '__custom' ? getContent('cta.button1.destination_url') : `${baseUrl}${getContent('cta.button1.destination') || 'contact'}`;
+    if (ctaHeading || ctaSubheading) {
+      html += `
+      <section data-section="cta" class="section-spacing border-t border-neutral-200">
+        <div class="container-narrow">
+          <div class="max-w-2xl">
+            ${ctaHeading ? `<h2 class="text-3xl md:text-4xl font-light tracking-tight text-neutral-900 mb-6">${ctaHeading}</h2>` : ''}
+            ${ctaSubheading ? `<p class="text-lg text-neutral-500 mb-10">${ctaSubheading}</p>` : ''}
+            <a href="${ctaBtnDest}"
+              class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90"
+              style="background-color: ${colors.accent};">
+              ${ctaBtnText}
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+            </a>
           </div>
         </div>
       </section>`;
@@ -708,3 +735,4 @@ function zlPageHero(getContent: Function, pageKey: string, defaultHeading: strin
 }
 
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
+import { injectCartSystem } from './shared';
