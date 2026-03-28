@@ -571,25 +571,27 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
 function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasScheduler: boolean = false,
   baseUrl: string = ''
 ): string {
-  let items: any[] = [];
-  // Build from config fields, fall back to JSON items, then defaults
-  const s1t = gc('servicePage.service1Title'); const s1d = gc('servicePage.service1Description');
-  const s2t = gc('servicePage.service2Title'); const s2d = gc('servicePage.service2Description');
-  const s3t = gc('servicePage.service3Title'); const s3d = gc('servicePage.service3Description');
-  if (s1t || s2t || s3t) {
-    items = [
-      s1t ? { icon: gc('servicePage.service1.icon') || gc('servicePage.service1Icon') || '🔧', title: s1t, description: s1d } : null,
-      s2t ? { icon: gc('servicePage.service2.icon') || gc('servicePage.service2Icon') || '⚙️', title: s2t, description: s2d } : null,
-      s3t ? { icon: gc('servicePage.service3.icon') || gc('servicePage.service3Icon') || '🚚', title: s3t, description: s3d } : null,
-    ].filter(Boolean);
-  } else {
-    try { items = JSON.parse(gc('services.items') || '[]'); } catch {}
-    if (!items.length) items = [
-      { icon: gc('servicePage.service1.icon') || gc('servicePage.service1Icon') || '🔧', title: gc('servicePage.service1.text') || gc('servicePage.service1Title') || 'Routine Maintenance', description: gc('servicePage.service1Description') || 'Oil changes, filter replacements, blade sharpening.' },
-      { icon: gc('servicePage.service2.icon') || gc('servicePage.service2Icon') || '⚙️', title: gc('servicePage.service2.text') || gc('servicePage.service2Title') || 'Engine Repair', description: gc('servicePage.service2Description') || 'Complete engine diagnostics and repair.' },
-      { icon: gc('servicePage.service3.icon') || gc('servicePage.service3Icon') || '🚚', title: gc('servicePage.service3.text') || gc('servicePage.service3Title') || 'Pickup & Delivery', description: gc('servicePage.service3Description') || 'We pick up and deliver when repairs are complete.' },
-    ];
-  }
+  // Read service items using iconText subkey pattern (.text for title, .icon for icon)
+  const s1icon = gc('servicePage.service1.icon') || '🔧';
+  const s1title = gc('servicePage.service1.text') || 'Routine Maintenance';
+  const s1desc = gc('servicePage.service1Description') || 'Oil changes, filter replacements, blade sharpening.';
+  const s2icon = gc('servicePage.service2.icon') || '⚙️';
+  const s2title = gc('servicePage.service2.text') || 'Engine Repair';
+  const s2desc = gc('servicePage.service2Description') || 'Complete engine diagnostics and repair.';
+  const s3icon = gc('servicePage.service3.icon') || '🚚';
+  const s3title = gc('servicePage.service3.text') || 'Pickup & Delivery';
+  const s3desc = gc('servicePage.service3Description') || 'We pick up and deliver when repairs are complete.';
+  const items = [
+    { icon: s1icon, title: s1title, description: s1desc },
+    { icon: s2icon, title: s2title, description: s2desc },
+    { icon: s3icon, title: s3title, description: s3desc },
+  ];
+
+  // CTA buttonField
+  const ctaBtn1Dest = gc('servicePage.button1.destination');
+  const ctaBtn1Url = ctaBtn1Dest === '__custom' ? gc('servicePage.button1.destination_url') : `${baseUrl}${ctaBtn1Dest || gc('servicePage.ctaLink') || 'contact'}`;
+  const ctaBtn1Text = gc('servicePage.button1.text') || gc('servicePage.ctaButton') || 'Contact Us';
+
   return `
   ${(() => {
     const svcImg = gc('servicePage.heroImage');
@@ -616,8 +618,8 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasSch
   <section data-section="serviceForm" style="padding:6rem 0;background:${C.muted};">
     <div class="cw" style="max-width:680px;">
       <div class="card-we" style="padding:2.5rem;">
-        <h3 class="font-serif" style="font-size:1.5rem;font-weight:600;text-align:center;margin:0 0 0.5rem;color:${C.fg};">${gc('servicePage.formHeading') || 'Request Service'}</h3>
-        <p style="text-align:center;color:${C.mutedFg};margin:0 0 2rem;">${gc('servicePage.formSubheading') || "Fill out the form below and we'll get back to you within one business day."}</p>
+        <h3 class="font-serif" style="font-size:1.5rem;font-weight:600;text-align:center;margin:0 0 0.5rem;color:${C.fg};">Request Service</h3>
+        <p style="text-align:center;color:${C.mutedFg};margin:0 0 2rem;">Fill out the form below and we'll get back to you within one business day.</p>
         <form onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', null);" style="display:flex;flex-direction:column;gap:1rem;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div><label class="label-we">Your Name</label><input class="form-we" required placeholder="John Smith"></div>
@@ -626,17 +628,17 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasSch
           <div><label class="label-we">Email</label><input class="form-we" type="email" required placeholder="john@example.com"></div>
           <div><label class="label-we">Equipment Type</label><input class="form-we" required placeholder="e.g., John Deere 1025R Tractor"></div>
           <div><label class="label-we">Describe the Issue</label><textarea class="form-we" rows="5" required placeholder="Tell us what's going on..."></textarea></div>
-          <button type="submit" class="btn-accent" style="width:100%;justify-content:center;">${gc('servicePage.ctaButton') || 'Submit Request'}</button>
+          <button type="submit" class="btn-accent" style="width:100%;justify-content:center;">Submit Request</button>
         </form>
       </div>
     </div>
   </section>`}
-  ${(gc('servicePage.ctaHeading') || gc('servicePage.contentText')) ? `
+  ${(gc('servicePage.ctaHeading') || gc('servicePage.ctaText')) ? `
   <section style="padding:4rem 0;background:${C.secondary};color:${C.bg};text-align:center;">
     <div class="cw">
       ${gc('servicePage.ctaHeading') ? `<h2 class="font-serif" style="font-size:2rem;font-weight:700;margin:0 0 1rem;">${gc('servicePage.ctaHeading')}</h2>` : ''}
-      ${gc('servicePage.contentText') ? `<p style="font-size:1.125rem;opacity:0.85;margin:0 0 2rem;">${gc('servicePage.contentText')}</p>` : ''}
-      <a href="${baseUrl}${gc('servicePage.ctaLink') || 'contact'}" class="btn-accent" style="background:${C.bg};color:${C.secondary};">${gc('servicePage.ctaButton') || 'Contact Us'}</a>
+      ${gc('servicePage.ctaText') ? `<p style="font-size:1.125rem;opacity:0.85;margin:0 0 2rem;">${gc('servicePage.ctaText')}</p>` : ''}
+      <a href="${ctaBtn1Url}" class="btn-accent" style="background:${C.bg};color:${C.secondary};">${ctaBtn1Text}</a>
     </div>
   </section>` : ''}`;
 }
