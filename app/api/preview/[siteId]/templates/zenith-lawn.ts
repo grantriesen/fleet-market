@@ -115,7 +115,7 @@ export async function renderZenithLawnPage(
   let body = '';
   switch (currentPage) {
     case 'home': case 'index': body = zlHome(siteId, getContent, products, vis, colors, baseUrl, manufacturers || []); break;
-    case 'service': body = zlService(siteId, getContent, baseUrl); break;
+    case 'service': body = zlService(siteId, getContent, baseUrl, colors); break;
     case 'contact': body = zlContact(siteId, getContent, hoursLine, baseUrl); break;
     case 'inventory': body = zlInventory(siteId, getContent, products, baseUrl); break;
     case 'rentals': body = await zlRentals(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
@@ -407,9 +407,31 @@ function zlProductCard(siteId: string, p: any, baseUrl: string = '') {
 
 // ── Service ──
 function zlService(siteId: string, getContent: Function,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  colors: any = {}
 ) {
   const formHeading = getContent('servicePage.formHeading') || 'Request Service';
+  // Build service cards from config fields
+  const serviceCards = [1, 2, 3].map(i => {
+    const title = getContent(`servicePage.service${i}Title`);
+    const desc = getContent(`servicePage.service${i}Description`);
+    const img = getContent(`servicePage.service${i}Image`);
+    if (!title) return '';
+    return `
+    <div class="border border-neutral-200 rounded overflow-hidden">
+      ${img ? `<div class="aspect-[4/3] overflow-hidden"><img src="${img}" alt="${title}" class="w-full h-full object-cover"/></div>` : ''}
+      <div class="p-6">
+        <h3 class="text-base font-medium mb-2">${title}</h3>
+        ${desc ? `<p class="text-sm text-neutral-500">${desc}</p>` : ''}
+      </div>
+    </div>`;
+  }).filter(Boolean);
+
+  const contentHeading = getContent('servicePage.contentHeading');
+  const contentText = getContent('servicePage.contentText');
+  const ctaHeading = getContent('servicePage.ctaHeading');
+  const ctaBtnText = getContent('servicePage.ctaButton.text') || getContent('servicePage.ctaButtonText') || 'Get In Touch';
+  const ctaBtnDest = getContent('servicePage.ctaButton.destination') === '__custom' ? getContent('servicePage.ctaButton.destination_url') : `${baseUrl}${getContent('servicePage.ctaButton.destination') || 'contact'}`;
 
   // Build service cards from config fields
   const serviceCards = [1, 2, 3].map(i => {
@@ -429,9 +451,29 @@ function zlService(siteId: string, getContent: Function,
 
   const defaultServices = ['Routine maintenance & tune-ups','Engine diagnostics & repair','Blade sharpening & replacement','Electrical system repair','Seasonal winterization','Warranty service for authorized brands'];
 
-  return zlPageHero(getContent, 'servicePage', 'Service & Repair', getContent('servicePage.subheading') || '') + `
-  <section class="section-spacing">
+  const ctaSection = ctaHeading ? `
+  <section data-section="serviceCta" class="section-spacing border-t border-neutral-200">
     <div class="container-narrow">
+      <div style="background: linear-gradient(135deg, ${colors.accent}, ${colors.primary}); border-radius: 0.75rem; padding: 5% 10%;">
+        <h2 class="text-3xl md:text-4xl font-light tracking-tight text-white mb-6">${ctaHeading}</h2>
+        <a href="${ctaBtnDest}"
+          class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium transition-slow hover:opacity-90"
+          style="background-color: #fff; color: ${colors.accent};">
+          ${ctaBtnText}
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>` : '';
+
+  return zlPageHero(getContent, 'servicePage', 'Service & Repair', getContent('servicePage.subheading') || '') + `
+  <section data-section="serviceContent" class="section-spacing">
+    <div class="container-narrow">
+      ${(contentHeading || contentText) ? `
+      <div class="mb-12">
+        ${contentHeading ? `<h2 class="text-2xl font-light mb-4">${contentHeading}</h2>` : ''}
+        ${contentText ? `<p class="text-neutral-500">${contentText}</p>` : ''}
+      </div>` : ''}
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
         <div>
           ${serviceCards.length > 0
@@ -461,7 +503,7 @@ function zlService(siteId: string, getContent: Function,
         </div>
       </div>
     </div>
-  </section>`;
+  </section>` + ctaSection;
 }
 
 // ── Contact ──
