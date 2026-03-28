@@ -599,7 +599,7 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasSch
       ? `<section data-section="serviceHero" style="background-image:url('${svcImg}');background-size:cover;background-position:center;padding:4rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(92,45,14,0.7);"></div><div class="cw" style="position:relative;z-index:1;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:#fef3c7;">${gc('servicePage.heading') || gc('services.heading')}</h1><p style="font-size:1.125rem;opacity:0.9;max-width:600px;margin:0 auto;color:#fef3c7;">${gc('servicePage.subheading') || gc('services.description')}</p></div></section>`
       : `<section data-section="serviceHero" class="page-hero-we texture-wood"><div class="cw"><h1>${gc('servicePage.heading') || gc('services.heading')}</h1><p>${gc('servicePage.subheading') || gc('services.description')}</p></div></section>`;
   })()}
-  <section data-section="serviceTypes" style="padding:6rem 0;">
+  ${!hasScheduler ? `<section data-section="serviceTypes" style="padding:6rem 0;">
     <div class="cw">
       ${gc('servicePage.contentHeading') ? `<h2 class="font-serif" style="font-size:1.5rem;font-weight:700;margin:0 0 1rem;color:${C.fg};">${gc('servicePage.contentHeading')}</h2>` : ''}
       ${gc('servicePage.contentText') ? `<p style="color:${C.mutedFg};line-height:1.8;margin:0 0 2rem;">${gc('servicePage.contentText')}</p>` : ''}
@@ -613,7 +613,7 @@ function weServicePage(siteId: string, gc: (k: string) => string, C: any, hasSch
         </div>`).join('')}
       </div>
     </div>
-  </section>
+  </section>` : ''}
   ${hasScheduler ? serviceBookingSection(siteId, C.accent, gc) : `
   <section data-section="serviceForm" style="padding:6rem 0;background:${C.muted};">
     <div class="cw" style="max-width:680px;">
