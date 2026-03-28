@@ -580,24 +580,44 @@ function zlContact(siteId: string, getContent: Function, hoursLine: string,
   baseUrl: string = ''
 ) {
   const formHeading = getContent('contactPage.formHeading') || 'Send a Message';
-  const locationHeading = getContent('contactPage.locationHeading') || 'Information';
+  const locationHeading = getContent('contactPage.locationHeading') || 'Contact Information';
   const contentHeading = getContent('contactPage.contentHeading') || '';
   const contentText = getContent('contactPage.contentText') || '';
+  const mapEmbed = getContent('contactPage.mapEmbed') || '';
+
+  const address = getContent('businessInfo.address') || getContent('business.address') || '';
+  const phone = getContent('businessInfo.phone') || getContent('business.phone') || '';
+  const email = getContent('businessInfo.email') || getContent('business.email') || '';
+  const hoursDisplay = getContent('businessInfo.hours') || getContent('hours.hours') || hoursLine;
 
   const infoItems = [
-    { label: 'Address', value: getContent('businessInfo.address') || getContent('business.address') },
-    { label: 'Phone', value: getContent('businessInfo.phone') || getContent('business.phone') },
-    { label: 'Email', value: getContent('businessInfo.email') || getContent('business.email') },
-    { label: 'Hours', value: hoursLine },
+    { label: 'Address', value: address },
+    { label: 'Phone', value: phone },
+    { label: 'Email', value: email },
+    { label: 'Hours', value: hoursDisplay },
   ].filter(i => i.value);
 
-  return zlPageHero(getContent, 'contactPage', 'Contact Us', getContent('contactPage.subheading') || '') + `
-  <section class="section-spacing">
+  const mapSection = (mapEmbed || address) ? `
+  <section data-section="contactMap" class="border-t border-neutral-200 pb-24">
     <div class="container-narrow">
+      <div class="rounded overflow-hidden" style="height: 400px;">
+        ${mapEmbed
+          ? mapEmbed.replace(/<iframe /gi, '<iframe style="width:100%;height:100%;border:0;display:block;" ')
+          : `<iframe src="https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed" width="100%" height="400" style="border:0;display:block;" allowfullscreen loading="lazy" title="Business location"></iframe>`}
+      </div>
+    </div>
+  </section>` : '';
+
+  return zlPageHero(getContent, 'contactPage', 'Contact Us', getContent('contactPage.subheading') || '') + `
+  <section data-section="contactContent" class="section-spacing">
+    <div class="container-narrow">
+      ${(contentHeading || contentText) ? `
+      <div class="mb-12">
+        ${contentHeading ? `<h2 class="text-2xl font-light mb-4">${contentHeading}</h2>` : ''}
+        ${contentText ? `<p class="text-neutral-500">${contentText}</p>` : ''}
+      </div>` : ''}
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
         <div>
-          ${contentHeading ? `<h2 class="text-2xl font-light mb-4">${contentHeading}</h2>` : ''}
-          ${contentText ? `<p class="text-neutral-500 mb-12">${contentText}</p>` : ''}
           <h3 class="text-sm font-medium mb-6">${locationHeading}</h3>
           <div class="space-y-8">
             ${infoItems.map(i => `
@@ -618,7 +638,7 @@ function zlContact(siteId: string, getContent: Function, hoursLine: string,
         </div>
       </div>
     </div>
-  </section>`;
+  </section>` + mapSection;
 }
 
 // ── Inventory ──
