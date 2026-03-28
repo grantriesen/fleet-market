@@ -704,7 +704,7 @@ function weContactPage(siteId: string, gc: (k: string) => string, C: any, wk: st
           </div>
         </div>
       </div>
-      ${gc('contactPage.mapEmbed') ? `<div style="margin-top:3rem;border-radius:1rem;overflow:hidden;border:2px solid #d4b896;">${gc('contactPage.mapEmbed')}</div>` : ''}
+      ${gc('contactPage.mapEmbed') ? `<div style="margin-top:3rem;border-radius:1rem;overflow:hidden;border:2px solid #d4b896;">${gc('contactPage.mapEmbed').replace(/<iframe /gi, '<iframe style="width:100%;display:block;" ')}</div>` : ''}
     </div>
   </section>`;
 }
