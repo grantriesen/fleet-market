@@ -119,7 +119,7 @@ export async function renderZenithLawnPage(
     case 'contact': body = zlContact(siteId, getContent, hoursLine, baseUrl); break;
     case 'inventory': body = zlInventory(siteId, getContent, products, baseUrl); break;
     case 'rentals': body = await zlRentals(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
-    case 'manufacturers': body = zlManufacturers(siteId, getContent, baseUrl); break;
+    case 'manufacturers': body = zlManufacturers(siteId, getContent, baseUrl, manufacturers || [], colors); break;
     default: body = zlHome(siteId, getContent, products, vis, colors, baseUrl, manufacturers || []); break;
   }
 
@@ -753,44 +753,74 @@ async function zlRentals(
 }
 // ── Manufacturers ──
 function zlManufacturers(siteId: string, getContent: Function,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  manufacturers: any[] = [],
+  colors: any = {}
 ) {
-  const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Stihl': '/images/logos/Stihl.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Honda': '/images/logos/Honda.png' };
-  const brands = [
-    { name: 'John Deere', desc: 'Industry leader in agricultural and turf equipment since 1837.' },
-    { name: 'Husqvarna', desc: 'Swedish manufacturer of outdoor power products and robotic mowers.' },
-    { name: 'Stihl', desc: 'German manufacturer of handheld power equipment and trimmers.' },
-    { name: 'Honda', desc: 'Renowned for reliable engines and premium lawn mowers.' },
-    { name: 'Toro', desc: 'Leading provider of turf maintenance equipment since 1914.' },
-  ];
+  const contentHeading = getContent('manufacturersPage.contentHeading');
+  const contentText = getContent('manufacturersPage.contentText');
+  const ctaHeading = getContent('manufacturersPage.ctaHeading');
+  const ctaText = getContent('manufacturersPage.ctaText');
+  const ctaBtnText = getContent('manufacturersPage.button1.text') || 'Contact Us';
+  const ctaBtnDest = getContent('manufacturersPage.button1.destination') === '__custom'
+    ? getContent('manufacturersPage.button1.destination_url')
+    : `${baseUrl}${getContent('manufacturersPage.button1.destination') || 'contact'}`;
+
+  const brandsToShow = manufacturers.length > 0 ? manufacturers : [];
+
+  const ctaSection = ctaHeading ? `
+  <section data-section="mfgCta" class="section-spacing border-t border-neutral-200">
+    <div class="container-narrow">
+      <div style="background: linear-gradient(135deg, ${colors.accent}, ${colors.primary}); border-radius: 0.75rem; padding: 5% 10%;">
+        <h2 class="text-3xl md:text-4xl font-light tracking-tight text-white mb-4">${ctaHeading}</h2>
+        ${ctaText ? `<p class="text-white/80 mb-8">${ctaText}</p>` : ''}
+        <a href="${ctaBtnDest}"
+          class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium transition-slow hover:opacity-90"
+          style="background-color: #fff; color: ${colors.accent};">
+          ${ctaBtnText}
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>` : '';
 
   return zlPageHero(getContent, 'manufacturersPage', 'Our Manufacturers', getContent('manufacturersPage.subheading') || '') + `
-  <section class="section-spacing">
+  <section data-section="manufacturersList" class="section-spacing">
     <div class="container-narrow">
-      <div class="max-w-2xl mb-20">
-        <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-4">${getContent('manufacturersPage.heading') || getContent('manufacturers.heading') || 'Our Manufacturers'}</h1>
-        <p class="text-lg text-neutral-500">${getContent('manufacturersPage.subheading') || getContent('manufacturers.description') || ''}</p>
-      </div>
-      <div class="flex flex-wrap items-center justify-center gap-8 md:gap-12 mb-24">
-        ${brands.map(b => `<img src="${logos[b.name] || ''}" alt="${b.name}" style="height: 50px; width: auto; opacity: 0.45; transition: opacity 0.4s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.45'">`).join('')}
+      ${(contentHeading || contentText) ? `
+      <div class="mb-16">
+        ${contentHeading ? `<h2 class="text-2xl font-light mb-4">${contentHeading}</h2>` : ''}
+        ${contentText ? `<p class="text-neutral-500">${contentText}</p>` : ''}
+      </div>` : ''}
+      ${brandsToShow.length > 0 ? `
+      <div class="flex flex-wrap items-center justify-center gap-8 md:gap-12 mb-16">
+        ${brandsToShow.slice(0, 8).map((m: any) => {
+          const logoSrc = m.logo_url || m.logoUrl || '';
+          return logoSrc
+            ? `<img src="${logoSrc}" alt="${m.name}" style="height: 50px; width: auto; opacity: 0.45; transition: opacity 0.4s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.45'">`
+            : `<span style="font-size: 0.875rem; font-weight: 500; color: #737373;">${m.name}</span>`;
+        }).join('')}
       </div>
       <div class="border-t border-neutral-200">
-        ${brands.map((b, i) => `
-        <div class="block py-8 ${i < brands.length - 1 ? 'border-b border-neutral-200' : ''}">
+        ${brandsToShow.map((m: any, i: number) => {
+          const logoSrc = m.logo_url || m.logoUrl || '';
+          return `
+        <div class="py-8 ${i < brandsToShow.length - 1 ? 'border-b border-neutral-200' : ''}">
           <div class="flex items-center justify-between gap-8">
             <div class="flex items-center gap-6">
-              <img src="${logos[b.name] || ''}" alt="${b.name}" style="height: 40px; width: auto;">
+              ${logoSrc ? `<img src="${logoSrc}" alt="${m.name}" style="height: 40px; width: auto;">` : `<span class="text-base font-medium">${m.name}</span>`}
               <div>
-                <h3 class="text-xl font-light mb-1">${b.name}</h3>
-                <p class="text-sm text-neutral-500">${b.desc}</p>
+                ${logoSrc ? `<h3 class="text-xl font-light mb-1">${m.name}</h3>` : ''}
+                ${m.description ? `<p class="text-sm text-neutral-500">${m.description}</p>` : ''}
               </div>
             </div>
             <a href="${baseUrl}contact" class="text-sm text-neutral-400 hover:text-neutral-900 transition-slow whitespace-nowrap">Learn More →</a>
           </div>
-        </div>`).join('')}
-      </div>
+        </div>`;
+        }).join('')}
+      </div>` : `<p class="text-neutral-400 text-center py-12">No manufacturers configured yet.</p>`}
     </div>
-  </section>`;
+  </section>` + ctaSection;
 }
 
 // ── Form Helper ──
