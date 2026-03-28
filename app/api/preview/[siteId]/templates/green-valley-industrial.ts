@@ -1406,6 +1406,9 @@ function gvRentalsPageStatic(
   const pol2 = getContent('rentalsPage.policy2') || 'Fuel must be returned at same level';
   const pol3 = getContent('rentalsPage.policy3') || 'Late returns billed at daily rate';
   const pol4 = getContent('rentalsPage.policy4') || 'Delivery available for additional fee';
+  // These are not available in the static fallback (no DB access), so default to empty/1
+  const cancellationPolicy = '';
+  const minRentalHours = 1;
 
   return `
   ${vis['rentalsPage._heroHeading'] !== false ? pageHero(heading, subheading, heroImage, 'rentalsPage') : ''}

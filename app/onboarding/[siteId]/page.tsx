@@ -361,6 +361,14 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
         { field_key: 'businessInfo.state',        value: form.state },
         { field_key: 'businessInfo.zip',          value: form.zip },
         { field_key: 'businessInfo.hours',        value: form.weekdayHours },
+        // GVI (and other templates) read from hours.* keys for footer + contact page
+        { field_key: 'hours.monday',    value: form.weekdayHours },
+        { field_key: 'hours.tuesday',   value: form.weekdayHours },
+        { field_key: 'hours.wednesday', value: form.weekdayHours },
+        { field_key: 'hours.thursday',  value: form.weekdayHours },
+        { field_key: 'hours.friday',    value: form.weekdayHours },
+        { field_key: 'hours.saturday',  value: form.saturdayHours },
+        { field_key: 'hours.sunday',    value: form.sundayHours },
         // ZL uses a single combined hours field
         ...(site.template?.slug === 'zenith-lawn' ? [
           { field_key: 'hours.hours', value: [form.weekdayHours, form.saturdayHours, form.sundayHours].filter(Boolean).join(' | ') },
@@ -434,6 +442,12 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
         const err = await saveResponse.json();
         throw new Error(err.error || 'Failed to save content');
       }
+
+      // Update the site name on the sites record itself
+      await supabase
+        .from('sites')
+        .update({ site_name: form.businessName, onboarded: true })
+        .eq('id', site.id);
 
       setGenStatus('Almost done...');
       await new Promise(r => setTimeout(r, 800));
