@@ -363,8 +363,8 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
               })()}
             </div>
             <div style="display:flex;gap:1.5rem;margin-top:2rem;font-size:0.875rem;color:${C.mutedFg};">
-              <span>🛡 Factory Authorized Dealer</span>
-              <span>🔧 Certified Service Center</span>
+              <span>${weIcon(gc('hero.trustBadge1.icon') || '🛡', '🛡')} ${gc('hero.trustBadge1.text') || 'Factory Authorized Dealer'}</span>
+              <span>${weIcon(gc('hero.trustBadge2.icon') || '🔧', '🔧')} ${gc('hero.trustBadge2.text') || 'Certified Service Center'}</span>
             </div>
           </div>
           <div style="position:relative;">
