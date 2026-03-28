@@ -412,21 +412,6 @@ function zlService(siteId: string, getContent: Function,
 ) {
   const formHeading = getContent('servicePage.formHeading') || 'Request Service';
   // Build service cards from config fields
-  const serviceCards = [1, 2, 3].map(i => {
-    const title = getContent(`servicePage.service${i}Title`);
-    const desc = getContent(`servicePage.service${i}Description`);
-    const img = getContent(`servicePage.service${i}Image`);
-    if (!title) return '';
-    return `
-    <div class="border border-neutral-200 rounded overflow-hidden">
-      ${img ? `<div class="aspect-[4/3] overflow-hidden"><img src="${img}" alt="${title}" class="w-full h-full object-cover"/></div>` : ''}
-      <div class="p-6">
-        <h3 class="text-base font-medium mb-2">${title}</h3>
-        ${desc ? `<p class="text-sm text-neutral-500">${desc}</p>` : ''}
-      </div>
-    </div>`;
-  }).filter(Boolean);
-
   const contentHeading = getContent('servicePage.contentHeading');
   const contentText = getContent('servicePage.contentText');
   const ctaHeading = getContent('servicePage.ctaHeading');
