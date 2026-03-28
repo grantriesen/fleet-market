@@ -810,11 +810,9 @@ function weManufacturersPage(siteId: string, gc: (k: string) => string, C: any, 
   ${(() => {
     const mImg = gc('manufacturersPage.heroImage');
     return mImg
-      ? `<section data-section="mfgHero" style="background-image:url('${mImg}');background-size:cover;background-position:center;padding:4rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(6,95,70,0.75);"></div>`
-      : `<section data-section="mfgHero" style="background:${C.secondary};color:${C.bg};padding:4rem 0;text-align:center;" class="texture-wood">`;
+      ? `<section data-section="mfgHero" style="background-image:url('${mImg}');background-size:cover;background-position:center;padding:4rem 0;text-align:center;position:relative;"><div style="position:absolute;inset:0;background:rgba(6,95,70,0.75);"></div><div class="cw" style="position:relative;z-index:1;color:#fef3c7;"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;color:#fef3c7;">${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading')}</h1><p style="font-size:1.125rem;opacity:0.9;color:#fef3c7;">${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription')}</p></div></section>`
+      : `<section data-section="mfgHero" style="background:${C.secondary};color:${C.bg};padding:4rem 0;text-align:center;" class="texture-wood"><div class="cw"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;">${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading')}</h1><p style="font-size:1.125rem;opacity:0.85;">${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription')}</p></div></section>`;
   })()}
-    <div class="cw"><h1 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 0.75rem;">${gc('manufacturersPage.heading') || gc('manufacturers.pageHeading')}</h1><p style="font-size:1.125rem;opacity:0.85;">${gc('manufacturersPage.subheading') || gc('manufacturers.pageDescription')}</p></div>
-  </section>
   <section data-section="manufacturersList" style="padding:6rem 0;">
     <div class="cw">
       ${gc('manufacturersPage.contentHeading') ? `<h2 class="font-serif" style="font-size:1.75rem;font-weight:700;margin:0 0 1rem;color:${C.fg};">${gc('manufacturersPage.contentHeading')}</h2>` : ''}
