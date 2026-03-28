@@ -973,27 +973,7 @@ async function vdRentalsPage(
     }
   }
 
-  const howHeading = getContent('rentalsPage.processHeading') || getContent('rentalsPage.contentHeading') || 'HOW RENTALS WORK';
-  const infoHtml = `
-  <section data-section="rentalInfo" class="py-16 bg-white">
-    <div class="max-w-7xl mx-auto px-6">
-      <h2 class="text-4xl font-heading font-black text-center mb-12" style="color: var(--color-secondary);">${howHeading}</h2>
-      <div class="grid md:grid-cols-3 gap-8">
-        ${[
-          { icon: '📋', title: getContent('rentalsPage.step1Title') || '1. Request', desc: getContent('rentalsPage.step1Text') || 'Fill out our rental request form with your project details and preferred dates.' },
-          { icon: '✅', title: getContent('rentalsPage.step2Title') || '2. Confirm', desc: getContent('rentalsPage.step2Text') || 'We will confirm availability and send you a rental agreement to review.' },
-          { icon: '🚚', title: getContent('rentalsPage.step3Title') || '3. Pickup/Delivery', desc: getContent('rentalsPage.step3Text') || 'Pick up your equipment or schedule delivery to your job site.' },
-        ].map(step => `
-          <div class="bg-white rounded-2xl p-8 text-center" style="border: 3px solid var(--color-secondary);">
-            <span class="text-5xl mb-4 block">${step.icon}</span>
-            <h3 class="text-2xl font-heading font-black text-gray-900 mb-2">${step.title}</h3>
-            <p class="text-gray-600">${step.desc}</p>
-          </div>`).join('')}
-      </div>
-    </div>
-  </section>`;
-
-  const rentalContentHtml = (getContent('rentalsPage.contentHeading') || getContent('rentalsPage.contentText') || getContent('rentalsPage.pricingNote')) ? `
+    const rentalContentHtml = (getContent('rentalsPage.contentHeading') || getContent('rentalsPage.contentText') || getContent('rentalsPage.pricingNote')) ? `
   <section data-section="rentalContent" class="py-10 bg-gray-50">
     <div class="max-w-3xl mx-auto px-6 text-center">
       ${getContent('rentalsPage.contentHeading') ? `<h2 class="text-3xl font-heading font-black text-gray-900 mb-3">${getContent('rentalsPage.contentHeading')}</h2>` : ''}
@@ -1002,13 +982,7 @@ async function vdRentalsPage(
     </div>
   </section>` : '';
 
-  const ctaHtml = !inventorySection ? `
-  <section class="py-16 text-center" style="background-color: var(--color-secondary);">
-    <div class="max-w-3xl mx-auto px-6">
-      <h2 class="text-4xl font-heading font-black text-white mb-6">${getContent('rentalsPage.ctaHeading') || 'Ready to Rent?'}</h2>
-      <a href="${getContent('rentalsPage.button1.destination') === '__custom' ? getContent('rentalsPage.button1.destination_url') : `${baseUrl}${getContent('rentalsPage.button1.destination') || 'contact'}`}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-secondary);">${getContent('rentalsPage.button1.text') || 'Get a Quote'}</a>
-    </div>
-  </section>` : '';
+
 
   const contentAboveHtml = (getContent('rentalsPage.contentHeading') || getContent('rentalsPage.contentText')) ? `
   <section data-section="rentalContent" class="py-10 bg-gray-50">
@@ -1025,5 +999,5 @@ async function vdRentalsPage(
     </div>
   </section>` : '';
 
-  return heroHtml + contentAboveHtml + (inventorySection || infoHtml) + pricingNoteHtml + ctaHtml;
+  return heroHtml + contentAboveHtml + (inventorySection || '') + pricingNoteHtml;
 }
