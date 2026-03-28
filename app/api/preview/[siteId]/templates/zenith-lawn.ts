@@ -574,7 +574,6 @@ function zlService(siteId: string, getContent: Function,
     </div>
   </section>` + ctaSection + formSection;
 }
-}
 
 // ── Contact ──
 function zlContact(siteId: string, getContent: Function, hoursLine: string,
