@@ -759,7 +759,7 @@ async function zlRentals(
         </div>`).join('');
       inventorySection = `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:2rem;margin-bottom:2rem;">${cards}</div>
-      ${pricingNote ? `<p style="font-size:0.875rem;color:#6b7280;">${pricingNote}</p>` : ''}
+      ${pricingNote ? `<p style="font-size:0.875rem;color:#6b7280;text-align:center;">${pricingNote}</p>` : ''}
       
 
 
@@ -777,15 +777,15 @@ async function zlRentals(
         <p class="text-lg text-neutral-500">${subheading}</p>
       </div>
       ${inventorySection || `<div style="text-align:center;padding:3rem 0;"><p style="color:#6b7280;margin-bottom:1.5rem;">Contact us for current rental availability and pricing.</p><a href="${baseUrl}contact" class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium text-white" style="background:#2d6a4f;">Reserve Equipment</a></div>`}
-      <div class="mt-8 space-y-2 text-sm text-neutral-500" style="text-align: center; width: 100%;">
-        ${[
-          getContent('rentalsPage.disclaimer1') || '• Security deposit required for all rentals',
-          getContent('rentalsPage.disclaimer2') || '• Delivery and pickup available for additional fee',
-          getContent('rentalsPage.disclaimer3') || '• Long-term rates available for rentals exceeding 30 days',
-        ].filter(Boolean).map(d => `<p style="text-align: center; margin: 0;">${d}</p>`).join('')}
-      </div>
     </div>
-  </section>`;
+  </section>
+  <div style="padding: 0 0 2rem; text-align: center;">
+    ${[
+      getContent('rentalsPage.disclaimer1') || '• Security deposit required for all rentals',
+      getContent('rentalsPage.disclaimer2') || '• Delivery and pickup available for additional fee',
+      getContent('rentalsPage.disclaimer3') || '• Long-term rates available for rentals exceeding 30 days',
+    ].filter(Boolean).map(d => `<p style="font-size: 0.875rem; color: #737373; margin: 0.25rem 0; text-align: center;">${d}</p>`).join('')}
+  </div>
 }
 // ── Manufacturers ──
 function zlManufacturers(siteId: string, getContent: Function,
