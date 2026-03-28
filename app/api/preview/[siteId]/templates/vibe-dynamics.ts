@@ -605,8 +605,7 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
   <section data-section="serviceCta" class="py-16 text-center" style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent));">
     <div class="max-w-3xl mx-auto px-6">
       <h2 class="text-4xl font-heading font-black text-white mb-4">${getContent('servicePage.ctaHeading') || 'Need Service?'}</h2>
-      <p class="text-lg text-white/90 mb-8">${getContent('servicePage.contentText') || 'Contact us to schedule a repair or maintenance appointment.'}</p>
-      <a href="${baseUrl}${getContent('servicePage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-primary);">${getContent('servicePage.ctaButton') || 'Get In Touch'}</a>
+      <a href="${getContent('servicePage.button1.destination') === '__custom' ? getContent('servicePage.button1.destination_url') : `${baseUrl}${getContent('servicePage.button1.destination') || getContent('servicePage.ctaLink') || 'contact'}`}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-primary);">${getContent('servicePage.button1.text') || getContent('servicePage.ctaButton') || 'Get In Touch'}</a>
     </div>
   </section>`;
 
@@ -615,8 +614,6 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
   <section data-section="serviceForm" class="py-16 bg-gray-50">
     <div class="max-w-3xl mx-auto px-6">
       <div class="card-bold p-8">
-        <h2 class="text-3xl font-heading font-black text-gray-900 mb-2">${getContent('servicePage.formHeading') || 'Request Service'}</h2>
-        <p class="text-gray-500 mb-8">${getContent('servicePage.formSubheading') || 'Fill out the form below and our service team will be in touch within one business day.'}</p>
         <form class="space-y-4" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var inputs=f.querySelectorAll('input[type=text]');return {first_name:inputs[0]?inputs[0].value:'',last_name:inputs[1]?inputs[1].value:'',equipment:inputs[2]?inputs[2].value:''};});">
           <div class="grid md:grid-cols-2 gap-4">
             <div>
@@ -662,7 +659,7 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
     ? serviceBookingSection(siteId, colors.primary, getContent)
     : simpleFormHtml;
 
-  return heroHtml + servicesHtml + ctaHtml + formSection;
+  return heroHtml + servicesHtml + formSection + ctaHtml;
 }
 
 
