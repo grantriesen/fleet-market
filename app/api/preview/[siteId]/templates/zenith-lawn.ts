@@ -352,7 +352,7 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
       html += `
       <section data-section="cta" class="section-spacing border-t border-neutral-200">
         <div class="container-narrow">
-          <div style="background: linear-gradient(135deg, ${colors.accent}, ${colors.primary}); border-radius: 0.75rem; padding: 5% 10%; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, ${colors.accent}, #1a1a1a); border-radius: 0.75rem; padding: 5% 10%; margin: 0 auto;">
             ${ctaHeading ? `<h2 class="text-3xl md:text-4xl font-light tracking-tight text-white mb-6">${ctaHeading}</h2>` : ''}
             ${ctaSubheading ? `<p class="text-lg mb-10" style="color: rgba(255,255,255,0.85);">${ctaSubheading}</p>` : ''}
             <a href="${ctaBtnDest}"
@@ -414,7 +414,7 @@ function zlService(siteId: string, getContent: Function,
   const contentHeading = getContent('servicePage.contentHeading');
   const contentText = getContent('servicePage.contentText');
   const ctaHeading = getContent('servicePage.ctaHeading');
-  const ctaBtnText = getContent('servicePage.ctaButton.text') || 'Schedule Service';
+  const ctaBtnText = (getContent('servicePage.ctaButton.text') || '').replace(/^\d+/, '') || 'Schedule Service';
 
   // Build service cards from config fields
   const serviceCards = [1, 2, 3].map(i => {
@@ -438,7 +438,7 @@ function zlService(siteId: string, getContent: Function,
   const ctaSection = ctaHeading ? `
   <section data-section="serviceCta" class="section-spacing border-t border-neutral-200">
     <div class="container-narrow">
-      <div style="background: linear-gradient(135deg, ${colors.accent}, ${colors.primary}); border-radius: 0.75rem; padding: 5% 10%;">
+      <div style="background: linear-gradient(135deg, ${colors.accent}, #1a1a1a); border-radius: 0.75rem; padding: 5% 10%;">
         <h2 class="text-3xl md:text-4xl font-light tracking-tight text-white mb-6">${ctaHeading}</h2>
         <button onclick="document.getElementById('zl-service-form').scrollIntoView({behavior:'smooth'})"
           class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium transition-slow hover:opacity-90"
@@ -655,7 +655,7 @@ async function zlInventory(siteId: string, getContent: Function, products: any[]
       .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, brand, status')
       .eq('site_id', siteId)
       .eq('status', 'available')
-      .order('display_order', { ascending: true });
+      .order('created_at', { ascending: false });
     if (data && data.length > 0) allProducts = data;
   }
   const categories = [...new Set(allProducts.map((p: any) => p.category).filter(Boolean))];
@@ -774,7 +774,7 @@ async function zlRentals(
         <p class="text-lg text-neutral-500">${subheading}</p>
       </div>
       ${inventorySection || `<div style="text-align:center;padding:3rem 0;"><p style="color:#6b7280;margin-bottom:1.5rem;">Contact us for current rental availability and pricing.</p><a href="${baseUrl}contact" class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium text-white" style="background:#2d6a4f;">Reserve Equipment</a></div>`}
-      <div class="mt-8 space-y-2 text-sm text-neutral-500 text-center">
+      <div class="mt-8 space-y-2 text-sm text-neutral-500" style="text-align: center;">
         ${[
           getContent('rentalsPage.disclaimer1') || '• Security deposit required for all rentals',
           getContent('rentalsPage.disclaimer2') || '• Delivery and pickup available for additional fee',
@@ -804,7 +804,7 @@ function zlManufacturers(siteId: string, getContent: Function,
   const ctaSection = ctaHeading ? `
   <section data-section="mfgCta" class="section-spacing border-t border-neutral-200">
     <div class="container-narrow">
-      <div style="background: linear-gradient(135deg, ${colors.accent}, ${colors.primary}); border-radius: 0.75rem; padding: 5% 10%;">
+      <div style="background: linear-gradient(135deg, ${colors.accent}, #1a1a1a); border-radius: 0.75rem; padding: 5% 10%;">
         <h2 class="text-3xl md:text-4xl font-light tracking-tight text-white mb-4">${ctaHeading}</h2>
         ${ctaText ? `<p class="text-white/80 mb-8">${ctaText}</p>` : ''}
         <a href="${ctaBtnDest}"
