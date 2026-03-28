@@ -652,13 +652,14 @@ async function zlInventory(siteId: string, getContent: Function, products: any[]
   if (supabase) {
     const { data } = await supabase
       .from('inventory_items')
-      .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, status')
+      .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, brand, status')
       .eq('site_id', siteId)
       .eq('status', 'available')
       .order('created_at', { ascending: false });
     if (data && data.length > 0) allProducts = data;
   }
   const categories = [...new Set(allProducts.map((p: any) => p.category).filter(Boolean))];
+  const brands = [...new Set(allProducts.map((p: any) => p.brand).filter(Boolean))];
 
 
   return zlPageHero(getContent, 'inventoryPage', 'Inventory', getContent('inventoryPage.subheading') || '') + `
@@ -679,6 +680,13 @@ async function zlInventory(siteId: string, getContent: Function, products: any[]
               ${categories.map(c => `<button onclick="zlFilter('${c}',null)" class="zl-cat block w-full text-left text-sm py-1 transition-slow text-neutral-400 hover:text-neutral-900" data-cat="${c}">${c}</button>`).join('')}
             </div>
           </div>
+          ${brands.length > 0 ? `
+          <div>
+            <label class="text-xs uppercase tracking-wider text-neutral-400 mb-3 block">Brand</label>
+            <div class="space-y-2">
+              ${brands.map(b => `<button onclick="zlFilter(null,'${b}')" class="zl-brand block w-full text-left text-sm py-1 transition-slow text-neutral-400 hover:text-neutral-900" data-brand="${b}">${b}</button>`).join('')}
+            </div>
+          </div>` : ''}
 
         </aside>
         <!-- Grid -->
