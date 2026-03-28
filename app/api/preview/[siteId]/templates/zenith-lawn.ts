@@ -126,12 +126,14 @@ export async function renderZenithLawnPage(
   return zlShell(
     getContent('businessInfo.businessName') || getContent('business.name') || 'Zenith Equipment',
     fonts, colors,
-    zlHeader(siteId, currentPage, pages, getContent, baseUrl) + body + zlFooter(siteId, pages, getContent, hoursLine, baseUrl)
+    zlHeader(siteId, currentPage, pages, getContent, baseUrl) + body + zlFooter(siteId, pages, getContent, hoursLine, baseUrl),
+    siteId,
+    enabledFeatures
   );
 }
 
 // ── HTML Shell ──
-function zlShell(title: string, fonts: any, colors: any, body: string) {
+function zlShell(title: string, fonts: any, colors: any, body: string, siteId: string = '', enabledFeatures?: Set<string>) {
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const gUrl = Array.from(fontFamilies).map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700&display=swap`).join('&');
   return `<!DOCTYPE html>
