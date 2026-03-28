@@ -105,7 +105,6 @@ export async function renderWarmEarthPage(
     'business.email':   'businessInfo.email',
     'business.address': 'businessInfo.address',
     'business.tagline': 'businessInfo.tagline',
-    'business.hours':   'hours.hours',
   };
   const gc = (key: string): string => {
     if (content?.[key]) return content[key];
@@ -127,13 +126,13 @@ export async function renderWarmEarthPage(
   };
 
   let hours: any = {};
-  // Support both JSON blob hours and plain text fields
-  const hoursRaw = gc('business.hours');
-  if (hoursRaw && hoursRaw.startsWith('{')) {
-    try { hours = JSON.parse(hoursRaw); } catch {}
-  }
-  const fmtH = (d: any) => { if (!d?.open || !d?.close) return 'Closed'; const f = (t: string) => { const [h, m] = t.split(':').map(Number); return `${h > 12 ? h - 12 : h || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; }; return `${f(d.open)} – ${f(d.close)}`; };
-  const wkday = fmtH(hours.monday), sat = fmtH(hours.saturday), sun = fmtH(hours.sunday);
+  // Read plain text hours from businessInfo (set during onboarding)
+  const hoursWeekdays = gc('businessInfo.hours') || gc('hours.weekdays') || '';
+  const hoursSaturday = gc('businessInfo.saturdayHours') || gc('hours.saturday') || '';
+  const hoursSunday = gc('businessInfo.sundayHours') || gc('hours.sunday') || '';
+  const wkday = hoursWeekdays || 'Mon–Fri: 7:00 AM – 5:00 PM';
+  const sat = hoursSaturday || 'Saturday: 8:00 AM – 4:00 PM';
+  const sun = hoursSunday || 'Sunday: Closed';
   const fmtPrice = (p: number | null) => p != null ? `$${Number(p).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
 
   let body = '';
@@ -298,7 +297,7 @@ function weFooter(siteId: string, pages: any[], gc: (k: string) => string, C: an
           }
             <span class="font-serif" style="font-size:1.125rem;font-weight:700;">${name}</span>
           </div>
-          <p style="font-size:0.875rem;opacity:0.8;line-height:1.7;">${gc('footer.tagline')}</p>
+          <p style="font-size:0.875rem;opacity:0.8;line-height:1.7;">${gc('businessInfo.description') || gc('footer.tagline') || ''}</p>
         </div>
         <div>
           <h4 class="font-serif" style="font-size:1rem;font-weight:600;margin-bottom:1rem;">Quick Links</h4>
@@ -350,8 +349,18 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
             <h1 class="font-serif" style="font-size:3rem;font-weight:700;line-height:1.15;margin:0 0 1.5rem;color:${C.fg};">${gc('hero.heading')}</h1>
             <p style="font-size:1.25rem;color:${C.mutedFg};margin:0 0 2.5rem;line-height:1.7;">${gc('hero.subheading')}</p>
             <div style="display:flex;gap:1rem;flex-wrap:wrap;">
-              <a href="${baseUrl}${gc('hero.ctaPrimaryLink') || 'inventory'}" class="btn-accent">${gc('hero.ctaPrimary') || 'Shop Equipment'} →</a>
-              <a href="${baseUrl}${gc('hero.ctaSecondaryLink') || 'rentals'}" class="btn-outline-we">${gc('hero.ctaSecondary') || 'View Rentals'}</a>
+              ${(() => {
+                const btn1Dest = gc('hero.button1.destination');
+                const btn1Url = btn1Dest === '__custom' ? gc('hero.button1.destination_url') : `${baseUrl}${btn1Dest || 'inventory'}`;
+                const btn1Text = gc('hero.button1.text') || gc('hero.ctaPrimary') || 'Shop Equipment';
+                return `<a href="${btn1Url}" class="btn-accent">${btn1Text} →</a>`;
+              })()}
+              ${(() => {
+                const btn2Dest = gc('hero.button2.destination');
+                const btn2Url = btn2Dest === '__custom' ? gc('hero.button2.destination_url') : `${baseUrl}${btn2Dest || 'rentals'}`;
+                const btn2Text = gc('hero.button2.text') || gc('hero.ctaSecondary') || 'View Rentals';
+                return `<a href="${btn2Url}" class="btn-outline-we">${btn2Text}</a>`;
+              })()}
             </div>
             <div style="display:flex;gap:1.5rem;margin-top:2rem;font-size:0.875rem;color:${C.mutedFg};">
               <span>🛡 Factory Authorized Dealer</span>
@@ -403,8 +412,7 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
 
   // Featured
   if (vis.featured !== false) {
-    const featured = products.filter((p: any) => p.featured).slice(0, 6);
-    const list = featured.length > 0 ? featured : products.slice(0, 6);
+    const list = products.slice(0, 6);
     h += `
     <section data-section="featured" style="padding:6rem 0;">
       <div class="cw">
@@ -480,9 +488,9 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
             <div style="display:flex;gap:2px;margin-bottom:1rem;">
               ${Array.from({length:5}).map((_,i) => `<span style="color:${i < (t.rating||5) ? C.accent : '#d4b896'};font-size:1rem;">★</span>`).join('')}
             </div>
-            <blockquote style="flex:1;font-size:0.9375rem;color:${C.mutedFg};line-height:1.8;margin:0 0 1.5rem;font-style:italic;">"${t.content}"</blockquote>
+            <blockquote style="flex:1;font-size:0.9375rem;color:${C.mutedFg};line-height:1.8;margin:0 0 1.5rem;font-style:italic;">"${t.content || t.quote || ''}"</blockquote>
             <div style="border-top:1px solid #d4b896;padding-top:1rem;">
-              <p style="font-weight:600;color:${C.fg};margin:0;font-size:0.9375rem;">${t.name}</p>
+              <p style="font-weight:600;color:${C.fg};margin:0;font-size:0.9375rem;">${t.name || t.author || ''}</p>
               <p style="font-size:0.8125rem;color:${C.mutedFg};margin:0.125rem 0 0;">${t.location || t.title || ''}</p>
             </div>
           </div>`).join('')}
@@ -493,12 +501,15 @@ function weHome(siteId: string, gc: (k: string) => string, products: any[], manu
 
   // CTA
   if (vis.cta !== false) {
+    const ctaBtn1Dest = gc('cta.button1.destination');
+    const ctaBtn1Url = ctaBtn1Dest === '__custom' ? gc('cta.button1.destination_url') : `${baseUrl}${ctaBtn1Dest || 'contact'}`;
+    const ctaBtn1Text = gc('cta.button1.text') || gc('cta.ctaText') || gc('cta.button') || 'Visit Us Today';
     h += `
     <section data-section="cta" style="padding:6rem 0;background:${C.secondary};color:${C.bg};position:relative;overflow:hidden;">
       <div class="cw" style="text-align:center;position:relative;z-index:1;">
         <h2 class="font-serif" style="font-size:2.5rem;font-weight:700;margin:0 0 1rem;">${gc('cta.heading')}</h2>
         <p style="font-size:1.125rem;opacity:0.85;max-width:600px;margin:0 auto 2.5rem;">${gc('cta.subheading')}</p>
-        <a href="${baseUrl}${gc('cta.ctaLink') || 'contact'}" class="btn-accent" style="font-size:1.125rem;padding:1rem 2.5rem;">${gc('cta.ctaText') || gc('cta.button') || 'Visit Us Today'} →</a>
+        <a href="${ctaBtn1Url}" class="btn-accent" style="font-size:1.125rem;padding:1rem 2.5rem;">${ctaBtn1Text} →</a>
       </div>
     </section>`;
   }

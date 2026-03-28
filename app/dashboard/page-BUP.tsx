@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   BarChart3, Globe, Package, Wrench, Calendar,
   Mail, Loader2, ExternalLink, TrendingUp, Users,
-  Eye, Activity, Lock, User, ShoppingBag
+  Eye, Activity, Lock, User, ShoppingBag, MessageSquare
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -198,8 +198,9 @@ export default function DashboardPage() {
   const quickActions = [
     { title: 'Analytics',  description: 'View detailed analytics', icon: BarChart3,    href: '/dashboard/analytics', color: 'bg-blue-500',    addon: null,        badge: 0 },
     { title: 'My Website', description: 'Edit and customize',      icon: Globe,        href: '/dashboard/website',   color: 'bg-green-500',  addon: null,        badge: 0 },
-    { title: 'Leads',      description: 'View contacts',           icon: Mail,         href: '/dashboard/leads',     color: 'bg-indigo-500', addon: null,        badge: notifications.leads },
-    { title: 'Orders',     description: 'View purchases',          icon: ShoppingBag,  href: '/dashboard/orders',    color: 'bg-emerald-500',addon: 'inventory', badge: notifications.orders },
+    { title: 'Leads',         description: 'View contacts',           icon: Mail,           href: '/dashboard/leads',         color: 'bg-indigo-500', addon: null,        badge: notifications.leads },
+    { title: 'Testimonials',  description: 'Manage customer reviews', icon: MessageSquare,  href: '/dashboard/testimonials',  color: 'bg-pink-500',   addon: null,        badge: 0 },
+    { title: 'Orders',        description: 'View purchases',          icon: ShoppingBag,    href: '/dashboard/orders',        color: 'bg-emerald-500',addon: 'inventory', badge: notifications.orders },
     { title: 'Inventory',  description: 'Manage equipment',        icon: Package,      href: '/dashboard/inventory', color: 'bg-orange-500', addon: 'inventory', badge: 0 },
     { title: 'Rentals',    description: 'Track bookings',          icon: Wrench,       href: '/dashboard/rentals',   color: 'bg-purple-500', addon: 'rentals',   badge: notifications.rentals },
     { title: 'Service',    description: 'Manage requests',         icon: Calendar,     href: '/dashboard/service',   color: 'bg-red-500',    addon: 'service',   badge: notifications.service },
