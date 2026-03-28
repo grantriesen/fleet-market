@@ -661,8 +661,8 @@ function weContactPage(siteId: string, gc: (k: string) => string, C: any, wk: st
         <div>
           ${gc('contactPage.contentHeading') ? `<h2 class="font-serif" style="font-size:1.75rem;font-weight:700;margin:0 0 1rem;color:${C.fg};">${gc('contactPage.contentHeading')}</h2>` : ''}
           ${gc('contactPage.contentText') ? `<p style="color:${C.mutedFg};line-height:1.8;margin:0 0 1.5rem;">${gc('contactPage.contentText')}</p>` : ''}
-          <h2 class="font-serif" style="font-size:1.75rem;font-weight:700;margin:0 0 1.5rem;color:${C.fg};">${gc('contactPage.introHeading') || "We'd Love to Hear From You"}</h2>
-          <p style="color:${C.mutedFg};line-height:1.8;margin:0 0 2rem;">${gc('contactPage.introText') || "Whether you have questions about equipment, need service, or just want to talk with folks who understand the land, we're here to help."}</p>
+          ${gc('contactPage.introHeading') ? `<h2 class="font-serif" style="font-size:1.75rem;font-weight:700;margin:0 0 1.5rem;color:${C.fg};">${gc('contactPage.introHeading')}</h2>` : ''}
+          ${gc('contactPage.introText') ? `<p style="color:${C.mutedFg};line-height:1.8;margin:0 0 2rem;">${gc('contactPage.introText')}</p>` : ''}
           <h3 class="font-serif" style="font-size:1rem;font-weight:600;margin:0 0 1rem;color:${C.fg};">${gc('contactPage.locationHeading') || 'Contact Information'}</h3>
           <div style="display:flex;flex-direction:column;gap:1.25rem;">
             ${[
