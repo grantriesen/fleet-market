@@ -218,7 +218,7 @@ async function generateTemplateHTML(
   } else if (templateSlug === 'corporate-edge') {
     html = await renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
   } else if (templateSlug === 'zenith-lawn') {
-    html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
+    html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || []);
   } else if (templateSlug === 'modern-lawn-solutions') {
     html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || []);
   } else if (templateSlug === 'warm-earth-designs') {

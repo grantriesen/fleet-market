@@ -4,9 +4,6 @@
 //         text-only brand display, clean product cards, fade-in animations.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { injectCartSystem, serviceFormHtml } from './shared';
-import { rentalModalBlock, rentalReserveButton } from './shared-rental';
-
 /* ── DEMO overrides ── */
 export const ZENITH_LAWN_DEMO_OVERRIDES = {
   'business.name': 'Zenith Equipment Co.',
@@ -62,7 +59,8 @@ export async function renderZenithLawnPage(
   supabase?: any,
   siteAddons: string[] = [],
   checkoutMode: string = 'quote_only',
-  stripeConnected: boolean = false
+  stripeConnected: boolean = false,
+  manufacturers: any[] = []
 ) {
   const ZL_KEY_ALIASES: Record<string, string> = {
     'business.name':    'businessInfo.businessName',
@@ -116,25 +114,24 @@ export async function renderZenithLawnPage(
 
   let body = '';
   switch (currentPage) {
-    case 'home': case 'index': body = zlHome(siteId, getContent, products, vis, colors, baseUrl); break;
-    case 'service': body = zlService(siteId, getContent, baseUrl, enabledFeatures); break;
+    case 'home': case 'index': body = zlHome(siteId, getContent, products, vis, colors, baseUrl, manufacturers || []); break;
+    case 'service': body = zlService(siteId, getContent, baseUrl); break;
     case 'contact': body = zlContact(siteId, getContent, hoursLine, baseUrl); break;
     case 'inventory': body = zlInventory(siteId, getContent, products, baseUrl); break;
     case 'rentals': body = await zlRentals(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
     case 'manufacturers': body = zlManufacturers(siteId, getContent, baseUrl); break;
-    default: body = zlHome(siteId, getContent, products, vis, colors, baseUrl); break;
+    default: body = zlHome(siteId, getContent, products, vis, colors, baseUrl, manufacturers || []); break;
   }
 
   return zlShell(
     getContent('businessInfo.businessName') || getContent('business.name') || 'Zenith Equipment',
     fonts, colors,
-    zlHeader(siteId, currentPage, pages, getContent, baseUrl) + body + zlFooter(siteId, pages, getContent, hoursLine, baseUrl),
-    enabledFeatures, siteId, checkoutMode
+    zlHeader(siteId, currentPage, pages, getContent, baseUrl) + body + zlFooter(siteId, pages, getContent, hoursLine, baseUrl)
   );
 }
 
 // ── HTML Shell ──
-function zlShell(title: string, fonts: any, colors: any, body: string, enabledFeatures?: Set<string>, siteId?: string, checkoutMode: string = 'quote_only') {
+function zlShell(title: string, fonts: any, colors: any, body: string) {
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const gUrl = Array.from(fontFamilies).map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700&display=swap`).join('&');
   return `<!DOCTYPE html>
@@ -162,12 +159,11 @@ function zlShell(title: string, fonts: any, colors: any, body: string, enabledFe
     @media(min-width:768px){ .container-narrow { padding: 0 3rem; } }
     @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
     .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
-    :root { --color-primary: ${colors.primary}; --color-secondary: ${colors.secondary}; --color-accent: ${colors.accent}; }
   </style>
 </head>
 <body>${body}<script>
   function fmSubmitForm(form,siteId,formType,extraFn){var btn=form.querySelector('button[type="submit"]');var orig=btn?btn.innerHTML:'';if(btn){btn.disabled=true;btn.innerHTML='Submitting...';}var nameEl=form.querySelector('input[type="text"]');var emailEl=form.querySelector('input[type="email"]');var phoneEl=form.querySelector('input[type="tel"]');var msgEl=form.querySelector('textarea');var data={site_id:siteId,form_type:formType,name:nameEl?nameEl.value:null,email:emailEl?emailEl.value:null,phone:phoneEl?phoneEl.value:null,message:msgEl?msgEl.value:null,extra_data:extraFn?extraFn(form):null};fetch('/api/submit-form',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json();}).then(function(res){if(res.success){var suc=form.parentElement?form.parentElement.querySelector('[data-fm-success]'):null;if(suc){form.style.display='none';suc.style.display='block';}else{form.reset();if(btn){btn.innerHTML='\u2713 Submitted!';btn.style.background='#16a34a';}}}else{if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');}}).catch(function(){if(btn){btn.disabled=false;btn.innerHTML=orig;}alert('Something went wrong. Please try again.');});}
-</script>${enabledFeatures?.has('rental_scheduling') ? rentalModalBlock('fm', siteId || '') : ''}${injectCartSystem(siteId || '', checkoutMode, colors.accent)}
+</script>${enabledFeatures && enabledFeatures.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
 </body>
 </html>`;
 }
@@ -186,7 +182,11 @@ function zlHeader(siteId: string, currentPage: string, pages: any[], getContent:
   <header class="fixed top-0 left-0 right-0 z-50 border-b border-neutral-200" style="background: rgba(250,250,250,0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
     <nav class="container-narrow">
       <div class="flex items-center justify-between h-16 md:h-20">
-        <a href="${baseUrl}index" class="text-lg md:text-xl font-medium tracking-tight text-neutral-900">${name}</a>
+        <a href="${baseUrl}index" class="flex items-center">
+          ${getContent('businessInfo.logoImage')
+            ? `<img src="${getContent('businessInfo.logoImage')}" alt="${name}" style="max-height: 44px; max-width: 160px; object-fit: contain;">`
+            : `<span class="text-lg md:text-xl font-medium tracking-tight text-neutral-900">${name}</span>`}
+        </a>
         <div class="hidden md:flex items-center gap-8">${links}</div>
         <!-- Mobile: scrollable row below -->
         <div class="md:hidden">
@@ -231,9 +231,10 @@ function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine:
         <div>
           <h4 class="text-sm font-medium mb-4">Contact</h4>
           <div class="flex flex-col gap-3 text-sm text-neutral-500">
-            <p>${getContent('businessInfo.address') || getContent('business.address') || ''}</p>
-            <p>${getContent('businessInfo.phone') || getContent('business.phone') || ''}</p>
-            <p>${hoursLine}</p>
+            ${(getContent('businessInfo.address') || getContent('business.address')) ? `<p>${getContent('businessInfo.address') || getContent('business.address')}</p>` : ''}
+            ${(getContent('businessInfo.phone') || getContent('business.phone')) ? `<p>${getContent('businessInfo.phone') || getContent('business.phone')}</p>` : ''}
+            ${(getContent('businessInfo.email') || getContent('business.email')) ? `<p>${getContent('businessInfo.email') || getContent('business.email')}</p>` : ''}
+            ${getContent('businessInfo.hours') ? `<p>${getContent('businessInfo.hours')}</p>` : (hoursLine && hoursLine !== 'Mon–Fri: Closed | Sat: Closed | Sun: Closed' ? `<p>${hoursLine}</p>` : '')}
           </div>
         </div>
       </div>
@@ -246,7 +247,8 @@ function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine:
 
 // ── Home ──
 function zlHome(siteId: string, getContent: Function, products: any[], vis: Record<string, boolean>, colors: any,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  manufacturers: any[] = []
 ) {
   let html = '';
 
@@ -266,10 +268,10 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
             ${getContent('hero.subheading') || getContent('hero.subtitle') || ''}
           </p>
           <div class="animate-fade-in" style="animation-delay:0.2s;">
-            <a href="${baseUrl}inventory"
+            <a href="${getContent('hero.button1.destination') === '__custom' ? getContent('hero.button1.destination_url') : `${baseUrl}${getContent('hero.button1.destination') || 'inventory'}`}"
               class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium text-white transition-slow hover:opacity-90"
               style="background-color: ${colors.accent};">
-              ${getContent('hero.ctaPrimary') || 'View Inventory'}
+              ${getContent('hero.button1.text') || getContent('hero.ctaPrimary') || 'View Inventory'}
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
             </a>
           </div>
@@ -284,7 +286,7 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
     <section data-section="featuredProducts" class="section-spacing border-t border-neutral-200">
       <div class="container-narrow">
         <div class="flex items-end justify-between mb-12">
-          <h2 class="text-3xl md:text-4xl font-light tracking-tight">Featured</h2>
+          <h2 class="text-3xl md:text-4xl font-light tracking-tight">${getContent('featured.heading') || 'Featured'}</h2>
           <a href="${baseUrl}inventory" class="text-sm text-neutral-500 hover:text-neutral-900 transition-slow">View all</a>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
@@ -295,15 +297,18 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
   }
 
   // Brands
-  if (vis.manufacturers !== false) {
-    const brands = ['John Deere', 'Husqvarna', 'Stihl', 'Honda', 'Toro'];
-    const logos: Record<string,string> = { 'Toro': '/images/logos/toro.png', 'John Deere': '/images/logos/john-deere.png', 'Stihl': '/images/logos/Stihl.png', 'Husqvarna': '/images/logos/Husqvarna.png', 'Honda': '/images/logos/Honda.png' };
+  if (vis.manufacturers !== false && manufacturers && manufacturers.length > 0) {
     html += `
     <section data-section="manufacturers" class="section-spacing border-t border-neutral-200">
       <div class="container-narrow">
-        <p class="text-xs text-neutral-400 uppercase tracking-widest text-center mb-12">Authorized Dealer</p>
+        <p class="text-xs text-neutral-400 uppercase tracking-widest text-center mb-12">${getContent('manufacturers.heading') || 'Authorized Dealer'}</p>
         <div class="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-          ${brands.map(b => `<img src="${logos[b] || ''}" alt="${b}" style="height: 44px; width: auto; opacity: 0.5; transition: opacity 0.4s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">`).join('')}
+          ${manufacturers.slice(0, 8).map((m: any) => {
+            const logoSrc = m.logo_url || m.logoUrl || '';
+            return logoSrc
+              ? `<img src="${logoSrc}" alt="${m.name}" style="height: 44px; width: auto; opacity: 0.5; transition: opacity 0.4s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">`
+              : `<span style="font-size: 0.875rem; font-weight: 600; color: #737373; opacity: 0.7;">${m.name}</span>`;
+          }).join('')}
         </div>
       </div>
     </section>`;
@@ -319,6 +324,7 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
       <section data-section="testimonials" class="section-spacing border-t border-neutral-200">
         <div class="container-narrow">
           <div class="max-w-3xl mx-auto text-center">
+            ${getContent('testimonials.heading') ? `<p class="text-xs text-neutral-400 uppercase tracking-widest mb-12">${getContent('testimonials.heading')}</p>` : ''}
             <blockquote class="text-2xl md:text-3xl font-light leading-relaxed text-neutral-900 mb-8">"${t.quote}"</blockquote>
             <div>
               <p class="text-sm font-medium">${t.name || ''}</p>
@@ -370,10 +376,9 @@ function zlProductCard(siteId: string, p: any, baseUrl: string = '') {
 
 // ── Service ──
 function zlService(siteId: string, getContent: Function,
-  baseUrl: string = '',
-  enabledFeatures: Set<string> = new Set()
+  baseUrl: string = ''
 ) {
-  const formHeading = getContent('servicePage.formHeading') || (enabledFeatures.has('service_scheduling') ? 'Schedule Service' : 'Request Service');
+  const formHeading = getContent('servicePage.formHeading') || 'Request Service';
 
   // Build service cards from config fields
   const serviceCards = [1, 2, 3].map(i => {
@@ -392,9 +397,6 @@ function zlService(siteId: string, getContent: Function,
   }).filter(Boolean);
 
   const defaultServices = ['Routine maintenance & tune-ups','Engine diagnostics & repair','Blade sharpening & replacement','Electrical system repair','Seasonal winterization','Warranty service for authorized brands'];
-
-  const inputCls = 'w-full px-3 py-2.5 border border-neutral-200 rounded text-sm focus:outline-none focus:border-neutral-400 bg-white';
-  const btnCls = 'w-full py-3 bg-neutral-900 text-white text-sm font-medium rounded hover:bg-neutral-700 transition-colors cursor-pointer border-none';
 
   return zlPageHero(getContent, 'servicePage', 'Service & Repair', getContent('servicePage.subheading') || '') + `
   <section class="section-spacing">
@@ -417,7 +419,14 @@ function zlService(siteId: string, getContent: Function,
         </div>
         <div>
           <h2 class="text-xl font-light mb-8">${formHeading}</h2>
-          ${serviceFormHtml(siteId, enabledFeatures, inputCls, btnCls, inputCls, 'block text-xs font-medium text-neutral-600 mb-1')}
+          ${zlForm(siteId, [
+            { label: 'First Name', type: 'text', half: true },
+            { label: 'Last Name', type: 'text', half: true },
+            { label: 'Email', type: 'email' },
+            { label: 'Phone', type: 'tel' },
+            { label: 'Equipment Type & Model', type: 'text', placeholder: 'e.g., John Deere X350' },
+            { label: 'Issue Description', type: 'textarea', placeholder: 'Please describe the issue or service needed...' },
+          ], 'Submit Request')}
         </div>
       </div>
     </div>
@@ -696,3 +705,4 @@ function zlPageHero(getContent: Function, pageKey: string, defaultHeading: strin
   </section>`;
 }
 
+import { rentalModalBlock, rentalReserveButton } from './shared-rental';
