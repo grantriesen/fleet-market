@@ -116,7 +116,7 @@ export async function renderZenithLawnPage(
   switch (currentPage) {
     case 'home': case 'index': body = zlHome(siteId, getContent, products, vis, colors, baseUrl, manufacturers || []); break;
     case 'service': body = zlService(siteId, getContent, baseUrl, colors, enabledFeatures.has('service_scheduling')); break;
-    case 'contact': body = zlContact(siteId, getContent, hoursLine, baseUrl); break;
+    case 'contact': body = zlContact(siteId, getContent, hoursLine, baseUrl, colors); break;
     case 'inventory': body = zlInventory(siteId, getContent, products, baseUrl); break;
     case 'rentals': body = await zlRentals(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
     case 'manufacturers': body = zlManufacturers(siteId, getContent, baseUrl, manufacturers || [], colors); break;
@@ -551,7 +551,7 @@ function zlService(siteId: string, getContent: Function,
           { label: 'Phone', type: 'tel' },
           { label: 'Equipment Type & Model', type: 'text', placeholder: 'e.g., John Deere X350' },
           { label: 'Issue Description', type: 'textarea', placeholder: 'Please describe the issue or service needed...' },
-        ], 'Submit Request')}
+        ], 'Submit Request', colors.accent || '#22c55e')}
       </div>
     </div>
   </section>`;
@@ -577,7 +577,8 @@ function zlService(siteId: string, getContent: Function,
 
 // ── Contact ──
 function zlContact(siteId: string, getContent: Function, hoursLine: string,
-  baseUrl: string = ''
+  baseUrl: string = '',
+  colors: any = {}
 ) {
   const formHeading = getContent('contactPage.formHeading') || 'Send a Message';
   const locationHeading = getContent('contactPage.locationHeading') || 'Contact Information';
@@ -634,7 +635,7 @@ function zlContact(siteId: string, getContent: Function, hoursLine: string,
             { label: 'Email', type: 'email', half: true },
             { label: 'Subject', type: 'text' },
             { label: 'Message', type: 'textarea' },
-          ], 'Send Message')}
+          ], 'Send Message', colors.accent || '#22c55e')}
         </div>
       </div>
     </div>
@@ -844,8 +845,8 @@ function zlManufacturers(siteId: string, getContent: Function,
 }
 
 // ── Form Helper ──
-function zlForm(siteId: string, fields: any[], buttonText: string) {
-  const accent = '#22c55e';
+function zlForm(siteId: string, fields: any[], buttonText: string, accentColor: string = '#22c55e') {
+  const accent = accentColor;
   let html = `<form class="space-y-6" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var s=f.querySelector('select');return s?{equipment_type:s.value}:null;});">`;
   let i = 0;
   while (i < fields.length) {
