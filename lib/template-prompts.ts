@@ -394,118 +394,64 @@ export const TEMPLATE_PROMPTS: Record<string, TemplatePromptConfig> = {
   'zenith-lawn': {
     tone: `Write in a minimalist, premium, editorial tone. Zenith Lawn is for high-end equipment dealers targeting sophisticated buyers — golf course managers, estate owners, premium landscapers. Copy should be refined and confident. Short sentences. No filler words. Think luxury brand language applied to outdoor equipment. Sentence case. Understated elegance over excitement.`,
     alwaysFields: {
-      'hero.heading': 'Hero heading (4-8 words, refined, can be a statement or question)',
+      // Hero
+      'hero.heading': 'Hero heading (4-8 words, refined, can be a statement — reflects their specialty)',
       'hero.subheading': 'Hero subheading (1-2 sentences, elevated and precise)',
-      'hero.ctaPrimary': 'Primary button text (2-4 words, elegant)',
-      'featured.heading': 'Featured section heading (1-3 words, minimal)',
-      'manufacturers.heading': 'Brands section label (1-4 words)',
-      'cta.heading': 'CTA heading (4-7 words, sophisticated)',
-      'footer.tagline': 'Footer tagline (4-7 words, refined)',
+      // Featured
+      'featured.heading': 'Featured section heading (1-3 words, minimal, e.g. Featured or Selected)',
+      // Manufacturers
+      'manufacturers.heading': 'Brands section label (2-4 words, e.g. Authorized Dealer)',
+      // Testimonials
+      'testimonials.heading': 'Testimonials section heading (2-4 words, refined)',
+      // CTA
+      'cta.heading': 'CTA heading (4-7 words, sophisticated, invites action)',
+      'cta.subheading': 'CTA subheading (1-2 sentences, refined and helpful)',
+      // Footer
+      'footer.tagline': 'Footer tagline (4-7 words, refined brand statement)',
+      // Contact Page
       'contactPage.heading': 'Contact page heading (1-3 words, minimal)',
-      'contactPage.subheading': 'Contact page subheading (1 sentence)',
-      'contactPage.formHeading': 'Form heading (2-4 words)',
-      'contactPage.locationHeading': 'Location heading (2-4 words)',
+      'contactPage.subheading': 'Contact page subheading (1-2 sentences, welcoming)',
+      'contactPage.formHeading': 'Contact form heading (2-4 words)',
+      'contactPage.locationHeading': 'Location section heading (2-4 words)',
+      'contactPage.contentHeading': 'Contact page content heading (3-5 words)',
+      'contactPage.contentText': 'Contact page content paragraph (2-3 sentences about visiting or reaching them)',
+      // Manufacturers Page
       'manufacturersPage.heading': 'Manufacturers page heading (2-4 words)',
-      'manufacturersPage.subheading': 'Manufacturers page subheading (1-2 sentences)',
-      'manufacturersPage.introText': 'Manufacturers intro (2-3 sentences, sophisticated)',
+      'manufacturersPage.subheading': 'Manufacturers page subheading (1-2 sentences, premium tone)',
+      'manufacturersPage.contentHeading': 'Manufacturers content heading (3-5 words)',
+      'manufacturersPage.contentText': 'Manufacturers content paragraph (2-3 sentences about authorized dealer status)',
+      'manufacturersPage.ctaHeading': 'Manufacturers CTA heading (3-5 words)',
+      'manufacturersPage.ctaText': 'Manufacturers CTA text (1 sentence)',
     },
     inventoryFields: {
-      'inventoryPage.heading': 'Inventory page heading (1-3 words, minimal)',
+      'inventoryPage.heading': 'Inventory page heading (1-3 words, minimal, e.g. Equipment or Our Inventory)',
       'inventoryPage.subheading': 'Inventory page description (1 precise sentence)',
-      'inventoryPage.filterLabel': 'Filter label (2-3 words)',
+      'inventoryPage.contentHeading': 'Inventory content heading (3-5 words)',
+      'inventoryPage.contentText': 'Inventory content paragraph (2-3 sentences about their equipment selection or buying process)',
     },
     serviceFields: {
       'servicePage.heading': 'Service page heading (2-4 words)',
       'servicePage.subheading': 'Service page subheading (1-2 sentences, premium tone)',
-      'servicePage.service1Title': 'Service 1 title (1-3 words)',
-      'servicePage.service1Description': 'Service 1 description (1 sentence)',
-      'servicePage.service2Title': 'Service 2 title (1-3 words)',
-      'servicePage.service2Description': 'Service 2 description (1 sentence)',
-      'servicePage.service3Title': 'Service 3 title (1-3 words)',
-      'servicePage.service3Description': 'Service 3 description (1 sentence)',
+      'servicePage.contentHeading': 'Service content heading (3-5 words)',
+      'servicePage.contentText': 'Service content paragraph (2-3 sentences about their service department)',
+      'servicePage.service1Title': 'Service 1 title (1-3 words, e.g. Repair)',
+      'servicePage.service1Description': 'Service 1 description (1 refined sentence)',
+      'servicePage.service2Title': 'Service 2 title (1-3 words, e.g. Maintenance)',
+      'servicePage.service2Description': 'Service 2 description (1 refined sentence)',
+      'servicePage.service3Title': 'Service 3 title (1-3 words, e.g. Parts)',
+      'servicePage.service3Description': 'Service 3 description (1 refined sentence)',
       'servicePage.ctaHeading': 'Service CTA heading (3-5 words)',
     },
     rentalsFields: {
       'rentalsPage.heading': 'Rentals page heading (1-3 words, minimal)',
       'rentalsPage.subheading': 'Rentals page description (1-2 sentences, refined)',
-      'rentalsPage.pricingNote': 'Pricing note (1 sentence)',
+      'rentalsPage.contentHeading': 'Rentals content heading (3-5 words)',
+      'rentalsPage.contentText': 'Rentals content paragraph (2-3 sentences about the rental process or availability)',
+      'rentalsPage.pricingNote': 'Pricing note (1 sentence about flexible terms)',
+      'rentalsPage.disclaimer1': 'Rental disclaimer 1 (short phrase starting with bullet, e.g. Security deposit required for all rentals)',
+      'rentalsPage.disclaimer2': 'Rental disclaimer 2 (short phrase, e.g. Delivery and pickup available for additional fee)',
+      'rentalsPage.disclaimer3': 'Rental disclaimer 3 (short phrase, e.g. Long-term rates available for rentals exceeding 30 days)',
     },
   },
 
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Build AI prompt from template config
-// ─────────────────────────────────────────────────────────────────────────────
-export function buildOnboardingPrompt(
-  templateSlug: string,
-  form: {
-    businessName: string;
-    city: string;
-    state: string;
-    phone: string;
-    email: string;
-    weekdayHours: string;
-    saturdayHours: string;
-    sundayHours: string;
-    yearsInBusiness: string;
-    serviceArea: string;
-    servicesDescription: string;
-    selectedBrands: string[];
-    businessDescription: string;
-    machinesServiced?: string;
-    customerSatisfaction?: string;
-  },
-  addons: string[]
-): string {
-  const config = TEMPLATE_PROMPTS[templateSlug] || TEMPLATE_PROMPTS['green-valley-industrial'];
-
-  // Build field JSON schema
-  const buildFieldSchema = (fields: Record<string, string>) =>
-    Object.entries(fields).map(([key, desc]) => `  "${key}": "${desc}"`).join(',\n');
-
-  const addonFields = [
-    ...(addons.includes('inventory') ? Object.entries(config.inventoryFields) : []),
-    ...(addons.includes('service') ? Object.entries(config.serviceFields) : []),
-    ...(addons.includes('rentals') ? Object.entries(config.rentalsFields) : []),
-  ];
-
-  const allFields = {
-    ...config.alwaysFields,
-    ...(addons.includes('inventory') ? config.inventoryFields : {}),
-    ...(addons.includes('service') ? config.serviceFields : {}),
-    ...(addons.includes('rentals') ? config.rentalsFields : {}),
-  };
-
-  const fieldSchema = buildFieldSchema(allFields);
-
-  return `You are writing website copy for an outdoor power equipment and landscape contractor dealer.
-
-TONE INSTRUCTIONS:
-${config.tone}
-
-BUSINESS INFORMATION:
-Business Name: ${form.businessName}
-Location: ${form.city}, ${form.state}
-Phone: ${form.phone}
-Email: ${form.email}
-Hours: ${form.weekdayHours}${form.saturdayHours ? ', ' + form.saturdayHours : ''}${form.sundayHours ? ', ' + form.sundayHours : ''}
-Years in Business: ${form.yearsInBusiness || 'established'}
-Service Area: ${form.serviceArea || 'local area'}
-Services Offered: ${form.servicesDescription}
-Brands Carried: ${form.selectedBrands.join(', ') || 'various brands'}
-
-In their own words: "${form.businessDescription}"${form.machinesServiced ? `\nMachines Serviced: ${form.machinesServiced}` : ''}${form.customerSatisfaction ? `\nCustomer Satisfaction: ${form.customerSatisfaction}` : ''}
-
-INSTRUCTIONS:
-- Use the tone instructions above strictly — this is critical for brand consistency
-- Reference their specific details where possible (brands, location, years, services)
-- Write copy that fits the character limits described for each field
-- Do not use placeholder text — every field should be specific to this business
-
-Return ONLY a valid JSON object with these exact keys. No markdown, no backticks, no extra text:
-
-{
-${fieldSchema}
-}`;
-}
