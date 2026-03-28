@@ -572,7 +572,7 @@ function zlService(siteId: string, getContent: Function,
           </div>`
       }
     </div>
-  </section>` + ctaSection + formSection;
+  </section>` + formSection + ctaSection;
 }
 
 // ── Contact ──
