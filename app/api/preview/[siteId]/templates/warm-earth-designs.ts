@@ -744,8 +744,8 @@ async function weRentalsPage(
               ${item.monthly_rate ? `<div><p style="font-size:0.7rem;color:#6b7280;text-transform:uppercase;margin:0;">Monthly</p><p style="font-weight:700;color:#8B5E3C;margin:0;">$${item.monthly_rate}</p></div>` : ''}
             </div>
             ${item.quantity_available > 0
-              ? rentalReserveButton(item, 'fm', 'block w-full text-center cta-button rounded-md text-sm py-2 cursor-pointer border-0')
-              : `<button disabled style="display:block;width:100%;padding:0.625rem;background:#e5e7eb;color:#9ca3af;border:none;border-radius:0.375rem;font-weight:600;cursor:not-allowed;">Currently Unavailable</button>`
+              ? rentalReserveButton(item, 'fm', 'btn-accent', `display:block;width:100%;justify-content:center;text-align:center;`)
+              : `<button disabled style="display:block;width:100%;padding:0.75rem;background:#e5e7eb;color:#9ca3af;border:none;border-radius:9999px;font-weight:600;cursor:not-allowed;font-size:1rem;">Currently Unavailable</button>`
             }
           </div>
         </div>`).join('')}
@@ -770,7 +770,7 @@ async function weRentalsPage(
           { icon: gc('rentalsPage.info1.icon') || '📅', title: gc('rentalsPage.info1.text') || 'Flexible Terms', desc: gc('rentalsPage.info1.description') || 'Daily, weekly, or monthly rentals to fit your project' },
           { icon: gc('rentalsPage.info2.icon') || '⏱', title: gc('rentalsPage.info2.text') || 'Try Before You Buy', desc: gc('rentalsPage.info2.description') || 'Rental fees applied toward purchase of new equipment' },
           { icon: gc('rentalsPage.info3.icon') || '🌿', title: gc('rentalsPage.info3.text') || 'Well-Maintained', desc: gc('rentalsPage.info3.description') || 'All equipment serviced and inspected before each use' },
-        ].map(v => `<div><div style="background:${C.accent};border-radius:9999px;width:4rem;height:4rem;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;font-size:1.75rem;">${v.icon}</div><h3 class="font-serif" style="font-size:1.125rem;margin:0 0 0.5rem;font-weight:600;">${v.title}</h3><p style="color:${C.mutedFg};font-size:0.9375rem;margin:0;">${v.desc}</p></div>`).join('')}
+        ].map(v => `<div><div style="background:${C.accent};border-radius:9999px;width:4rem;height:4rem;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;font-size:1.75rem;overflow:hidden;">${weIcon(v.icon, v.icon, '4rem')}</div><h3 class="font-serif" style="font-size:1.125rem;margin:0 0 0.5rem;font-weight:600;">${v.title}</h3><p style="color:${C.mutedFg};font-size:0.9375rem;margin:0;">${v.desc}</p></div>`).join('')}
       </div>
     </div>
   </section>`;
