@@ -307,7 +307,7 @@ function vdFooter(getContent: GetContent, colors: Colors, pages: any[], siteId: 
   const city = getContent('businessInfo.city');
   const state = getContent('businessInfo.state');
   const zip = getContent('businessInfo.zip');
-  const tagline = getContent('footer.tagline');
+  const tagline = getContent('footer.tagline') || getContent('footer.description');
 
   const quickLinks = pages.map(p =>
     `<li><a href="${baseUrl}${p.slug}" class="text-white/70 hover:text-primary transition-colors font-medium">${p.name}</a></li>`
@@ -581,7 +581,7 @@ function vdServicePage(getContent: GetContent, colors: Colors, siteId: string, h
     </div>
   </section>`;
 
-  const services = ['1','2','3'].map((n, i) => {
+  const services = ['1','2','3','4'].map((n, i) => {
     const title = getContent(`servicePage.service${n}Title`);
     const desc = getContent(`servicePage.service${n}Description`);
     if (!title) return '';
@@ -746,7 +746,26 @@ function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, v
     </div>
   </section>`;
 
-  return heroHtml + formHtml;
+  const contactContentHtml = (getContent('contactPage.contentHeading') || getContent('contactPage.contentText')) ? `
+  <section data-section="contactContent" class="py-10 bg-gray-50">
+    <div class="max-w-3xl mx-auto px-6 text-center">
+      ${getContent('contactPage.contentHeading') ? `<h2 class="text-3xl font-heading font-black text-gray-900 mb-3">${getContent('contactPage.contentHeading')}</h2>` : ''}
+      ${getContent('contactPage.contentText') ? `<p class="text-gray-600 text-lg leading-relaxed">${getContent('contactPage.contentText')}</p>` : ''}
+    </div>
+  </section>` : '';
+
+  const mapHtml = (getContent('contactPage.mapEmbed') || address) ? `
+  <section data-section="contactMap" class="pb-16 bg-white">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="rounded-3xl overflow-hidden" style="height: 400px; border: 3px solid var(--color-primary);">
+        ${getContent('contactPage.mapEmbed')
+          ? getContent('contactPage.mapEmbed')
+          : `<iframe src="https://maps.google.com/maps?q=${encodeURIComponent(address + (city ? ', ' + city : '') + (state ? ', ' + state : ''))}&output=embed" width="100%" height="400" style="border:0;display:block;" allowfullscreen loading="lazy" title="Business location"></iframe>`}
+      </div>
+    </div>
+  </section>` : '';
+
+  return heroHtml + contactContentHtml + formHtml + mapHtml;
 }
 
 
@@ -770,7 +789,8 @@ function vdManufacturersPage(getContent: GetContent, colors: Colors, manufacture
   const contentHtml = `
   <section data-section="manufacturersList" class="py-16 bg-white">
     <div class="max-w-7xl mx-auto px-6">
-      <p class="text-center text-gray-600 mb-12 max-w-3xl mx-auto">${getContent('manufacturersPage.introText') || ''}</p>
+      ${getContent('manufacturersPage.contentHeading') ? `<h2 class="text-4xl font-heading font-black text-center mb-4" style="color: var(--color-primary);">${getContent('manufacturersPage.contentHeading')}</h2>` : ''}
+      ${(getContent('manufacturersPage.contentText') || getContent('manufacturersPage.introText')) ? `<p class="text-center text-gray-600 mb-12 max-w-3xl mx-auto">${getContent('manufacturersPage.contentText') || getContent('manufacturersPage.introText')}</p>` : ''}
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
         ${manufacturers.map((m, i) => `
           <div class="text-center group">
@@ -794,7 +814,7 @@ function vdManufacturersPage(getContent: GetContent, colors: Colors, manufacture
     <div class="max-w-3xl mx-auto px-6">
       ${mfgCtaHeading ? `<h2 class="text-4xl font-heading font-black text-white mb-4">${mfgCtaHeading}</h2>` : ''}
       ${mfgCtaText ? `<p class="text-lg text-white/90 mb-8">${mfgCtaText}</p>` : ''}
-      <a href="${baseUrl}${getContent('manufacturersPage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-primary);">${mfgCtaBtn}</a>
+      <a href="${getContent('manufacturersPage.button1.destination') === '__custom' ? getContent('manufacturersPage.button1.destination_url') : `${baseUrl}${getContent('manufacturersPage.button1.destination') || 'contact'}`}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-primary);">${getContent('manufacturersPage.button1.text') || mfgCtaBtn}</a>
     </div>
   </section>` : '';
 
@@ -876,7 +896,15 @@ async function vdInventoryPage(
     </div>
   </section>`;
 
-  return heroHtml + gridHtml;
+  const invContentHtml = (getContent('inventoryPage.contentHeading') || getContent('inventoryPage.contentText')) ? `
+  <section data-section="inventoryContent" class="py-10 bg-gray-50">
+    <div class="max-w-3xl mx-auto px-6 text-center">
+      ${getContent('inventoryPage.contentHeading') ? `<h2 class="text-3xl font-heading font-black text-gray-900 mb-3">${getContent('inventoryPage.contentHeading')}</h2>` : ''}
+      ${getContent('inventoryPage.contentText') ? `<p class="text-gray-600 text-lg leading-relaxed">${getContent('inventoryPage.contentText')}</p>` : ''}
+    </div>
+  </section>` : '';
+
+  return heroHtml + invContentHtml + gridHtml;
 }
 
 
@@ -941,15 +969,11 @@ async function vdRentalsPage(
           </div>
         </div>
       </section>
-      
-
-  <!-- Rental Booking Modal (fm) -->
-  <script src="/fm-rental-datepicker.js"></script>
-`;
+      `;
     }
   }
 
-  const howHeading = getContent('rentalsPage.contentHeading') || 'HOW RENTALS WORK';
+  const howHeading = getContent('rentalsPage.processHeading') || getContent('rentalsPage.contentHeading') || 'HOW RENTALS WORK';
   const infoHtml = `
   <section data-section="rentalInfo" class="py-16 bg-white">
     <div class="max-w-7xl mx-auto px-6">
@@ -969,13 +993,22 @@ async function vdRentalsPage(
     </div>
   </section>`;
 
-  const ctaHtml = !inventorySection ? `
-  <section class="py-16 text-center" style="background-color: var(--color-secondary);">
-    <div class="max-w-3xl mx-auto px-6">
-      <h2 class="text-4xl font-heading font-black text-white mb-4">${getContent('rentalsPage.ctaHeading') || 'Ready to Rent?'}</h2>
-      <a href="${baseUrl}${getContent('rentalsPage.ctaLink') || 'contact'}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-secondary);">${getContent('rentalsPage.ctaText') || 'Get a Quote'}</a>
+  const rentalContentHtml = (getContent('rentalsPage.pageContentHeading') || getContent('rentalsPage.pageContentText') || getContent('rentalsPage.pricingNote')) ? `
+  <section data-section="rentalContent" class="py-10 bg-gray-50">
+    <div class="max-w-3xl mx-auto px-6 text-center">
+      ${getContent('rentalsPage.pageContentHeading') ? `<h2 class="text-3xl font-heading font-black text-gray-900 mb-3">${getContent('rentalsPage.pageContentHeading')}</h2>` : ''}
+      ${getContent('rentalsPage.pageContentText') ? `<p class="text-gray-600 text-lg leading-relaxed mb-4">${getContent('rentalsPage.pageContentText')}</p>` : ''}
+      ${getContent('rentalsPage.pricingNote') ? `<p class="text-sm text-gray-700 bg-white border-2 border-gray-200 rounded-xl px-5 py-3 inline-block">${getContent('rentalsPage.pricingNote')}</p>` : ''}
     </div>
   </section>` : '';
 
-  return heroHtml + (inventorySection || (infoHtml + ctaHtml));
+  const ctaHtml = !inventorySection ? `
+  <section class="py-16 text-center" style="background-color: var(--color-secondary);">
+    <div class="max-w-3xl mx-auto px-6">
+      <h2 class="text-4xl font-heading font-black text-white mb-6">${getContent('rentalsPage.ctaHeading') || 'Ready to Rent?'}</h2>
+      <a href="${getContent('rentalsPage.button1.destination') === '__custom' ? getContent('rentalsPage.button1.destination_url') : `${baseUrl}${getContent('rentalsPage.button1.destination') || 'contact'}`}" class="inline-block bg-white font-heading font-black text-lg px-8 py-4 rounded-full" style="color: var(--color-secondary);">${getContent('rentalsPage.button1.text') || 'Get a Quote'}</a>
+    </div>
+  </section>` : '';
+
+  return heroHtml + (inventorySection || (infoHtml + rentalContentHtml + ctaHtml));
 }
