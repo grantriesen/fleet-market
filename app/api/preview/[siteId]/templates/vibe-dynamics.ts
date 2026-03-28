@@ -754,10 +754,12 @@ function vdContactPage(getContent: GetContent, colors: Colors, siteId: string, v
   const mapHtml = (getContent('contactPage.mapEmbed') || address) ? `
   <section data-section="contactMap" class="pb-16 bg-white">
     <div class="max-w-7xl mx-auto px-6">
-      <div class="rounded-3xl overflow-hidden" style="height: 400px; border: 3px solid var(--color-primary);">
-        ${getContent('contactPage.mapEmbed')
-          ? getContent('contactPage.mapEmbed')
-          : `<iframe src="https://maps.google.com/maps?q=${encodeURIComponent(address + (city ? ', ' + city : '') + (state ? ', ' + state : ''))}&output=embed" width="100%" height="400" style="border:0;display:block;" allowfullscreen loading="lazy" title="Business location"></iframe>`}
+      <div class="rounded-3xl overflow-hidden" style="height: 400px; border: 3px solid var(--color-primary); position: relative;">
+        <div style="position: absolute; inset: 0; width: 100%; height: 100%;">
+          ${getContent('contactPage.mapEmbed')
+            ? getContent('contactPage.mapEmbed').replace(/<iframe /gi, '<iframe style="width:100%;height:100%;border:0;display:block;" ')
+            : `<iframe src="https://maps.google.com/maps?q=${encodeURIComponent(address + (city ? ', ' + city : '') + (state ? ', ' + state : ''))}&output=embed" width="100%" height="100%" style="border:0;display:block;" allowfullscreen loading="lazy" title="Business location"></iframe>`}
+        </div>
       </div>
     </div>
   </section>` : '';
