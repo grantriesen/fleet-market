@@ -758,13 +758,8 @@ async function zlRentals(
           </div>
         </div>`).join('');
       inventorySection = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:2rem;margin-bottom:2rem;">${cards}</div>
-      ${pricingNote ? `<p style="font-size:0.875rem;color:#6b7280;text-align:center;">${pricingNote}</p>` : ''}
-      
-
-
-  <!-- Rental Booking Modal (fm) -->
-  <script src="/fm-rental-datepicker.js"></script>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:2rem;margin-bottom:1rem;">${cards}</div>
+      ${pricingNote ? `<p style="font-size:0.875rem;color:#6b7280;text-align:center;margin:0.5rem 0 0;">${pricingNote}</p>` : ''}
 `;
     }
   }
