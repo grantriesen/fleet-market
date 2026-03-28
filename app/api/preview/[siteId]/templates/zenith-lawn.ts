@@ -325,10 +325,10 @@ function zlHome(siteId: string, getContent: Function, products: any[], vis: Reco
         <div class="container-narrow">
           <div class="max-w-3xl mx-auto text-center">
             ${getContent('testimonials.heading') ? `<p class="text-xs text-neutral-400 uppercase tracking-widest mb-12">${getContent('testimonials.heading')}</p>` : ''}
-            <blockquote class="text-2xl md:text-3xl font-light leading-relaxed text-neutral-900 mb-8">"${t.quote}"</blockquote>
+            <blockquote class="text-2xl md:text-3xl font-light leading-relaxed text-neutral-900 mb-8">"${t.content || t.quote || ''}"</blockquote>
             <div>
-              <p class="text-sm font-medium">${t.name || ''}</p>
-              <p class="text-sm text-neutral-500">${t.title || t.company || ''}</p>
+              <p class="text-sm font-medium">${t.name || t.author || ''}</p>
+              <p class="text-sm text-neutral-500">${t.role || t.title || t.company || ''}</p>
             </div>
           </div>
         </div>
