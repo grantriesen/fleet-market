@@ -522,7 +522,9 @@ function zlInventory(siteId: string, getContent: Function, products: any[],
     <div class="container-narrow">
       <div class="mb-16">
         <h1 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-4">${getContent('inventoryPage.heading') || getContent('inventory.heading') || 'Inventory'}</h1>
-        <p class="text-lg text-neutral-500"><span id="zl-count">${products.length}</span> products available</p>
+        ${getContent('inventoryPage.contentHeading') ? `<h2 class="text-2xl font-light text-neutral-700 mb-3">${getContent('inventoryPage.contentHeading')}</h2>` : ''}
+        ${getContent('inventoryPage.contentText') ? `<p class="text-lg text-neutral-500 mb-3">${getContent('inventoryPage.contentText')}</p>` : ''}
+        <p class="text-sm text-neutral-400"><span id="zl-count">${products.length}</span> products available</p>
       </div>
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-12 lg:gap-16">
         <!-- Sidebar -->
