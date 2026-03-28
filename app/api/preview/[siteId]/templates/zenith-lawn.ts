@@ -117,7 +117,7 @@ export async function renderZenithLawnPage(
     case 'home': case 'index': body = zlHome(siteId, getContent, products, vis, colors, baseUrl, manufacturers || []); break;
     case 'service': body = zlService(siteId, getContent, baseUrl, colors, enabledFeatures.has('service_scheduling')); break;
     case 'contact': body = zlContact(siteId, getContent, hoursLine, baseUrl, colors); break;
-    case 'inventory': body = zlInventory(siteId, getContent, products, baseUrl); break;
+    case 'inventory': body = await zlInventory(siteId, getContent, products, baseUrl, supabase); break;
     case 'rentals': body = await zlRentals(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
     case 'manufacturers': body = zlManufacturers(siteId, getContent, baseUrl, manufacturers || [], colors); break;
     default: body = zlHome(siteId, getContent, products, vis, colors, baseUrl, manufacturers || []); break;
@@ -414,7 +414,7 @@ function zlService(siteId: string, getContent: Function,
   const contentHeading = getContent('servicePage.contentHeading');
   const contentText = getContent('servicePage.contentText');
   const ctaHeading = getContent('servicePage.ctaHeading');
-  const ctaBtnText = getContent('servicePage.ctaButton.text') || getContent('servicePage.ctaButtonText') || 'Schedule Service';
+  const ctaBtnText = getContent('servicePage.ctaButton.text') || 'Schedule Service';
 
   // Build service cards from config fields
   const serviceCards = [1, 2, 3].map(i => {
@@ -643,11 +643,23 @@ function zlContact(siteId: string, getContent: Function, hoursLine: string,
 }
 
 // ── Inventory ──
-function zlInventory(siteId: string, getContent: Function, products: any[],
-  baseUrl: string = ''
+async function zlInventory(siteId: string, getContent: Function, products: any[],
+  baseUrl: string = '',
+  supabase?: any
 ) {
-  const categories = [...new Set(products.map((p: any) => p.category).filter(Boolean))];
-  const brands = [...new Set(products.map((p: any) => p.brand).filter(Boolean))];
+  // Fetch all available products (not just featured)
+  let allProducts = products;
+  if (supabase) {
+    const { data } = await supabase
+      .from('inventory_items')
+      .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, brand, status')
+      .eq('site_id', siteId)
+      .eq('status', 'available')
+      .order('display_order', { ascending: true });
+    if (data && data.length > 0) allProducts = data;
+  }
+  const categories = [...new Set(allProducts.map((p: any) => p.category).filter(Boolean))];
+  const brands = [...new Set(allProducts.map((p: any) => p.brand).filter(Boolean))];
 
   return zlPageHero(getContent, 'inventoryPage', 'Inventory', getContent('inventoryPage.subheading') || '') + `
   <section class="section-spacing">
@@ -655,7 +667,7 @@ function zlInventory(siteId: string, getContent: Function, products: any[],
       <div class="mb-16">
         ${getContent('inventoryPage.contentHeading') ? `<h2 class="text-2xl font-light text-neutral-700 mb-3">${getContent('inventoryPage.contentHeading')}</h2>` : ''}
         ${getContent('inventoryPage.contentText') ? `<p class="text-lg text-neutral-500 mb-3">${getContent('inventoryPage.contentText')}</p>` : ''}
-        <p class="text-sm text-neutral-400"><span id="zl-count">${products.length}</span> products available</p>
+        <p class="text-sm text-neutral-400"><span id="zl-count">${allProducts.length}</span> products available</p>
       </div>
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-12 lg:gap-16">
         <!-- Sidebar -->
@@ -677,7 +689,7 @@ function zlInventory(siteId: string, getContent: Function, products: any[],
         <!-- Grid -->
         <div class="lg:col-span-3">
           <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 lg:gap-10" id="zl-grid">
-            ${products.map((p: any) => `<div class="zl-item" data-category="${p.category || ''}" data-brand="${p.brand || ''}">${zlProductCard(siteId, p)}</div>`).join('')}
+            ${allProducts.map((p: any) => `<div class="zl-item" data-category="${p.category || ''}" data-brand="${p.brand || ''}">${zlProductCard(siteId, p)}</div>`).join('')}
           </div>
         </div>
       </div>
@@ -762,7 +774,7 @@ async function zlRentals(
         <p class="text-lg text-neutral-500">${subheading}</p>
       </div>
       ${inventorySection || `<div style="text-align:center;padding:3rem 0;"><p style="color:#6b7280;margin-bottom:1.5rem;">Contact us for current rental availability and pricing.</p><a href="${baseUrl}contact" class="inline-flex items-center gap-2 px-6 py-3 rounded text-sm font-medium text-white" style="background:#2d6a4f;">Reserve Equipment</a></div>`}
-      <div class="mt-8 space-y-2 text-sm text-neutral-500">
+      <div class="mt-8 space-y-2 text-sm text-neutral-500 text-center">
         ${[
           getContent('rentalsPage.disclaimer1') || '• Security deposit required for all rentals',
           getContent('rentalsPage.disclaimer2') || '• Delivery and pickup available for additional fee',
