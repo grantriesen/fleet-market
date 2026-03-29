@@ -167,6 +167,7 @@ async function generateTemplateHTML(
 
   // Build enabled features set from sites.addons (source of truth) + site_features (legacy cache)
   // This is used for both nav gating and feature gating inside pages
+  console.log("DEBUG site.addons:", JSON.stringify(site.addons), "template:", site.template?.slug);
   const enabledFeaturesForNav = new Set<string>();
   const addonToFeatureMapNav: Record<string, string[]> = {
     'inventory': ['inventory', 'inventory_sync'],
