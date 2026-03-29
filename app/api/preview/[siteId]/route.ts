@@ -165,23 +165,27 @@ async function generateTemplateHTML(
     body: customizations.fonts?.body || config.fonts?.body?.default || 'Inter',
   };
 
-  // Map page slugs to the addon key that unlocks them
-  const pageAddonMap: Record<string, string> = {
-    inventory: 'inventory',
-    service:   'service',
-    rentals:   'rentals',
+  // Build enabled features set from sites.addons (source of truth) + site_features (legacy cache)
+  // This is used for both nav gating and feature gating inside pages
+  const enabledFeaturesForNav = new Set<string>();
+  const addonToFeatureMapNav: Record<string, string[]> = {
+    'inventory': ['inventory', 'inventory_sync'],
+    'service':   ['service', 'service_scheduling'],
+    'rentals':   ['rentals', 'rental_scheduling'],
   };
-  const siteAddonsSet = new Set(site.addons || []);
+  (site.addons || []).forEach((addon: string) => {
+    enabledFeaturesForNav.add(addon);
+    addonToFeatureMapNav[addon]?.forEach((f: string) => enabledFeaturesForNav.add(f));
+  });
 
   const availablePages = (config.pages || []).filter((p: any) => {
     const isVisible = pageVisibility[p.slug] !== false;
     if (!isVisible) return false;
     if (!p.premium) return true;
-    // If this page maps to a specific addon, check sites.addons first
-    const requiredAddon = pageAddonMap[p.slug];
-    if (requiredAddon) return siteAddonsSet.has(requiredAddon);
-    // Fallback: legacy subscription_tier check for any other premium pages
-    return site.subscription_tier !== 'basic';
+    // Use requiredFeature from config if present
+    if (p.requiredFeature) return enabledFeaturesForNav.has(p.requiredFeature);
+    // Fallback slug-based check
+    return enabledFeaturesForNav.has(p.slug);
   });
 
   const fontFamilies = new Set([fonts.heading, fonts.body]);
