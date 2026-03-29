@@ -165,10 +165,22 @@ async function generateTemplateHTML(
     body: customizations.fonts?.body || config.fonts?.body?.default || 'Inter',
   };
 
+  // Map page slugs to the addon key that unlocks them
+  const pageAddonMap: Record<string, string> = {
+    inventory: 'inventory',
+    service:   'service',
+    rentals:   'rentals',
+  };
+  const siteAddonsSet = new Set(site.addons || []);
+
   const availablePages = (config.pages || []).filter((p: any) => {
     const isVisible = pageVisibility[p.slug] !== false;
     if (!isVisible) return false;
     if (!p.premium) return true;
+    // If this page maps to a specific addon, check sites.addons first
+    const requiredAddon = pageAddonMap[p.slug];
+    if (requiredAddon) return siteAddonsSet.has(requiredAddon);
+    // Fallback: legacy subscription_tier check for any other premium pages
     return site.subscription_tier !== 'basic';
   });
 
