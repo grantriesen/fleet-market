@@ -228,22 +228,37 @@ export default function OnboardingPreflightPage() {
 
       await supabase.from('subscriptions').insert(subscriptionPayload);
 
-      // 5. Insert site_features rows for selected add-ons
+      // 5. Insert site_features rows — write all key variants so both
+      // the preview route and legacy checks work regardless of which key they read
       if (selectedAddons.length > 0) {
-        const featureMap: Record<string, string> = {
-          inventory: 'inventory_management',
-          service:   'service_scheduling',
-          rentals:   'rental_management',
+        const featureKeyMap: Record<string, string[]> = {
+          inventory: ['inventory_management', 'inventory', 'inventory_sync'],
+          service:   ['service_scheduling', 'service'],
+          rentals:   ['rental_management', 'rentals', 'rental_scheduling'],
         };
-        const featureRows = selectedAddons.map(a => ({
-          site_id:     siteId,
-          feature_key: featureMap[a],
-          enabled:     true,
-        }));
-        await supabase.from('site_features').insert(featureRows);
+        const featureRows: { site_id: string; feature_key: string; enabled: boolean }[] = [];
+        selectedAddons.forEach(a => {
+          (featureKeyMap[a] || []).forEach(key => {
+            featureRows.push({ site_id: siteId, feature_key: key, enabled: true });
+          });
+        });
+        if (featureRows.length > 0) {
+          await supabase.from('site_features').upsert(featureRows, { onConflict: 'site_id,feature_key' });
+        }
       }
 
-      // 6. Hand off to content onboarding
+      // 6. Seed default service types if service addon was selected
+      if (selectedAddons.includes('service')) {
+        const defaultServiceTypes = [
+          { site_id: siteId, name: 'Routine Maintenance', description: 'Oil change, filter replacement, blade sharpening, and general tune-up.', duration_minutes: 60, price_estimate: 'Call for pricing', display_order: 1, is_active: true },
+          { site_id: siteId, name: 'Equipment Repair', description: 'Diagnosis and repair of mechanical or electrical issues.', duration_minutes: 120, price_estimate: 'Call for pricing', display_order: 2, is_active: true },
+          { site_id: siteId, name: 'Blade Service', description: 'Blade removal, sharpening, balancing, and reinstallation.', duration_minutes: 30, price_estimate: 'Call for pricing', display_order: 3, is_active: true },
+          { site_id: siteId, name: 'Seasonal Prep', description: 'Full seasonal inspection and preparation for storage or operation.', duration_minutes: 90, price_estimate: 'Call for pricing', display_order: 4, is_active: true },
+        ];
+        await supabase.from('service_types').insert(defaultServiceTypes);
+      }
+
+      // 7. Hand off to content onboarding
       router.push(`/onboarding/${siteId}`);
 
     } catch (err: any) {
@@ -414,24 +429,24 @@ function TemplateStep({ selected, onSelect }: { selected: TemplateSlug | null; o
                 : 'border-slate-800 hover:border-slate-600'
             }`}
           >
-            {/* Thumbnail placeholder */}
-            <div
-              className="w-full h-44 flex items-center justify-center relative overflow-hidden"
-              style={{ backgroundColor: t.bgColor }}
-            >
-              {/* Decorative placeholder grid */}
-              <div className="absolute inset-0 opacity-10"
-                style={{
-                  backgroundImage: `repeating-linear-gradient(0deg, ${t.accentColor} 0, ${t.accentColor} 1px, transparent 0, transparent 50%), repeating-linear-gradient(90deg, ${t.accentColor} 0, ${t.accentColor} 1px, transparent 0, transparent 50%)`,
-                  backgroundSize: '30px 30px',
+            {/* Thumbnail */}
+            <div className="w-full h-44 relative overflow-hidden bg-slate-800">
+              <img
+                src={`/templates/${t.slug}.jpg`}
+                alt={t.name}
+                className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.classList.remove('hidden');
                 }}
               />
-              <div className="relative z-10 flex flex-col items-center gap-3">
+              {/* Fallback if screenshot not yet uploaded */}
+              <div
+                className="hidden absolute inset-0 flex items-center justify-center"
+                style={{ backgroundColor: t.bgColor }}
+              >
                 <Monitor className="w-8 h-8" style={{ color: t.accentColor }} />
-                <span className="text-xs font-medium px-3 py-1 rounded-full border"
-                  style={{ color: t.accentColor, borderColor: t.accentColor + '40', backgroundColor: t.accentColor + '15' }}>
-                  Screenshot coming soon
-                </span>
               </div>
             </div>
 
