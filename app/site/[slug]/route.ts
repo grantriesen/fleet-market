@@ -74,7 +74,9 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     const isVisible = pageVisibility[p.slug] !== false;
     if (!isVisible) return false;
     if (!p.premium) return true;
-    return site.subscription_tier !== 'basic';
+    // Use requiredFeature from config_json if present, else fall back to slug
+    if (p.requiredFeature) return enabledFeatures.has(p.requiredFeature);
+    return enabledFeatures.has(p.slug);
   });
 
   const fontFamilies = new Set([fonts.heading, fonts.body]);
