@@ -70,13 +70,6 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     body: customizations.fonts?.body || config.fonts?.body?.default || 'Inter',
   };
 
-  const availablePages = (config.pages || []).filter((p: any) => {
-    const isVisible = pageVisibility[p.slug] !== false;
-    if (!isVisible) return false;
-    if (!p.premium) return true;
-    return site.subscription_tier !== 'basic';
-  });
-
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const googleFontsUrl = Array.from(fontFamilies).map((f: any) => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700;800;900`).join('&');
 
@@ -112,6 +105,16 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     const { data: features } = await supabase.from('site_features').select('feature_key').eq('site_id', siteId).eq('enabled', true);
     if (features) features.forEach((f: any) => enabledFeatures.add(f.feature_key));
   } catch {}
+
+  // availablePages placed here so enabledFeatures is fully built before use
+  const availablePages = (config.pages || []).filter((p: any) => {
+    const isVisible = pageVisibility[p.slug] !== false;
+    if (!isVisible) return false;
+    if (!p.premium) return true;
+    // Use requiredFeature from config_json if present, else fall back to slug
+    if (p.requiredFeature) return enabledFeatures.has(p.requiredFeature);
+    return enabledFeatures.has(p.slug);
+  });
 
   const vis: Record<string, boolean> = {};
   Object.entries(sectionVisibility).forEach(([k, v]) => { vis[k] = v as boolean; });
