@@ -54,11 +54,17 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   (libraryLogos || []).forEach((l: any) => { if (l.logo_url) libraryLogoMap[l.name] = l.logo_url; });
   const manufacturers = (manufacturersRaw || []).map((m: any) => ({ ...m, logo_url: m.logo_url || libraryLogoMap[m.name] || null }));
 
-  const { data: featuredItems } = await supabase
+  // For the inventory page, fetch all available items; otherwise just featured ones for homepage
+  const isInventoryPage = page === 'inventory';
+  const inventoryQuery = supabase
     .from('inventory_items')
     .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, featured, status')
-    .eq('site_id', siteId).eq('featured', true).eq('status', 'available')
-    .order('display_order').limit(8);
+    .eq('site_id', siteId)
+    .eq('status', 'available')
+    .order('display_order');
+  const { data: featuredItems } = isInventoryPage
+    ? await inventoryQuery.limit(200)
+    : await inventoryQuery.eq('featured', true).limit(8);
 
   const colors = {
     primary: customizations.colors?.primary || config.colors?.primary?.default || '#2D5016',
@@ -75,7 +81,7 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
 
   const isRealProducts = (featuredItems?.length || 0) > 0;
   const displayProducts = isRealProducts
-    ? featuredItems!.slice(0, 4)
+    ? (isInventoryPage ? featuredItems! : featuredItems!.slice(0, 4))
     : [1, 2, 3, 4].map(i => ({ id: `placeholder-${i}`, title: `Featured Product ${i}`, description: 'Professional-grade equipment', price: null, sale_price: null, primary_image: null, category: 'Equipment', condition: 'new', slug: null }));
 
   const fmtPrice = (price: number | null) => {
