@@ -101,7 +101,7 @@ export function calcRentalTotal(
 export function rentalReserveButton(item: any, prefix: string, classes?: string): string {
   const p = prefix;
   const fnName = `${p}OpenRentalModal`;
-  const titleEsc = item.title ? item.title.replace(/'/g, "\\'") : '';
+  const titleEsc = item.title ? item.title.replace(/'/g, "\\'").replace(/"/g, '&quot;') : '';
   const args = [
     `'${item.id}'`,
     `'${titleEsc}'`,
