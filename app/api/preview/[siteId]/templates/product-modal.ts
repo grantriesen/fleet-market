@@ -417,12 +417,15 @@ export function serviceBookingSection(siteId: string, primaryColor: string, getC
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          service_type: selectedService ? selectedService.name : 'General',
-          service_type_id: selectedService ? selectedService.id : null,
-          date: date, time: time,
-          customer_name: name, customer_phone: phone, customer_email: email,
-          equipment: document.getElementById('svc-equipment').value,
-          notes: document.getElementById('svc-notes').value,
+          serviceTypeName: selectedService ? selectedService.name : 'General',
+          serviceTypeId: selectedService ? selectedService.id : null,
+          preferredDate: date,
+          preferredTime: time,
+          customerName: name,
+          customerPhone: phone,
+          customerEmail: email,
+          equipmentType: document.getElementById('svc-equipment').value,
+          customerNotes: document.getElementById('svc-notes').value,
         })
       }).catch(function() {});
       
