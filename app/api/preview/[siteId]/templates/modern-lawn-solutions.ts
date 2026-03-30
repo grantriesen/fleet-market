@@ -287,7 +287,7 @@ function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, pa
 <body>
   ${body}
   ${sharedPreviewScript(siteId, page)}
-  ${enabledFeatures?.has('rental_scheduling') ? rentalModalBlock('fm', siteId) : ''}
+  ${enabledFeatures?.has('rental_scheduling') ? rentalModalBlock('fm', siteId, colors.primary) : ''}
   ${injectCartSystem(siteId, checkoutMode, colors.primary)}
 </body>
 </html>`;
