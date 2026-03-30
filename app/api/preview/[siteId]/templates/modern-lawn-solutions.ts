@@ -232,6 +232,7 @@ function mlsHtmlShell(title: string, fonts: any, colors: any, siteId: string, pa
   }
   <\/script>
   <style>
+    :root { --color-primary: ${colors.primary}; --color-secondary: ${colors.secondary}; --color-accent: ${colors.accent}; }
     body { font-family: '${fonts.body}', system-ui, sans-serif; background: #ffffff; color: #1a1a2e; margin: 0; }
     .font-heading { font-family: '${fonts.heading}', system-ui, sans-serif; }
     .container-mls { max-width: 80rem; margin: 0 auto; padding-left: 1rem; padding-right: 1rem; }
