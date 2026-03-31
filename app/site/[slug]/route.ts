@@ -38,12 +38,15 @@ function injectAddonLinkRewriter(html: string, addons: string[]): string {
     );
   }
 
-  // Inventory: reroute to contact and swap button text
+  // Inventory: hide nav links, reroute non-nav buttons to contact with text swap
   if (!addons.includes('inventory')) {
     scripts.push(
+      // Hide nav links (they're in nav/header elements)
+      `document.querySelectorAll('nav a[href$="/inventory"],nav a[href="inventory"],header a[href$="/inventory"],header a[href="inventory"]').forEach(function(a){a.style.display='none';});` +
+      // Reroute CTA buttons outside nav to contact with text swap
       `document.querySelectorAll('a[href$="/inventory"],a[href="inventory"]').forEach(function(a){` +
-      `a.setAttribute('href','/contact');` +
-      `if(a.textContent.trim()){a.textContent='Contact Us';}` +
+      `var inNav=a.closest('nav')||a.closest('header');` +
+      `if(!inNav){a.setAttribute('href','/contact');if(a.textContent.trim()){a.textContent='Contact Us';}}` +
       `});`
     );
   }
@@ -149,6 +152,17 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
 
   const vis: Record<string, boolean> = {};
   Object.entries(sectionVisibility).forEach(([k, v]) => { vis[k] = v as boolean; });
+
+  // Force-hide inventory-related sections if addon not purchased
+  if (!enabledFeatures.has('inventory') && !enabledFeatures.has('inventory_sync')) {
+    vis['featured']       = false;
+    vis['inventoryPage']  = false;
+    vis['featuredProducts'] = false;
+  }
+  // Force-hide rental-related sections if addon not purchased
+  if (!enabledFeatures.has('rentals') && !enabledFeatures.has('rental_scheduling')) {
+    vis['rentalsPage'] = false;
+  }
 
   let html = '';
   if (templateSlug === 'green-valley-industrial') {
