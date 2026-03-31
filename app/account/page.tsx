@@ -17,7 +17,6 @@ import {
   Calendar,
   DollarSign
 } from 'lucide-react';
-import { getPlanById, SubscriptionTier } from '@/lib/pricing-config';
 import CancelSubscriptionModal from '@/components/CancelSubscriptionModal';
 
 interface UserProfile {
@@ -31,7 +30,7 @@ interface UserProfile {
 interface Site {
   id: string;
   site_name: string;
-  subscription_tier: string;
+  addons: string[];
   created_at: string;
 }
 
@@ -91,7 +90,7 @@ export default function AccountPage() {
       // Load site data
       const { data: userSite } = await supabase
         .from('sites')
-        .select('*')
+        .select('id, site_name, addons, created_at')
         .eq('user_id', authUser.id)
         .maybeSingle();
 
@@ -171,7 +170,7 @@ export default function AccountPage() {
     return null;
   }
 
-  const currentPlan = site ? getPlanById(site.subscription_tier as SubscriptionTier) : null;
+  // Build plan display from addons array
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -290,7 +289,7 @@ export default function AccountPage() {
           </div>
 
           {/* Subscription */}
-          {site && currentPlan && (
+          {site && (
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-purple-100 rounded-lg">
@@ -304,17 +303,21 @@ export default function AccountPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Crown className="w-5 h-5 text-[#E8472F]" />
-                      <h3 className="text-lg font-bold text-slate-800">{currentPlan.name}</h3>
+                      <h3 className="text-lg font-bold text-slate-800">
+                        {(site.addons || []).length === 0
+                          ? 'Base Package'
+                          : `Base + ${(site.addons || []).length} Add-on${(site.addons || []).length > 1 ? 's' : ''}`}
+                      </h3>
                     </div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-black text-slate-800">
-                        ${currentPlan.monthlyPrice}
+                        ${230 + ([0,130,215,280][(site.addons || []).length] ?? 280)}
                       </span>
                       <span className="text-slate-600">/month</span>
                     </div>
                   </div>
                   <button
-                    onClick={() => router.push('/pricing')}
+                    onClick={() => router.push('/dashboard/upgrade')}
                     className="px-4 py-2 bg-[#E8472F] text-white font-semibold rounded-lg hover:bg-[#D13A24] transition-all"
                   >
                     Add Features
@@ -335,16 +338,34 @@ export default function AccountPage() {
                 </div>
               </div>
 
-              {/* Features */}
+              {/* Active add-ons */}
               <div className="mb-6">
                 <h4 className="font-semibold text-slate-800 mb-3">Your Plan Includes:</h4>
                 <ul className="grid grid-cols-2 gap-2">
-                  {currentPlan.features.slice(0, 6).map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2 text-sm text-slate-600">
+                  {['Professional website', 'Analytics & insights', 'Content management', 'Lead capture forms', 'Contact management', 'Custom domain support'].map((f, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-slate-600">
                       <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                      <span>{feature.replace('✨ ', '')}</span>
+                      <span>{f}</span>
                     </li>
                   ))}
+                  {(site.addons || []).includes('inventory') && (
+                    <li className="flex items-center gap-2 text-sm text-slate-600">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Inventory Management</span>
+                    </li>
+                  )}
+                  {(site.addons || []).includes('service') && (
+                    <li className="flex items-center gap-2 text-sm text-slate-600">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Service Scheduling</span>
+                    </li>
+                  )}
+                  {(site.addons || []).includes('rentals') && (
+                    <li className="flex items-center gap-2 text-sm text-slate-600">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Rental Management</span>
+                    </li>
+                  )}
                 </ul>
               </div>
 
@@ -396,7 +417,7 @@ export default function AccountPage() {
       <CancelSubscriptionModal
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
-        currentPlan={currentPlan?.name || 'Base Package'}
+        currentPlan='Base Package'
         onCancel={handleCancelSubscription}
       />
     </div>
