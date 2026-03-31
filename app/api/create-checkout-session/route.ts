@@ -33,7 +33,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { siteId, features, billingInterval = 'month' } = await request.json();
+    const body = await request.json();
+    const { siteId, features, billingInterval = 'month' } = body;
 
     // Validate features
     if (!Array.isArray(features) || features.length === 0) {
@@ -111,7 +112,8 @@ export async function POST(request: Request) {
         site_id: siteId,
         user_id: user.id,
         tier_key: tierKey,
-        features: features.join(','), // Store selected features
+        features: features.join(','),
+        addons: JSON.stringify(body.addons || []),
         billing_interval: billingInterval,
       },
       subscription_data: {
@@ -120,6 +122,7 @@ export async function POST(request: Request) {
           user_id: user.id,
           tier_key: tierKey,
           features: features.join(','),
+          addons: JSON.stringify(body.addons || []),
           billing_interval: billingInterval,
         },
       },

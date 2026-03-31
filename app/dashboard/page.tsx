@@ -391,7 +391,7 @@ function DashboardPage() {
                   Add Inventory, Service Scheduling, or Rental Management to your plan.
                 </p>
                 <button
-                  onClick={() => router.push('/pricing')}
+                  onClick={() => router.push('/dashboard/upgrade')}
                   className="w-full py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors"
                 >
                   View Add-ons →
