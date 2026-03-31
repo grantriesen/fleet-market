@@ -13,6 +13,8 @@ const TEMPLATES = [
     description: 'Professional navy & red design with bold typography. Built for established dealerships that want authority and trust.',
     tags: ['Professional', 'Bold', 'Stats Bar'],
     vibe: 'Authoritative',
+    liveUrl: 'https://ce.fleetmarket.us',
+    screenshot: '/templates/corporate-edge.jpg',
   },
   {
     slug: 'green-valley-industrial',
@@ -20,6 +22,8 @@ const TEMPLATES = [
     description: 'Earthy greens and vibrant orange. A natural, grounded feel for dealers who emphasize reliability and outdoor expertise.',
     tags: ['Industrial', 'Organic', 'Split Hero'],
     vibe: 'Grounded',
+    liveUrl: 'https://gvi.fleetmarket.us',
+    screenshot: '/templates/green-valley-industrial.jpg',
   },
   {
     slug: 'modern-lawn-solutions',
@@ -27,6 +31,8 @@ const TEMPLATES = [
     description: 'Clean blue gradients with a friendly, modern feel. Great for dealers who want approachable yet professional.',
     tags: ['Modern', 'Friendly', 'Rounded Cards'],
     vibe: 'Approachable',
+    liveUrl: 'https://ml.fleetmarket.us',
+    screenshot: '/templates/modern-lawn-solutions.jpg',
   },
   {
     slug: 'vibe-dynamics',
@@ -34,6 +40,8 @@ const TEMPLATES = [
     description: 'Dark mode with purple-pink gradients and glow effects. A forward-thinking design for tech-savvy dealers.',
     tags: ['Dark Mode', 'Edgy', 'Glow Effects'],
     vibe: 'Futuristic',
+    liveUrl: 'https://vibe.fleetmarket.us',
+    screenshot: '/templates/vibe-dynamics.jpg',
   },
   {
     slug: 'zenith-lawn',
@@ -41,6 +49,8 @@ const TEMPLATES = [
     description: 'Minimalist luxury with black and amber accents. Serif typography for premium, high-end dealerships.',
     tags: ['Luxury', 'Minimal', 'Serif Type'],
     vibe: 'Premium',
+    liveUrl: 'https://zl.fleetmarket.us',
+    screenshot: '/templates/zenith-lawn.jpg',
   },
   {
     slug: 'warm-earth-designs',
@@ -48,6 +58,8 @@ const TEMPLATES = [
     description: 'Warm amber and earth tones with friendly typography. Perfect for family-owned dealers with deep community ties.',
     tags: ['Warm', 'Family', 'Community'],
     vibe: 'Welcoming',
+    liveUrl: 'https://wed.fleetmarket.us',
+    screenshot: '/templates/warm-earth-designs.jpg',
   },
 ];
 
@@ -168,7 +180,17 @@ export default function TemplatesGalleryPage() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <Link href="/register" style={{
+              <a
+                href={TEMPLATES.find(t => t.slug === expandedSlug)?.liveUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  background: 'transparent', color: FM.text, padding: '0.4rem 1rem',
+                  borderRadius: '0.375rem', textDecoration: 'none', fontSize: '0.8125rem',
+                  fontWeight: 600, border: `1px solid ${FM.border}`,
+                }}
+              >Open Live Site ↗</a>
+              <Link href="/pricing" style={{
                 background: FM.orange, color: 'white', padding: '0.4rem 1rem',
                 borderRadius: '0.375rem', textDecoration: 'none', fontSize: '0.8125rem',
                 fontWeight: 600,
@@ -184,10 +206,10 @@ export default function TemplatesGalleryPage() {
               >✕</button>
             </div>
           </div>
-          {/* Iframe */}
+          {/* Live site iframe */}
           <div style={{ flex: 1, position: 'relative' }}>
             <iframe
-              src={`/api/preview/demo-${expandedSlug}?page=${previewPage}`}
+              src={`${TEMPLATES.find(t => t.slug === expandedSlug)?.liveUrl}?page=${previewPage}`}
               style={{
                 position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none',
               }}
@@ -219,37 +241,39 @@ export default function TemplatesGalleryPage() {
               (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
               (e.currentTarget as HTMLDivElement).style.borderColor = FM.border;
             }}
-            onClick={() => setExpandedSlug(t.slug)}
+            onClick={() => { setExpandedSlug(t.slug); setPreviewPage('home'); }}
           >
-            {/* Preview Iframe (scaled down) */}
+            {/* Screenshot thumbnail */}
             <div style={{
               height: 240, position: 'relative', overflow: 'hidden',
               background: '#0a0a0a',
             }}>
-              <iframe
-                src={`/api/preview/demo-${t.slug}`}
-                loading="lazy"
-                style={{
-                  width: '200%', height: '200%',
-                  transform: 'scale(0.5)', transformOrigin: 'top left',
-                  border: 'none', pointerEvents: 'none',
-                }}
-                title={`${t.name} preview`}
+              <img
+                src={t.screenshot}
+                alt={`${t.name} preview`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block' }}
               />
               {/* Hover overlay */}
               <div style={{
                 position: 'absolute', inset: 0,
-                background: 'linear-gradient(to top, rgba(15,35,65,0.9) 0%, transparent 50%)',
+                background: 'linear-gradient(to top, rgba(11,27,61,0.95) 0%, transparent 50%)',
                 display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
                 padding: '1.25rem', opacity: 0, transition: 'opacity 0.2s',
               }}
                 onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
                 onMouseLeave={e => (e.currentTarget.style.opacity = '0')}
               >
-                <span style={{
-                  background: FM.orange, color: 'white', padding: '0.5rem 1.25rem',
-                  borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.875rem',
-                }}>View Full Preview →</span>
+                <a
+                  href={t.liveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    background: FM.orange, color: 'white', padding: '0.5rem 1.25rem',
+                    borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.875rem',
+                    textDecoration: 'none',
+                  }}
+                >View Live Site →</a>
               </div>
             </div>
 
