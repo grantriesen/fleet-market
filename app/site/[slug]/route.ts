@@ -29,14 +29,27 @@ function injectTrackingScript(html: string, siteId: string): string {
 }
 
 function injectAddonLinkRewriter(html: string, addons: string[]): string {
-  const rewrites: string[] = [];
-  if (!addons.includes('rentals'))   rewrites.push('rentals');
-  if (!addons.includes('inventory')) rewrites.push('inventory');
-  if (rewrites.length === 0) return html;
-  const hideJs = rewrites.map(p =>
-    `document.querySelectorAll('a[href$="/${p}"],a[href="${p}"]').forEach(function(a){a.style.display='none';});`
-  ).join('');
-  const script = `<script>(function(){${hideJs}})();</script>`;
+  const scripts: string[] = [];
+
+  // Rentals: hide buttons (no rental page = no CTA makes sense)
+  if (!addons.includes('rentals')) {
+    scripts.push(
+      `document.querySelectorAll('a[href$="/rentals"],a[href="rentals"]').forEach(function(a){a.style.display='none';});`
+    );
+  }
+
+  // Inventory: reroute to contact and swap button text
+  if (!addons.includes('inventory')) {
+    scripts.push(
+      `document.querySelectorAll('a[href$="/inventory"],a[href="inventory"]').forEach(function(a){` +
+      `a.setAttribute('href','/contact');` +
+      `if(a.textContent.trim()){a.textContent='Contact Us';}` +
+      `});`
+    );
+  }
+
+  if (scripts.length === 0) return html;
+  const script = `<script>(function(){${scripts.join('')}})();</script>`;
   return html.includes('</body>') ? html.replace('</body>', script + '\n</body>') : html + script;
 }
 
