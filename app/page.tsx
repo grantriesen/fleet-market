@@ -1,21 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Zap, Globe, TrendingUp, ArrowRight, Shield, BarChart3 } from 'lucide-react';
+import { Sparkles, Zap, Globe, TrendingUp, ArrowRight, Shield, BarChart3, Menu, X } from 'lucide-react';
 
 export default function LandingPage() {
   const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-900">
       {/* Header */}
-      <header className="bg-[#2C3E7D] border-b-2 border-[#E8472F]">
+      <header className="bg-[#2C3E7D] border-b-2 border-[#E8472F] relative z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {/* Use the actual logo image */}
               <img src="/fmlogo3.jpg" alt="Fleet Market" className="h-10" onError={(e) => {
-                // Fallback to text if image doesn't load
                 e.currentTarget.style.display = 'none';
                 e.currentTarget.nextElementSibling?.classList.remove('hidden');
               }} />
@@ -23,24 +23,73 @@ export default function LandingPage() {
                 <span className="text-[#E8472F]">Fleet</span>Market
               </span>
             </div>
-            <div className="flex items-center gap-4">
-              <button
-                disabled
-                className="px-5 py-2 text-gray-500 font-semibold cursor-not-allowed relative group"
-              >
-                Sign In
-                <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-wider text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Coming Soon</span>
+            {/* Desktop nav */}
+            <div className="hidden md:flex items-center gap-4">
+              <a href="/features/inventory" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Inventory</a>
+              <a href="/features/service" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Service</a>
+              <a href="/features/rentals" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Rentals</a>
+              <a href="/auth/login" className="px-5 py-2 text-gray-300 hover:text-white font-semibold transition-colors">Sign In</a>
+              <a href="/pricing" className="px-6 py-3 bg-[#E8472F] text-white font-bold rounded hover:bg-[#d13d25] transition-all">Sign Up</a>
+            </div>
+            {/* Mobile hamburger */}
+            <button
+              className="md:hidden p-2 text-white hover:text-[#E8472F] transition-colors"
+              onClick={() => setMobileOpen(prev => !prev)}
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile slide-out drawer */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileOpen(false)}>
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60" />
+          {/* Drawer */}
+          <div className="absolute top-0 right-0 h-full w-72 bg-[#1a2647] border-l-2 border-[#E8472F] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-700">
+              <span className="text-white font-bold text-lg">Menu</span>
+              <button onClick={() => setMobileOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
               </button>
-              <a
-                href="/beta"
-                className="px-6 py-3 bg-[#E8472F] text-white font-bold rounded hover:bg-[#d13d25] transition-all"
-              >
-                Beta Registration
+            </div>
+            <nav className="flex flex-col px-6 py-8 gap-1 flex-1">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#E8472F] mb-3">Features</p>
+              {[
+                { href: '/features/inventory', label: 'Inventory Management' },
+                { href: '/features/service', label: 'Service Scheduling' },
+                { href: '/features/rentals', label: 'Rental Management' },
+              ].map(link => (
+                <a key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
+                  className="py-3 px-4 text-gray-300 hover:text-white hover:bg-slate-700/50 rounded font-medium transition-all">
+                  {link.label}
+                </a>
+              ))}
+              <div className="border-t border-slate-700 my-4" />
+              <p className="text-xs font-bold uppercase tracking-wider text-[#E8472F] mb-3">Account</p>
+              {[
+                { href: '/auth/login', label: 'Sign In' },
+                { href: '/templates', label: 'View Templates' },
+                { href: '/pricing', label: 'Pricing' },
+              ].map(link => (
+                <a key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
+                  className="py-3 px-4 text-gray-300 hover:text-white hover:bg-slate-700/50 rounded font-medium transition-all">
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+            <div className="px-6 pb-8">
+              <a href="/pricing" onClick={() => setMobileOpen(false)}
+                className="block w-full py-4 bg-[#E8472F] text-white font-bold rounded text-center hover:bg-[#d13d25] transition-all">
+                Sign Up
               </a>
             </div>
           </div>
         </div>
-      </header>
+      )}
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-b from-slate-900 to-slate-800 overflow-hidden">
@@ -69,10 +118,10 @@ export default function LandingPage() {
               
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-12">
                 <a
-                  href="/beta"
+                  href="/pricing"
                   className="px-8 py-4 bg-[#E8472F] text-white font-bold rounded hover:bg-[#d13d25] transition-all"
                 >
-                  Sign Up for the Beta
+                  Sign Up
                 </a>
                 <button
                   onClick={() => router.push('/templates')}
@@ -264,14 +313,14 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <a
-                  href="/beta"
+                  href="/pricing"
                   className={`w-full py-3 rounded font-bold text-center block ${
                     plan.popular
                       ? 'bg-[#E8472F] text-white hover:bg-[#d13d25]'
                       : 'bg-slate-700 text-white hover:bg-slate-600'
                   } transition-all`}
                 >
-                  Sign Up for the Beta
+                  Sign Up
                 </a>
               </div>
             ))}
@@ -289,10 +338,10 @@ export default function LandingPage() {
             Get your dealership online with a professional website and powerful management tools
           </p>
           <a
-            href="/beta"
+            href="/pricing"
             className="px-10 py-5 bg-[#E8472F] text-white font-bold text-lg rounded hover:bg-[#d13d25] transition-all inline-flex items-center gap-3"
           >
-            Sign Up for the Beta
+            Sign Up
           </a>
         </div>
       </section>
