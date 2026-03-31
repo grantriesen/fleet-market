@@ -134,16 +134,6 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     return enabledFeatures.has(p.slug);
   });
 
-  // Block direct URL access to addon-gated pages when addon not purchased
-  const addonPageMap: Record<string, string> = {
-    inventory: 'inventory',
-    rentals:   'rentals',
-  };
-  const requestedAddon = addonPageMap[page];
-  if (requestedAddon && !enabledFeatures.has(requestedAddon)) {
-    return new NextResponse(null, { status: 302, headers: { Location: '/' } });
-  }
-
   const vis: Record<string, boolean> = {};
   Object.entries(sectionVisibility).forEach(([k, v]) => { vis[k] = v as boolean; });
 
@@ -208,6 +198,14 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       }
     }
 
+    // Block direct URL access to addon-gated pages
+    const siteAddons = site.addons || [];
+    const addonPageMap: Record<string, string> = { inventory: 'inventory', rentals: 'rentals' };
+    const requestedAddon = addonPageMap[page];
+    if (requestedAddon && !siteAddons.includes(requestedAddon)) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+
     let html: string;
     try {
       html = await loadAndRender(site, page, supabase);
@@ -217,11 +215,11 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
     }
 
     html = injectTrackingScript(html, site.id);
-    html = injectAddonLinkRewriter(html, site.addons || []);
+    html = injectAddonLinkRewriter(html, siteAddons);
 
     // Inject noindex for addon-gated pages the site doesn't have
-    const isGatedPage = (page === 'rentals' && !enabledFeatures.has('rentals')) ||
-                        (page === 'inventory' && !enabledFeatures.has('inventory'));
+    const isGatedPage = (page === 'rentals' && !siteAddons.includes('rentals')) ||
+                        (page === 'inventory' && !siteAddons.includes('inventory'));
     if (isGatedPage && html.includes('<head>')) {
       html = html.replace('<head>', '<head><meta name="robots" content="noindex, nofollow">');
     }
