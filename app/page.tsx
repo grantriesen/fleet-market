@@ -2,12 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Zap, Globe, TrendingUp, ArrowRight, Shield, BarChart3, Menu, X } from 'lucide-react';
+import { Sparkles, Zap, Globe, TrendingUp, ArrowRight, Shield, BarChart3 } from 'lucide-react';
+import { MarketingHeader, MarketingFooter } from '@/components/MarketingLayout';
 
 export default function LandingPage() {
   const router = useRouter();
-  const [mobileOpen, setMobileOpen] = useState(false);
-
   return (
     <div className="min-h-screen bg-slate-900">
       {/* Header */}
@@ -347,24 +346,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-950 border-t border-slate-800 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <img src="/fmlogo3.jpg" alt="Fleet Market" className="h-8" onError={(e) => {
-              // Fallback to text if image doesn't load
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.nextElementSibling?.classList.remove('hidden');
-            }} />
-            <span className="text-xl font-bold text-gray-400 hidden">
-              <span className="text-[#E8472F]">Fleet</span>Market
-            </span>
-            <p className="text-sm text-gray-500">
-              © 2026 FleetMarket. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }

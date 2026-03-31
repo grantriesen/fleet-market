@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { MarketingHeader, MarketingFooter } from '@/components/MarketingLayout';
 
 // ============================================
 // Template metadata — matched to DEMO_OVERRIDES in route.ts
@@ -99,33 +100,7 @@ export default function TemplatesGalleryPage() {
   return (
     <div style={{ minHeight: '100vh', background: FM.navy, fontFamily: "'Inter', system-ui, sans-serif" }}>
 
-      {/* Nav */}
-      <nav style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '1rem 2rem', borderBottom: `1px solid ${FM.border}`,
-        position: 'sticky', top: 0, zIndex: 50, background: FM.navy,
-        backdropFilter: 'blur(12px)',
-      }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 8,
-            background: `linear-gradient(135deg, ${FM.orange}, #FF6B4A)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 900, fontSize: '0.875rem', color: 'white',
-          }}>FM</div>
-          <span style={{ fontWeight: 700, fontSize: '1.125rem', color: 'white' }}>Fleet Market</span>
-        </Link>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <Link href="/login" style={{
-            color: FM.text, textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500,
-          }}>Sign In</Link>
-          <Link href="/register" style={{
-            background: FM.orange, color: 'white', padding: '0.5rem 1.25rem',
-            borderRadius: '0.5rem', textDecoration: 'none', fontSize: '0.875rem',
-            fontWeight: 600, transition: 'opacity 0.2s',
-          }}>Get Started</Link>
-        </div>
-      </nav>
+      <MarketingHeader activePath="/templates" />
 
       {/* Header */}
       <header style={{ textAlign: 'center', padding: '4rem 2rem 2rem' }}>
@@ -316,7 +291,7 @@ export default function TemplatesGalleryPage() {
         <p style={{ color: FM.text, fontSize: '1rem', marginBottom: '1.5rem' }}>
           Pick a template, customize it, and go live — all in under 30 minutes.
         </p>
-        <Link href="/register" style={{
+        <Link href="/pricing" style={{
           display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
           background: FM.orange, color: 'white', padding: '0.875rem 2rem',
           borderRadius: '0.625rem', textDecoration: 'none',

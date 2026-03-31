@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Zap, Package, Wrench, Truck, ArrowRight, Menu, X } from 'lucide-react';
+import { Check, Zap, Package, Wrench, Truck, ArrowRight } from 'lucide-react';
+import { MarketingHeader, MarketingFooter } from '@/components/MarketingLayout';
 
 const ADDONS = [
   { key: 'inventory', label: 'Inventory Management', icon: Package, description: 'Full equipment catalog with search, filters, pricing, and lead capture on every product page.' },
@@ -48,7 +49,6 @@ export default function PricingPage() {
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly');
   const [loading, setLoading] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   const toggleAddon = (key: string) =>
     setSelectedAddons(prev => prev.includes(key) ? prev.filter(a => a !== key) : [...prev, key]);
@@ -346,19 +346,7 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-950 border-t border-slate-800 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <img src="/fmlogo3.jpg" alt="Fleet Market" className="h-8" onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              (e.currentTarget.nextElementSibling as HTMLElement)?.classList.remove('hidden');
-            }} />
-            <span className="text-xl font-bold text-gray-400 hidden"><span className="text-[#E8472F]">Fleet</span>Market</span>
-            <p className="text-sm text-gray-500">© 2026 FleetMarket. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }

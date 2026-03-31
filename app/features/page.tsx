@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Package, Wrench, Calendar, X, Check, ArrowRight, ChevronDown } from 'lucide-react';
+import { MarketingHeader, MarketingFooter } from '@/components/MarketingLayout';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface ModalContent {

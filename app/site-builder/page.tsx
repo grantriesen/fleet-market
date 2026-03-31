@@ -1,58 +1,12 @@
 'use client';
 
-import { ArrowRight, Zap, Palette, Layout, Globe, Shield, Clock, ChevronRight } from 'lucide-react';
-
-function Header() {
-  return (
-    <header className="bg-[#2C3E7D] border-b-2 border-[#E8472F]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-        <div className="flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3">
-            <img src="/fmlogo3.jpg" alt="Fleet Market" className="h-10" onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              (e.currentTarget.nextElementSibling as HTMLElement)?.classList.remove('hidden');
-            }} />
-            <span className="text-2xl font-bold text-white uppercase tracking-tight hidden">
-              <span className="text-[#E8472F]">Fleet</span>Market
-            </span>
-          </a>
-          <div className="hidden md:flex items-center gap-6">
-            <a href="/site-builder" className="text-white text-sm font-semibold border-b border-[#E8472F] pb-0.5 transition-colors">Site Builder</a>
-            <a href="/templates" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Templates</a>
-            <a href="/features" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Additional Features</a>
-            <a href="/pricing" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Pricing</a>
-          </div>
-          <div className="flex items-center gap-4">
-            <a href="/auth/login" className="px-5 py-2 text-gray-300 hover:text-white font-semibold transition-colors hidden md:block">Sign In</a>
-            <a href="/pricing" className="px-6 py-3 bg-[#E8472F] text-white font-bold rounded hover:bg-[#d13d25] transition-all">Get Started</a>
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="bg-slate-950 border-t border-slate-800 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <img src="/fmlogo3.jpg" alt="Fleet Market" className="h-8" onError={(e) => {
-            e.currentTarget.style.display = 'none';
-            (e.currentTarget.nextElementSibling as HTMLElement)?.classList.remove('hidden');
-          }} />
-          <span className="text-xl font-bold text-gray-400 hidden"><span className="text-[#E8472F]">Fleet</span>Market</span>
-          <p className="text-sm text-gray-500">© 2026 FleetMarket. All rights reserved.</p>
-        </div>
-      </div>
-    </footer>
-  );
-}
+import { ArrowRight, Zap, Palette, Layout, Globe, Shield, Clock } from 'lucide-react';
+import { MarketingHeader, MarketingFooter } from '@/components/MarketingLayout';
 
 export default function SiteBuilderPage() {
   return (
     <div className="min-h-screen bg-slate-900">
-      <Header />
+      <MarketingHeader activePath="/site-builder" />
 
       {/* Hero */}
       <section className="relative bg-gradient-to-b from-slate-900 to-slate-800 overflow-hidden">
@@ -241,7 +195,7 @@ export default function SiteBuilderPage() {
         </div>
       </section>
 
-      <Footer />
+      <MarketingFooter />
     </div>
   );
 }
