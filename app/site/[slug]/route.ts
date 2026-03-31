@@ -28,6 +28,18 @@ function injectTrackingScript(html: string, siteId: string): string {
   return html.includes('</body>') ? html.replace('</body>', script + '\n</body>') : html + script;
 }
 
+function injectAddonLinkRewriter(html: string, addons: string[]): string {
+  const rewrites: string[] = [];
+  if (!addons.includes('rentals'))   rewrites.push('rentals');
+  if (!addons.includes('inventory')) rewrites.push('inventory');
+  if (rewrites.length === 0) return html;
+  const hideJs = rewrites.map(p =>
+    `document.querySelectorAll('a[href$="/${p}"],a[href="${p}"]').forEach(function(a){a.style.display='none';});`
+  ).join('');
+  const script = `<script>(function(){${hideJs}})();</script>`;
+  return html.includes('</body>') ? html.replace('</body>', script + '\n</body>') : html + script;
+}
+
 async function loadAndRender(site: any, page: string, supabase: any): Promise<string> {
   const siteId = site.id;
   const template = site.template;
@@ -122,6 +134,16 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     return enabledFeatures.has(p.slug);
   });
 
+  // Block direct URL access to addon-gated pages when addon not purchased
+  const addonPageMap: Record<string, string> = {
+    inventory: 'inventory',
+    rentals:   'rentals',
+  };
+  const requestedAddon = addonPageMap[page];
+  if (requestedAddon && !enabledFeatures.has(requestedAddon) && !siteAddonsSet.has(requestedAddon)) {
+    return new NextResponse(null, { status: 302, headers: { Location: '/' } });
+  }
+
   const vis: Record<string, boolean> = {};
   Object.entries(sectionVisibility).forEach(([k, v]) => { vis[k] = v as boolean; });
 
@@ -195,6 +217,14 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
     }
 
     html = injectTrackingScript(html, site.id);
+    html = injectAddonLinkRewriter(html, site.addons || []);
+
+    // Inject noindex for addon-gated pages the site doesn't have
+    const isGatedPage = (page === 'rentals' && !siteAddonsSet.has('rentals')) ||
+                        (page === 'inventory' && !siteAddonsSet.has('inventory'));
+    if (isGatedPage && html.includes('<head>')) {
+      html = html.replace('<head>', '<head><meta name="robots" content="noindex, nofollow">');
+    }
 
     return new NextResponse(html, {
       headers: { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' },
