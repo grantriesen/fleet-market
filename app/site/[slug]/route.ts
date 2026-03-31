@@ -140,7 +140,7 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     rentals:   'rentals',
   };
   const requestedAddon = addonPageMap[page];
-  if (requestedAddon && !enabledFeatures.has(requestedAddon) && !siteAddonsSet.has(requestedAddon)) {
+  if (requestedAddon && !enabledFeatures.has(requestedAddon)) {
     return new NextResponse(null, { status: 302, headers: { Location: '/' } });
   }
 
@@ -220,8 +220,8 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
     html = injectAddonLinkRewriter(html, site.addons || []);
 
     // Inject noindex for addon-gated pages the site doesn't have
-    const isGatedPage = (page === 'rentals' && !siteAddonsSet.has('rentals')) ||
-                        (page === 'inventory' && !siteAddonsSet.has('inventory'));
+    const isGatedPage = (page === 'rentals' && !enabledFeatures.has('rentals')) ||
+                        (page === 'inventory' && !enabledFeatures.has('inventory'));
     if (isGatedPage && html.includes('<head>')) {
       html = html.replace('<head>', '<head><meta name="robots" content="noindex, nofollow">');
     }
