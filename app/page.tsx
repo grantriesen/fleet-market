@@ -25,9 +25,10 @@ export default function LandingPage() {
             </div>
             {/* Desktop nav */}
             <div className="hidden md:flex items-center gap-4">
-              <a href="/features" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Inventory</a>
-              <a href="/features" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Service</a>
-              <a href="/features" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Rentals</a>
+              <a href="/site-builder" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Site Builder</a>
+              <a href="/templates" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Templates</a>
+              <a href="/features" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Additional Features</a>
+              <a href="/pricing" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Pricing</a>
               <a href="/auth/login" className="px-5 py-2 text-gray-300 hover:text-white font-semibold transition-colors">Sign In</a>
               <a href="/pricing" className="px-6 py-3 bg-[#E8472F] text-white font-bold rounded hover:bg-[#d13d25] transition-all">Sign Up</a>
             </div>
@@ -59,9 +60,9 @@ export default function LandingPage() {
             <nav className="flex flex-col px-6 py-8 gap-1 flex-1">
               <p className="text-xs font-bold uppercase tracking-wider text-[#E8472F] mb-3">Features</p>
               {[
-                { href: '/features/inventory', label: 'Inventory Management' },
-                { href: '/features/service', label: 'Service Scheduling' },
-                { href: '/features/rentals', label: 'Rental Management' },
+                { href: '/site-builder', label: 'Site Builder' },
+                { href: '/templates', label: 'Templates' },
+                { href: '/features', label: 'Additional Features' },
               ].map(link => (
                 <a key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
                   className="py-3 px-4 text-gray-300 hover:text-white hover:bg-slate-700/50 rounded font-medium transition-all">
