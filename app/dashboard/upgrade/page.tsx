@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { Package, Wrench, Calendar, Check, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
@@ -44,7 +44,7 @@ const ADDONS = [
 ];
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function UpgradePage() {
+function UpgradePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -295,5 +295,17 @@ export default function UpgradePage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function UpgradePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-6 h-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+      </div>
+    }>
+      <UpgradePageInner />
+    </Suspense>
   );
 }
