@@ -25,9 +25,9 @@ export default function LandingPage() {
             </div>
             {/* Desktop nav */}
             <div className="hidden md:flex items-center gap-4">
-              <a href="/features/inventory" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Inventory</a>
-              <a href="/features/service" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Service</a>
-              <a href="/features/rentals" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Rentals</a>
+              <a href="/features" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Inventory</a>
+              <a href="/features" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Service</a>
+              <a href="/features" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Rentals</a>
               <a href="/auth/login" className="px-5 py-2 text-gray-300 hover:text-white font-semibold transition-colors">Sign In</a>
               <a href="/pricing" className="px-6 py-3 bg-[#E8472F] text-white font-bold rounded hover:bg-[#d13d25] transition-all">Sign Up</a>
             </div>
