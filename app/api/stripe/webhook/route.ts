@@ -38,12 +38,57 @@ export async function POST(request: NextRequest) {
 
       if (!site_id) break;
 
+      // Activate the site and set addons
       await supabase.from('sites').update({
         subscription_status: 'active',
-        stripe_customer_id: session.customer as string,
+        stripe_customer_id:     session.customer as string,
         stripe_subscription_id: session.subscription as string,
         addons,
       }).eq('id', site_id);
+
+      // Seed site_features for all addon key variants
+      if (addons.length > 0) {
+        const featureKeyMap: Record<string, string[]> = {
+          inventory: ['inventory_management', 'inventory', 'inventory_sync'],
+          service:   ['service_scheduling', 'service'],
+          rentals:   ['rental_management', 'rentals', 'rental_scheduling'],
+        };
+        const featureRows: { site_id: string; feature_key: string; enabled: boolean }[] = [];
+        addons.forEach((a: string) => {
+          (featureKeyMap[a] || []).forEach((key: string) => {
+            featureRows.push({ site_id, feature_key: key, enabled: true });
+          });
+        });
+        if (featureRows.length > 0) {
+          await supabase.from('site_features').upsert(featureRows, { onConflict: 'site_id,feature_key' });
+        }
+      }
+
+      // Seed default service types if service addon purchased
+      if (addons.includes('service')) {
+        const { data: existing } = await supabase
+          .from('service_types')
+          .select('id')
+          .eq('site_id', site_id)
+          .limit(1);
+        if (!existing || existing.length === 0) {
+          await supabase.from('service_types').insert([
+            { site_id, name: 'Routine Maintenance', description: 'Oil change, filter replacement, blade sharpening, and general tune-up.', duration_minutes: 60, price_estimate: 'Call for pricing', display_order: 1, is_active: true },
+            { site_id, name: 'Equipment Repair',    description: 'Diagnosis and repair of mechanical or electrical issues.',              duration_minutes: 120, price_estimate: 'Call for pricing', display_order: 2, is_active: true },
+            { site_id, name: 'Blade Service',       description: 'Blade removal, sharpening, balancing, and reinstallation.',            duration_minutes: 30, price_estimate: 'Call for pricing', display_order: 3, is_active: true },
+            { site_id, name: 'Seasonal Prep',       description: 'Full seasonal inspection and preparation for storage or operation.',    duration_minutes: 90, price_estimate: 'Call for pricing', display_order: 4, is_active: true },
+          ]);
+        }
+      }
+
+      // Create subscription record
+      await supabase.from('subscriptions').upsert({
+        site_id,
+        has_base_package: true,
+        status: 'active',
+        current_period_start: new Date().toISOString(),
+        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      }, { onConflict: 'site_id' });
 
       console.log(`✓ Activated site ${site_id} with addons: ${addons.join(', ') || 'none'}`);
       break;

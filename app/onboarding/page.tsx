@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { createClient } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ChevronRight, ChevronLeft, Check, Loader2, Package,
   Wrench, Calendar, CreditCard, Sparkles, ArrowRight,
@@ -111,15 +111,19 @@ type Step = 'template' | 'inventory' | 'service' | 'rentals' | 'payment' | 'crea
 const STEP_ORDER: Step[] = ['template', 'inventory', 'service', 'rentals', 'payment', 'creating'];
 
 // ─── Main Component ────────────────────────────────────────────────────────────
-export default function OnboardingPreflightPage() {
-  const router = useRouter();
-  const supabase = createClient();
+function OnboardingPreflightInner() {
+  const router       = useRouter();
+  const searchParams  = useSearchParams();
+  const supabase      = createClient();
+
+  const addonsParam  = searchParams.get('addons') || '';
+  const preselected  = addonsParam ? addonsParam.split(',').filter(Boolean) : [];
 
   const [step, setStep]                     = useState<Step>('template');
   const [selectedTemplate, setTemplate]     = useState<TemplateSlug | null>(null);
-  const [hasInventory, setHasInventory]     = useState<boolean | null>(null);
-  const [hasService, setHasService]         = useState<boolean | null>(null);
-  const [hasRentals, setHasRentals]         = useState<boolean | null>(null);
+  const [hasInventory, setHasInventory]     = useState<boolean | null>(preselected.includes('inventory') ? true : null);
+  const [hasService, setHasService]         = useState<boolean | null>(preselected.includes('service')   ? true : null);
+  const [hasRentals, setHasRentals]         = useState<boolean | null>(preselected.includes('rentals')   ? true : null);
   const [creating, setCreating]             = useState(false);
   const [error, setError]                   = useState('');
   const [userId, setUserId]                 = useState<string | null>(null);
@@ -154,21 +158,28 @@ export default function OnboardingPreflightPage() {
     }
   }
 
+  const skippedSteps = new Set<Step>([
+    ...(preselected.includes('inventory') ? ['inventory' as Step] : []),
+    ...(preselected.includes('service')   ? ['service'   as Step] : []),
+    ...(preselected.includes('rentals')   ? ['rentals'   as Step] : []),
+  ]);
+
   function advance() {
-    const idx = STEP_ORDER.indexOf(step);
-    if (idx < STEP_ORDER.length - 1) setStep(STEP_ORDER[idx + 1]);
+    let idx = STEP_ORDER.indexOf(step);
+    do { idx++; } while (idx < STEP_ORDER.length - 1 && skippedSteps.has(STEP_ORDER[idx]));
+    if (idx < STEP_ORDER.length) setStep(STEP_ORDER[idx]);
   }
 
   function back() {
-    const idx = STEP_ORDER.indexOf(step);
-    if (idx > 0) setStep(STEP_ORDER[idx - 1]);
+    let idx = STEP_ORDER.indexOf(step);
+    do { idx--; } while (idx > 0 && skippedSteps.has(STEP_ORDER[idx]));
+    if (idx >= 0) setStep(STEP_ORDER[idx]);
   }
 
   // ─── Site Creation ─────────────────────────────────────────────────────────
   async function handleCreateSite() {
     if (!selectedTemplate || !userId) return;
     setCreating(true);
-    setStep('creating');
     setError('');
 
     try {
@@ -195,6 +206,7 @@ export default function OnboardingPreflightPage() {
           site_name:   'My Dealership', // placeholder — overwritten in step 5
           addons:      selectedAddons,
           onboarded:   false,
+          subscription_status: 'pending',
         })
         .select('id')
         .single();
@@ -203,56 +215,32 @@ export default function OnboardingPreflightPage() {
 
       const siteId = siteData.id;
 
-      // 4. Create subscription record
-      const subscriptionPayload = {
-        site_id:          siteId,
-        user_id:          userId,
-        has_base_package: true,
-        status:           'active',
-        current_period_start: new Date().toISOString(),
-        current_period_end:   new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      };
 
-      await supabase.from('subscriptions').insert(subscriptionPayload);
+      // 2. Redirect to Stripe checkout — site activates via webhook on success
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          siteId,
+          features: selectedAddons.map((a: string) => ({
+            inventory: 'inventory_sync',
+            service:   'service_scheduling',
+            rentals:   'rental_scheduling',
+          } as Record<string, string>)[a] || a),
+          addons: selectedAddons,
+          billingInterval: 'month',
+        }),
+      });
 
-      // 5. Insert site_features rows — write all key variants so both
-      // the preview route and legacy checks work regardless of which key they read
-      if (selectedAddons.length > 0) {
-        const featureKeyMap: Record<string, string[]> = {
-          inventory: ['inventory_management', 'inventory', 'inventory_sync'],
-          service:   ['service_scheduling', 'service'],
-          rentals:   ['rental_management', 'rentals', 'rental_scheduling'],
-        };
-        const featureRows: { site_id: string; feature_key: string; enabled: boolean }[] = [];
-        selectedAddons.forEach(a => {
-          (featureKeyMap[a] || []).forEach(key => {
-            featureRows.push({ site_id: siteId, feature_key: key, enabled: true });
-          });
-        });
-        if (featureRows.length > 0) {
-          await supabase.from('site_features').upsert(featureRows, { onConflict: 'site_id,feature_key' });
-        }
-      }
+      const checkoutData = await res.json();
+      if (!res.ok) throw new Error(checkoutData.error || 'Failed to create checkout session');
 
-      // 6. Seed default service types if service addon was selected
-      if (selectedAddons.includes('service')) {
-        const defaultServiceTypes = [
-          { site_id: siteId, name: 'Routine Maintenance', description: 'Oil change, filter replacement, blade sharpening, and general tune-up.', duration_minutes: 60, price_estimate: 'Call for pricing', display_order: 1, is_active: true },
-          { site_id: siteId, name: 'Equipment Repair', description: 'Diagnosis and repair of mechanical or electrical issues.', duration_minutes: 120, price_estimate: 'Call for pricing', display_order: 2, is_active: true },
-          { site_id: siteId, name: 'Blade Service', description: 'Blade removal, sharpening, balancing, and reinstallation.', duration_minutes: 30, price_estimate: 'Call for pricing', display_order: 3, is_active: true },
-          { site_id: siteId, name: 'Seasonal Prep', description: 'Full seasonal inspection and preparation for storage or operation.', duration_minutes: 90, price_estimate: 'Call for pricing', display_order: 4, is_active: true },
-        ];
-        await supabase.from('service_types').insert(defaultServiceTypes);
-      }
-
-      // 7. Hand off to content onboarding
-      router.push(`/onboarding/${siteId}`);
+      window.location.href = checkoutData.url;
 
     } catch (err: any) {
       console.error('Site creation error:', err);
       setError(err.message || 'Something went wrong. Please try again.');
       setCreating(false);
-      setStep('payment');
     }
   }
 
@@ -636,5 +624,17 @@ function PaymentStep({
 
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPreflightPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-6 h-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+      </div>
+    }>
+      <OnboardingPreflightInner />
+    </Suspense>
   );
 }
