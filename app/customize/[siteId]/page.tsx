@@ -173,6 +173,8 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
   const [showDeployPanel, setShowDeployPanel] = useState(false);
   const [published, setPublished] = useState(false);
   const [siteSlug, setSiteSlug] = useState('');
+  const [slugInput, setSlugInput] = useState('');
+  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'saved'>('idle');
   const [customDomain, setCustomDomain] = useState('');
   const [sitePassword, setSitePassword] = useState('');
   const [publishing, setPublishing] = useState(false);
@@ -226,6 +228,8 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
         const addons: string[] = site.addons || [];
         setSiteAddons(addons);
         setPublished(site.published || false);
+        setSlugInput(site.slug || '');
+        setSlugStatus(site.slug ? 'saved' : 'idle');
         setSiteSlug(site.slug || '');
         setCustomDomain(site.custom_domain || '');
         setSitePassword(site.site_password || '');
@@ -961,6 +965,29 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
     }
   }, [tourActive, tourSteps.length, loading]);
 
+  // Debounced slug availability checker
+  const checkSlug = async (val: string) => {
+    const cleaned = val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '').replace(/-+/g, '-');
+    setSlugInput(cleaned);
+    if (!cleaned || cleaned.length < 3) { setSlugStatus('idle'); return; }
+    setSlugStatus('checking');
+    const { data } = await supabase
+      .from('sites')
+      .select('id')
+      .eq('slug', cleaned)
+      .neq('id', params.siteId)
+      .maybeSingle();
+    setSlugStatus(data ? 'taken' : 'available');
+  };
+
+  const saveSlug = async () => {
+    if (slugStatus !== 'available') return;
+    await supabase.from('sites').update({ slug: slugInput }).eq('id', params.siteId);
+    setSiteSlug(slugInput);
+    setSlugStatus('saved');
+    setToast({ message: 'Subdomain updated!', type: 'success' });
+  };
+
   const handlePublish = async () => {
     setPublishing(true);
     try {
@@ -1060,6 +1087,37 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                       {customDomain || `${siteSlug}.fleetmarket.us`} ↗
                     </a>
                   )}
+                </div>
+              </div>
+
+              {/* Subdomain Picker */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Your Subdomain</label>
+                <div className="flex gap-2">
+                  <div className="flex-1 flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-orange-400">
+                    <input
+                      type="text"
+                      value={slugInput}
+                      onChange={(e) => checkSlug(e.target.value)}
+                      placeholder="your-business-name"
+                      className="flex-1 px-3 py-2 text-sm outline-none"
+                    />
+                    <span className="px-2 text-xs text-gray-400 bg-gray-50 border-l h-full flex items-center whitespace-nowrap">.fleetmarket.us</span>
+                  </div>
+                  <button
+                    onClick={saveSlug}
+                    disabled={slugStatus !== 'available'}
+                    className="px-3 py-2 bg-orange-500 text-white text-sm font-semibold rounded-lg disabled:opacity-40 hover:bg-orange-600 transition-colors whitespace-nowrap"
+                  >
+                    Save
+                  </button>
+                </div>
+                <div className="mt-1.5 flex items-center gap-1.5 text-xs">
+                  {slugStatus === 'checking' && <><span className="w-3 h-3 rounded-full border-2 border-gray-300 border-t-orange-500 animate-spin inline-block" /><span className="text-gray-400">Checking availability...</span></>}
+                  {slugStatus === 'available' && <><span className="text-green-500">✓</span><span className="text-green-600">Available! Click Save to claim it.</span></>}
+                  {slugStatus === 'taken' && <><span className="text-red-500">✗</span><span className="text-red-600">That subdomain is already taken. Try a different name.</span></>}
+                  {slugStatus === 'saved' && <><span className="text-green-500">✓</span><span className="text-gray-500">Current subdomain: <strong>{siteSlug}.fleetmarket.us</strong></span></>}
+                  {slugStatus === 'idle' && <span className="text-gray-400">Only letters, numbers, and hyphens. Min 3 characters.</span>}
                 </div>
               </div>
 
