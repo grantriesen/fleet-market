@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Mail, Lock, User, ArrowRight, CheckCircle, Package, Wrench, Truck, Eye, EyeOff } from 'lucide-react';
