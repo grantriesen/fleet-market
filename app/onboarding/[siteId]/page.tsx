@@ -443,10 +443,17 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
         throw new Error(err.error || 'Failed to save content');
       }
 
-      // Update the site name on the sites record itself
+      // Update the site name and slug on the sites record
+      const generatedSlug = form.businessName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .substring(0, 40);
+      const uniqueSlug = `${generatedSlug}-${site.id.substring(0, 6)}`;
+
       await supabase
         .from('sites')
-        .update({ site_name: form.businessName, onboarded: true })
+        .update({ site_name: form.businessName, slug: uniqueSlug, onboarded: true })
         .eq('id', site.id);
 
       setGenStatus('Almost done...');
