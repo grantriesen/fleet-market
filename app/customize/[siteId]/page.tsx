@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ImageUpload from '@/components/ImageUpload';
-import { GuidedTourOverlay, CompletionChecklist, getTourSteps, getCompletionChecklist, getCurrentFocusTarget } from '@/components/GuidedTour';
 
 type Tab = 'content' | 'design' | 'pages';
 
@@ -137,10 +136,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
   const [subscriptionTier, setSubscriptionTier] = useState('basic');
   const [siteAddons, setSiteAddons] = useState<string[]>([]);
   
-  // Guided Tour state
-  const [tourActive, setTourActive] = useState(false);
-  const [tourStep, setTourStep] = useState(0);
-  const [tourCompleted, setTourCompleted] = useState(false);
+
   const [showChecklist, setShowChecklist] = useState(false);
   
   // Addon helpers — replaces hasProfessionalAccess
@@ -305,14 +301,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
 
       setLoading(false);
 
-      // Initialize guided tour if ?tour=true
-      if (searchParams.get('tour') === 'true' && site?.template?.config_json?.sections) {
-        const steps = getTourSteps(site.template.config_json.sections, site.subscription_tier || 'base');
-        if (steps.length > 0) {
-          setTourActive(true);
-          setShowChecklist(false);
-        }
-      } else {
+ else {
         // Show checklist widget if tour was completed but there's still incomplete content
         setShowChecklist(true);
       }
@@ -885,85 +874,6 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
     }
   };
 
-  // ── Tour logic (hooks must be above any early returns) ──
-  const tourSteps = templateConfig?.sections ? getTourSteps(templateConfig.sections, subscriptionTier) : [];
-  const checklistItems = templateConfig?.sections ? getCompletionChecklist(content, templateConfig.sections) : [];
-  const tourFocusTarget = tourActive ? getCurrentFocusTarget(tourSteps, tourStep) : undefined;
-
-  const navigateToTourStep = useCallback((stepIndex: number) => {
-    const step = tourSteps[stepIndex];
-    if (!step) return;
-
-    if (step.tab === 'design') {
-      setActiveTab('design');
-    } else {
-      setActiveTab('content');
-    }
-
-    const pageSlug = step.page === 'index' ? 'index' : step.page;
-    if (currentPage !== pageSlug) {
-      setCurrentPage(pageSlug);
-    }
-
-    setTimeout(() => {
-      setActiveSection(step.section);
-      scrollToSection(step.section);
-    }, 100);
-  }, [tourSteps, currentPage]);
-
-  const handleTourNext = useCallback(() => {
-    const nextStep = tourStep + 1;
-    if (nextStep < tourSteps.length) {
-      setTourStep(nextStep);
-      navigateToTourStep(nextStep);
-    }
-  }, [tourStep, tourSteps.length, navigateToTourStep]);
-
-  const handleTourPrev = useCallback(() => {
-    const prevStep = tourStep - 1;
-    if (prevStep >= 0) {
-      setTourStep(prevStep);
-      navigateToTourStep(prevStep);
-    }
-  }, [tourStep, navigateToTourStep]);
-
-  const handleTourFinish = useCallback(async () => {
-    setTourActive(false);
-    setTourCompleted(true);
-    setShowChecklist(true);
-    try {
-      await supabase.from('sites').update({ onboarding_tour_completed: true }).eq('id', params.siteId);
-    } catch (e) {
-      console.error('Failed to save tour completion:', e);
-    }
-    router.replace(`/customize/${params.siteId}`, { scroll: false });
-  }, [params.siteId]);
-
-  const handleTourSkip = handleTourFinish;
-
-  const handleChecklistItemClick = useCallback((item: any) => {
-    setActiveTab('content');
-    const pageSlug = item.page === 'index' ? 'index' : item.page;
-    setCurrentPage(pageSlug);
-    setTimeout(() => {
-      setActiveSection(item.section);
-      scrollToSection(item.section);
-    }, 100);
-  }, []);
-
-  const handleStartTour = useCallback(() => {
-    setTourStep(0);
-    setTourActive(true);
-    setShowChecklist(false);
-    navigateToTourStep(0);
-  }, [navigateToTourStep]);
-
-  // Start tour navigation on first load
-  useEffect(() => {
-    if (tourActive && tourSteps.length > 0 && !loading) {
-      navigateToTourStep(0);
-    }
-  }, [tourActive, tourSteps.length, loading]);
 
   // Slug input handler — allows free typing including dashes
   const handleSlugInput = (val: string) => {
@@ -1239,27 +1149,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
             </div>
           </div>
         </div>
-      )}
-
-      {/* Guided Tour Overlay */}
-      <GuidedTourOverlay
-        active={tourActive}
-        steps={tourSteps}
-        currentStep={tourStep}
-        onNext={handleTourNext}
-        onPrev={handleTourPrev}
-        onSkip={handleTourSkip}
-        onFinish={handleTourFinish}
-      />
-
-      {/* Completion Checklist (shown after tour ends) */}
-      {showChecklist && !tourActive && checklistItems.length > 0 && (
-        <CompletionChecklist
-          items={checklistItems}
-          onItemClick={handleChecklistItemClick}
-          onStartTour={handleStartTour}
-        />
-      )}
+      )
       {/* Toast Notification */}
       {toast && (
         <div className={`fixed top-4 right-4 z-[100] flex items-center gap-3 px-5 py-3 rounded-lg shadow-lg transition-all animate-in slide-in-from-top-2 ${

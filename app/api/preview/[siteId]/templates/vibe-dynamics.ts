@@ -386,12 +386,12 @@ function vdHomeSections(
   // ── Hero ──
   if (vis.hero !== false) {
     html += `
-    <section data-section="hero" class="relative overflow-hidden" style="min-height: 500px;">
+    <section data-section="hero" class="relative overflow-hidden" style="min-height: 560px;">
       <div class="absolute inset-0" style="${getContent('hero.image') || getContent('hero.backgroundImage') ? `background-image: url('${getContent('hero.image') || getContent('hero.backgroundImage')}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));`}"></div>
       <div class="absolute inset-0 md:hidden" style="background-color: var(--color-primary); opacity: 0.75;"></div>
       <div class="hidden md:block absolute inset-0" style="background: linear-gradient(to right, color-mix(in srgb, var(--color-primary) 85%, transparent) 40%, color-mix(in srgb, var(--color-primary) 50%, transparent) 65%, transparent 100%); right: 0; transform: none;"></div>
-      <div class="max-w-7xl mx-auto px-8 md:px-12 lg:px-16 relative z-10 flex items-center" style="min-height: 500px;">
-        <div class="max-w-xl text-white py-12 md:py-0">
+      <div class="max-w-7xl mx-auto px-8 md:px-12 lg:px-16 relative z-10 flex items-center" style="min-height: 560px;">
+        <div class="max-w-xl text-white py-16 md:py-20">
           <h1 class="text-4xl md:text-6xl lg:text-7xl font-heading font-black text-white mb-4 leading-none">${getContent('hero.title') || getContent('hero.heading') || 'POWER YOUR LAWN'}</h1>
           <h2 class="text-xl md:text-2xl font-heading font-bold text-white mb-4">${getContent('hero.subtitle') || getContent('hero.subheading') || ''}</h2>
           <p class="text-base md:text-lg text-white/90 mb-8 max-w-lg">${getContent('hero.description') || ''}</p>
