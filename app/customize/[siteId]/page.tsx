@@ -300,11 +300,6 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
       });
 
       setLoading(false);
-
- else {
-        // Show checklist widget if tour was completed but there's still incomplete content
-        setShowChecklist(true);
-      }
     } catch (error) {
       console.error('Error loading site data:', error);
       setLoading(false);
