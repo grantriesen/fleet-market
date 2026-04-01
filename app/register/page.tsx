@@ -110,6 +110,22 @@ function RegisterContent() {
     }
   }
 
+  // Poll for email verification in the background so desktop auto-advances
+  // when user verifies from their phone
+  useEffect(() => {
+    if (!success) return;
+    const interval = setInterval(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email_confirmed_at) {
+        clearInterval(interval);
+        const addonParam = selectedAddons.length > 0 ? `?addons=${selectedAddons.join(',')}` : '';
+        const refParam   = refCode ? `${addonParam ? '&' : '?'}ref=${refCode}` : '';
+        router.push(`/onboarding${addonParam}${refParam}`);
+      }
+    }, 3000); // check every 3 seconds
+    return () => clearInterval(interval);
+  }, [success]);
+
   // Email verification pending screen
   if (success) {
     return (
@@ -123,9 +139,13 @@ function RegisterContent() {
           <h2 className="text-2xl font-bold text-white mb-3">Check your email</h2>
           <p className="text-gray-300 mb-2">We sent a verification link to</p>
           <p className="text-white font-semibold mb-6">{email}</p>
-          <p className="text-gray-400 text-sm mb-8">
-            Click the link in the email to verify your account, then come back here to continue setting up your site.
+          <p className="text-gray-400 text-sm mb-4">
+            Open the link on any device — phone or desktop. This page will automatically continue once your email is verified.
           </p>
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mb-6">
+            <div className="w-2 h-2 rounded-full bg-[#E8472F] animate-pulse" />
+            Waiting for verification...
+          </div>
           <div className="bg-slate-900 border border-slate-700 rounded-lg p-4 text-xs text-gray-500">
             Didn't get it? Check your spam folder, or{' '}
             <button onClick={() => setSuccess(false)} className="text-[#E8472F] hover:underline">try a different email</button>.
