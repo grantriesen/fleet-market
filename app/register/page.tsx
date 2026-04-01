@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Mail, Lock, User, ArrowRight, CheckCircle, Package, Wrench, Truck } from 'lucide-react';
+import { storeReferralCode } from '@/lib/referral';
 
 const ADDON_LABELS: Record<string, { label: string; Icon: any }> = {
   inventory: { label: 'Inventory Management', Icon: Package },
@@ -25,6 +26,10 @@ function RegisterContent() {
 
   const addonsParam    = params.get('addons') || '';
   const selectedAddons = addonsParam ? addonsParam.split(',').filter(Boolean) : [];
+  const refCode        = params.get('ref') || '';
+
+  // Store referral code in localStorage so onboarding can apply it after site creation
+  if (refCode) storeReferralCode(refCode);
   const addonPrice     = getAddonPrice(selectedAddons.length);
   const total          = 230 + addonPrice;
 
@@ -55,7 +60,8 @@ function RegisterContent() {
       if (data.user) {
         setSuccess(true);
         const addonParam = selectedAddons.length > 0 ? `?addons=${selectedAddons.join(',')}` : '';
-        setTimeout(() => router.push(`/onboarding${addonParam}`), 1200);
+        const refParam   = refCode ? `${addonParam ? '&' : '?'}ref=${refCode}` : '';
+        setTimeout(() => router.push(`/onboarding${addonParam}${refParam}`), 1200);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to create account');

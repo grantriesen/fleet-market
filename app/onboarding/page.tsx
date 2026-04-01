@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { getReferralCode, clearReferralCode } from '@/lib/referral';
 import {
   ChevronRight, ChevronLeft, Check, Loader2, Package,
   Wrench, Calendar, CreditCard, Sparkles, ArrowRight,
@@ -118,6 +119,7 @@ function OnboardingPreflightInner() {
 
   const addonsParam  = searchParams.get('addons') || '';
   const preselected  = addonsParam ? addonsParam.split(',').filter(Boolean) : [];
+  const refParam     = searchParams.get('ref') || getReferralCode() || '';
 
   const [step, setStep]                     = useState<Step>('template');
   const [selectedTemplate, setTemplate]     = useState<TemplateSlug | null>(null);
@@ -233,7 +235,25 @@ function OnboardingPreflightInner() {
       }
 
 
-      // 2. Redirect to Stripe checkout — site activates via webhook on success
+      // 2. Apply referral code if present
+      if (refParam) {
+        try {
+          await fetch('/api/partner/apply-referral', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              siteId,
+              referralCode: refParam,
+              billingInterval: 'monthly',
+            }),
+          });
+          clearReferralCode();
+        } catch (refErr) {
+          console.warn('Referral apply failed (non-blocking):', refErr);
+        }
+      }
+
+      // 3. Redirect to Stripe checkout — site activates via webhook on success
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

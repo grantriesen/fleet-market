@@ -28,6 +28,34 @@ function injectTrackingScript(html: string, siteId: string): string {
   return html.includes('</body>') ? html.replace('</body>', script + '\n</body>') : html + script;
 }
 
+function injectAddonLinkRewriter(html: string, addons: string[]): string {
+  const scripts: string[] = [];
+
+  // Rentals: hide buttons (no rental page = no CTA makes sense)
+  if (!addons.includes('rentals')) {
+    scripts.push(
+      `document.querySelectorAll('a[href$="/rentals"],a[href="rentals"]').forEach(function(a){a.style.display='none';});`
+    );
+  }
+
+  // Inventory: hide nav links, reroute non-nav buttons to contact with text swap
+  if (!addons.includes('inventory')) {
+    scripts.push(
+      // Hide nav links (they're in nav/header elements)
+      `document.querySelectorAll('nav a[href$="/inventory"],nav a[href="inventory"],header a[href$="/inventory"],header a[href="inventory"]').forEach(function(a){a.style.display='none';});` +
+      // Reroute CTA buttons outside nav to contact with text swap
+      `document.querySelectorAll('a[href$="/inventory"],a[href="inventory"]').forEach(function(a){` +
+      `var inNav=a.closest('nav')||a.closest('header');` +
+      `if(!inNav){a.setAttribute('href','/contact');if(a.textContent.trim()){a.textContent='Contact Us';}}` +
+      `});`
+    );
+  }
+
+  if (scripts.length === 0) return html;
+  const script = `<script>(function(){${scripts.join('')}})();</script>`;
+  return html.includes('</body>') ? html.replace('</body>', script + '\n</body>') : html + script;
+}
+
 async function loadAndRender(site: any, page: string, supabase: any): Promise<string> {
   const siteId = site.id;
   const template = site.template;
@@ -45,13 +73,26 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   const sectionVisibility = customizations.section_visibility || {};
   const pageVisibility = customizations.page_visibility || {};
 
-  const { data: manufacturers } = await supabase.from('manufacturers').select('*').eq('site_id', siteId).order('display_order');
+  const { data: manufacturersRaw } = await supabase.from('manufacturers').select('*').eq('site_id', siteId).order('display_order');
+  const mfgMissingLogos = (manufacturersRaw || []).filter((m: any) => !m.logo_url).map((m: any) => m.name);
+  const { data: libraryLogos } = mfgMissingLogos.length > 0
+    ? await supabase.from('manufacturer_library').select('name, logo_url').in('name', mfgMissingLogos)
+    : { data: [] };
+  const libraryLogoMap: Record<string, string> = {};
+  (libraryLogos || []).forEach((l: any) => { if (l.logo_url) libraryLogoMap[l.name] = l.logo_url; });
+  const manufacturers = (manufacturersRaw || []).map((m: any) => ({ ...m, logo_url: m.logo_url || libraryLogoMap[m.name] || null }));
 
-  const { data: featuredItems } = await supabase
+  // For the inventory page, fetch all available items; otherwise just featured ones for homepage
+  const isInventoryPage = page === 'inventory';
+  const inventoryQuery = supabase
     .from('inventory_items')
     .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, featured, status')
-    .eq('site_id', siteId).eq('featured', true).eq('status', 'available')
-    .order('display_order').limit(8);
+    .eq('site_id', siteId)
+    .eq('status', 'available')
+    .order('display_order');
+  const { data: featuredItems } = isInventoryPage
+    ? await inventoryQuery.limit(200)
+    : await inventoryQuery.eq('featured', true).limit(8);
 
   const colors = {
     primary: customizations.colors?.primary || config.colors?.primary?.default || '#2D5016',
@@ -63,19 +104,12 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     body: customizations.fonts?.body || config.fonts?.body?.default || 'Inter',
   };
 
-  const availablePages = (config.pages || []).filter((p: any) => {
-    const isVisible = pageVisibility[p.slug] !== false;
-    if (!isVisible) return false;
-    if (!p.premium) return true;
-    return site.subscription_tier !== 'basic';
-  });
-
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const googleFontsUrl = Array.from(fontFamilies).map((f: any) => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700;800;900`).join('&');
 
   const isRealProducts = (featuredItems?.length || 0) > 0;
   const displayProducts = isRealProducts
-    ? featuredItems!.slice(0, 4)
+    ? (isInventoryPage ? featuredItems! : featuredItems!.slice(0, 4))
     : [1, 2, 3, 4].map(i => ({ id: `placeholder-${i}`, title: `Featured Product ${i}`, description: 'Professional-grade equipment', price: null, sale_price: null, primary_image: null, category: 'Equipment', condition: 'new', slug: null }));
 
   const fmtPrice = (price: number | null) => {
@@ -106,8 +140,29 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
     if (features) features.forEach((f: any) => enabledFeatures.add(f.feature_key));
   } catch {}
 
+  // availablePages placed here so enabledFeatures is fully built before use
+  const availablePages = (config.pages || []).filter((p: any) => {
+    const isVisible = pageVisibility[p.slug] !== false;
+    if (!isVisible) return false;
+    if (!p.premium) return true;
+    // Use requiredFeature from config_json if present, else fall back to slug
+    if (p.requiredFeature) return enabledFeatures.has(p.requiredFeature);
+    return enabledFeatures.has(p.slug);
+  });
+
   const vis: Record<string, boolean> = {};
   Object.entries(sectionVisibility).forEach(([k, v]) => { vis[k] = v as boolean; });
+
+  // Force-hide inventory-related sections if addon not purchased
+  if (!enabledFeatures.has('inventory') && !enabledFeatures.has('inventory_sync')) {
+    vis['featured']       = false;
+    vis['inventoryPage']  = false;
+    vis['featuredProducts'] = false;
+  }
+  // Force-hide rental-related sections if addon not purchased
+  if (!enabledFeatures.has('rentals') && !enabledFeatures.has('rental_scheduling')) {
+    vis['rentalsPage'] = false;
+  }
 
   let html = '';
   if (templateSlug === 'green-valley-industrial') {
@@ -115,23 +170,25 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   } else if (templateSlug === 'vibe-dynamics') {
     html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers || [], sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, '/', site.addons || [], site.checkout_mode || 'quote_only');
   } else if (templateSlug === 'corporate-edge') {
-    html = renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || []);
+    html = await renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
   } else if (templateSlug === 'zenith-lawn') {
-    html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, '/', supabase, site.addons || []);
+    html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, '/', supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || []);
   } else if (templateSlug === 'modern-lawn-solutions') {
-    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, '/', site.addons || []);
+    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, '/', site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || []);
   } else if (templateSlug === 'warm-earth-designs') {
-    html = await renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || []);
+    html = await renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
   } else {
     throw new Error(`Unknown template: ${templateSlug}`);
   }
 
   // Inject cart system if dealer has inventory addon
-  // Guard against double injection (green-valley and vibe-dynamics inject their own)
-  if (
-    (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync')) &&
-    !html.includes('fm-product-modal')
-  ) {
+  // Guard against double injection (green-valley, vibe-dynamics, and corporate-edge inject their own)
+  const needsCartSystem = templateSlug !== 'green-valley-industrial'
+    && templateSlug !== 'vibe-dynamics'
+    && templateSlug !== 'corporate-edge'
+    && (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync'));
+
+  if (needsCartSystem && !html.includes('fm-product-modal')) {
     const checkoutMode = site.checkout_mode || 'quote_only';
     const cartHtml = injectCartSystem(siteId, checkoutMode, colors.primary);
     html = html.includes('</body>') ? html.replace('</body>', cartHtml + '\n</body>') : html + cartHtml;
@@ -168,6 +225,14 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       }
     }
 
+    // Block direct URL access to addon-gated pages
+    const siteAddons = site.addons || [];
+    const addonPageMap: Record<string, string> = { inventory: 'inventory', rentals: 'rentals' };
+    const requestedAddon = addonPageMap[page];
+    if (requestedAddon && !siteAddons.includes(requestedAddon)) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+
     let html: string;
     try {
       html = await loadAndRender(site, page, supabase);
@@ -177,9 +242,17 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
     }
 
     html = injectTrackingScript(html, site.id);
+    html = injectAddonLinkRewriter(html, siteAddons);
+
+    // Inject noindex for addon-gated pages the site doesn't have
+    const isGatedPage = (page === 'rentals' && !siteAddons.includes('rentals')) ||
+                        (page === 'inventory' && !siteAddons.includes('inventory'));
+    if (isGatedPage && html.includes('<head>')) {
+      html = html.replace('<head>', '<head><meta name="robots" content="noindex, nofollow">');
+    }
 
     return new NextResponse(html, {
-      headers: { 'Content-Type': 'text/html', 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+      headers: { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' },
     });
   } catch (error: any) {
     console.error('Public site error:', error);

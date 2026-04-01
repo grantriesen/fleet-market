@@ -38,57 +38,12 @@ export async function POST(request: NextRequest) {
 
       if (!site_id) break;
 
-      // Activate the site and set addons
       await supabase.from('sites').update({
         subscription_status: 'active',
-        stripe_customer_id:     session.customer as string,
+        stripe_customer_id: session.customer as string,
         stripe_subscription_id: session.subscription as string,
         addons,
       }).eq('id', site_id);
-
-      // Seed site_features for all addon key variants
-      if (addons.length > 0) {
-        const featureKeyMap: Record<string, string[]> = {
-          inventory: ['inventory_management', 'inventory', 'inventory_sync'],
-          service:   ['service_scheduling', 'service'],
-          rentals:   ['rental_management', 'rentals', 'rental_scheduling'],
-        };
-        const featureRows: { site_id: string; feature_key: string; enabled: boolean }[] = [];
-        addons.forEach((a: string) => {
-          (featureKeyMap[a] || []).forEach((key: string) => {
-            featureRows.push({ site_id, feature_key: key, enabled: true });
-          });
-        });
-        if (featureRows.length > 0) {
-          await supabase.from('site_features').upsert(featureRows, { onConflict: 'site_id,feature_key' });
-        }
-      }
-
-      // Seed default service types if service addon purchased
-      if (addons.includes('service')) {
-        const { data: existing } = await supabase
-          .from('service_types')
-          .select('id')
-          .eq('site_id', site_id)
-          .limit(1);
-        if (!existing || existing.length === 0) {
-          await supabase.from('service_types').insert([
-            { site_id, name: 'Routine Maintenance', description: 'Oil change, filter replacement, blade sharpening, and general tune-up.', duration_minutes: 60, price_estimate: 'Call for pricing', display_order: 1, is_active: true },
-            { site_id, name: 'Equipment Repair',    description: 'Diagnosis and repair of mechanical or electrical issues.',              duration_minutes: 120, price_estimate: 'Call for pricing', display_order: 2, is_active: true },
-            { site_id, name: 'Blade Service',       description: 'Blade removal, sharpening, balancing, and reinstallation.',            duration_minutes: 30, price_estimate: 'Call for pricing', display_order: 3, is_active: true },
-            { site_id, name: 'Seasonal Prep',       description: 'Full seasonal inspection and preparation for storage or operation.',    duration_minutes: 90, price_estimate: 'Call for pricing', display_order: 4, is_active: true },
-          ]);
-        }
-      }
-
-      // Create subscription record
-      await supabase.from('subscriptions').upsert({
-        site_id,
-        has_base_package: true,
-        status: 'active',
-        current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      }, { onConflict: 'site_id' });
 
       console.log(`✓ Activated site ${site_id} with addons: ${addons.join(', ') || 'none'}`);
       break;
@@ -122,6 +77,78 @@ export async function POST(request: NextRequest) {
       }).eq('stripe_customer_id', stripeCustomerId);
 
       console.log(`✗ Deactivated site for customer ${stripeCustomerId}`);
+      break;
+    }
+
+    // ── Invoice paid — calculate and pay partner commission ──
+    case 'invoice.payment_succeeded': {
+      const invoice = event.data.object as Stripe.Invoice;
+      const stripeCustomerId = invoice.customer as string;
+
+      if (!invoice.amount_paid || invoice.amount_paid === 0) break;
+
+      const { data: site } = await supabase
+        .from('sites')
+        .select('id, partner_id')
+        .eq('stripe_customer_id', stripeCustomerId)
+        .maybeSingle();
+
+      if (!site || !site.partner_id) break;
+
+      const { data: partner } = await supabase
+        .from('manufacturer_partners')
+        .select('id, stripe_account_id, commission_rate')
+        .eq('id', site.partner_id)
+        .single();
+
+      if (!partner || !partner.stripe_account_id) break;
+
+      // Use subtotal (pretax) for commission calculation
+      const subtotalCents   = (invoice as any).subtotal ?? invoice.amount_paid;
+      const commissionRate  = Number(partner.commission_rate) || 0.15;
+      const commissionCents = Math.round(subtotalCents * commissionRate);
+
+      if (commissionCents <= 0) break;
+
+      // Idempotency check
+      const { data: existing } = await supabase
+        .from('partner_commissions')
+        .select('id')
+        .eq('stripe_invoice_id', invoice.id as string)
+        .maybeSingle();
+
+      if (existing) break;
+
+      let transferId: string | null = null;
+      let status = 'pending';
+
+      try {
+        const transfer = await stripe.transfers.create({
+          amount:      commissionCents,
+          currency:    'usd',
+          destination: partner.stripe_account_id,
+          metadata:    { partner_id: partner.id, site_id: site.id, invoice_id: invoice.id as string },
+        });
+        transferId = transfer.id;
+        status = 'paid';
+        console.log(`✓ Commission $${(commissionCents/100).toFixed(2)} paid to partner ${partner.id}`);
+      } catch (transferErr: any) {
+        console.error('Commission transfer failed:', transferErr.message);
+        status = 'failed';
+      }
+
+      await supabase.from('partner_commissions').insert({
+        partner_id:            partner.id,
+        site_id:               site.id,
+        stripe_invoice_id:     invoice.id,
+        invoice_amount_cents:  subtotalCents,
+        commission_cents:      commissionCents,
+        status,
+        stripe_transfer_id:    transferId,
+        period_start:          (invoice as any).period_start ? new Date((invoice as any).period_start * 1000).toISOString() : null,
+        period_end:            (invoice as any).period_end   ? new Date((invoice as any).period_end   * 1000).toISOString() : null,
+      });
+
       break;
     }
 
