@@ -41,7 +41,7 @@ const TEMPLATES = [
     description: 'Dark mode with purple-pink gradients and glow effects. A forward-thinking design for tech-savvy dealers.',
     tags: ['Dark Mode', 'Edgy', 'Glow Effects'],
     vibe: 'Futuristic',
-    liveUrl: 'https://vibe.fleetmarket.us',
+    liveUrl: 'https://vd.fleetmarket.us',
     screenshot: '/templates/vibe-dynamics.jpg',
   },
   {
