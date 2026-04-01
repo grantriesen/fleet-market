@@ -67,70 +67,7 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-slate-900">
 
-      {/* Header */}
-      <header className="bg-[#2C3E7D] border-b-2 border-[#E8472F] relative z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <div className="flex items-center justify-between">
-            <a href="/" className="flex items-center gap-3">
-              <img src="/fmlogo3.jpg" alt="Fleet Market" className="h-10" onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                (e.currentTarget.nextElementSibling as HTMLElement)?.classList.remove('hidden');
-              }} />
-              <span className="text-2xl font-bold text-white uppercase tracking-tight hidden">
-                <span className="text-[#E8472F]">Fleet</span>Market
-              </span>
-            </a>
-            {/* Desktop nav */}
-            <div className="hidden md:flex items-center gap-6">
-              <a href="/site-builder" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Site Builder</a>
-              <a href="/templates" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Templates</a>
-              <a href="/features" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">Additional Features</a>
-              <a href="/pricing" className="text-white text-sm font-semibold border-b border-[#E8472F] pb-0.5">Pricing</a>
-            </div>
-            <div className="hidden md:flex items-center gap-4">
-              <a href="/auth/login" className="px-5 py-2 text-gray-300 hover:text-white font-semibold transition-colors">Sign In</a>
-              <a href="/register" className="px-6 py-3 bg-[#E8472F] text-white font-bold rounded hover:bg-[#d13d25] transition-all">Get Started</a>
-            </div>
-            {/* Mobile hamburger */}
-            <button className="md:hidden p-2 text-white hover:text-[#E8472F] transition-colors" onClick={() => setMobileOpen(p => !p)}>
-              {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile drawer */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileOpen(false)}>
-          <div className="absolute inset-0 bg-black/60" />
-          <div className="absolute top-0 right-0 h-full w-72 bg-[#1a2647] border-l-2 border-[#E8472F] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-700">
-              <span className="text-white font-bold text-lg">Menu</span>
-              <button onClick={() => setMobileOpen(false)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
-            </div>
-            <nav className="flex flex-col px-6 py-8 gap-1 flex-1">
-              {[
-                { href: '/site-builder', label: 'Site Builder' },
-                { href: '/templates', label: 'Templates' },
-                { href: '/features', label: 'Additional Features' },
-                { href: '/pricing', label: 'Pricing' },
-                { href: '/auth/login', label: 'Sign In' },
-              ].map(link => (
-                <a key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
-                  className="py-3 px-4 text-gray-300 hover:text-white hover:bg-slate-700/50 rounded font-medium transition-all">
-                  {link.label}
-                </a>
-              ))}
-            </nav>
-            <div className="px-6 pb-8">
-              <a href="/register" onClick={() => setMobileOpen(false)}
-                className="block w-full py-4 bg-[#E8472F] text-white font-bold rounded text-center hover:bg-[#d13d25] transition-all">
-                Get Started
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
+      <MarketingHeader activePath="/pricing" />
 
       {/* Hero */}
       <section className="bg-gradient-to-b from-slate-900 to-slate-800 pt-20 pb-16 text-center border-b-2 border-slate-700">
