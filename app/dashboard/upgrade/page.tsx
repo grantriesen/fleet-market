@@ -106,23 +106,15 @@ function UpgradePageInner() {
     setError('');
 
     try {
-      // Map addon keys to feature keys expected by the checkout API
-      const featureKeyMap: Record<string, string> = {
-        inventory: 'inventory_sync',
-        service:   'service_scheduling',
-        rentals:   'rental_scheduling',
-      };
-      const allFeatures = selected.map(k => featureKeyMap[k]).filter(Boolean);
-
-      const res = await fetch('/api/create-checkout-session', {
+      const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          siteId: site.id,
-          features: allFeatures,
-          billingInterval: 'month',
-          // Pass full addons array so webhook updates correctly
-          addons: selected,
+          site_id: site.id,
+          addons:  selected,  // full set including existing + new
+          billing: 'monthly',
+          success_url: `${window.location.origin}/dashboard?upgrade=success`,
+          cancel_url:  `${window.location.origin}/dashboard/upgrade`,
         }),
       });
 
