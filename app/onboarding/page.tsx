@@ -165,7 +165,7 @@ export default function OnboardingPreflightPage() {
   }
 
   // ─── Site Creation ─────────────────────────────────────────────────────────
-  async function handleCreateSite(bypass: boolean = false) {
+  async function handleCreateSite() {
     if (!selectedTemplate || !userId) return;
     setCreating(true);
     setStep('creating');
@@ -203,28 +203,15 @@ export default function OnboardingPreflightPage() {
 
       const siteId = siteData.id;
 
-      // 4. Create subscription record (all add-ons unlocked for demo bypass, or active for paid)
-      const subscriptionPayload = bypass
-        ? {
-            site_id:                          siteId,
-            user_id:                          userId,
-            has_base_package:                 true,
-            base_stripe_subscription_id:      'demo_bypass',
-            inventory_stripe_subscription_id: selectedAddons.includes('inventory') ? 'demo_bypass' : null,
-            service_stripe_subscription_id:   selectedAddons.includes('service')   ? 'demo_bypass' : null,
-            rental_stripe_subscription_id:    selectedAddons.includes('rentals')   ? 'demo_bypass' : null,
-            status:                           'active',
-            current_period_start:             new Date().toISOString(),
-            current_period_end:               new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000).toISOString(),
-          }
-        : {
-            site_id:          siteId,
-            user_id:          userId,
-            has_base_package: true,
-            status:           'active',
-            current_period_start: new Date().toISOString(),
-            current_period_end:   new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          };
+      // 4. Create subscription record
+      const subscriptionPayload = {
+        site_id:          siteId,
+        user_id:          userId,
+        has_base_package: true,
+        status:           'active',
+        current_period_start: new Date().toISOString(),
+        current_period_end:   new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      };
 
       await supabase.from('subscriptions').insert(subscriptionPayload);
 
@@ -341,8 +328,7 @@ export default function OnboardingPreflightPage() {
           selectedAddons={selectedAddons}
           addonPrice={addonPrice}
           totalPrice={totalPrice}
-          onPay={() => handleCreateSite(false)}
-          onBypass={() => handleCreateSite(true)}
+          onPay={() => handleCreateSite()}
           error={error}
           creating={creating}
         />}
@@ -543,14 +529,13 @@ function AddonStep({
 // ─── Payment Step ──────────────────────────────────────────────────────────────
 function PaymentStep({
   selectedTemplate, selectedAddons, addonPrice, totalPrice,
-  onPay, onBypass, error, creating,
+  onPay, error, creating,
 }: {
   selectedTemplate: TemplateSlug;
   selectedAddons: string[];
   addonPrice: number;
   totalPrice: number;
   onPay: () => void;
-  onBypass: () => void;
   error: string;
   creating: boolean;
 }) {
@@ -649,18 +634,7 @@ function PaymentStep({
           {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <><ArrowRight className="w-5 h-5" /> Continue to Payment</>}
         </button>
 
-        <button
-          onClick={onBypass}
-          disabled={creating}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-medium text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 disabled:opacity-50 transition-all text-sm"
-        >
-          Skip payment for now →
-        </button>
       </div>
-
-      <p className="text-center text-xs text-slate-600 mt-4">
-        "Skip payment" is for demo and internal accounts only.
-      </p>
     </div>
   );
 }
