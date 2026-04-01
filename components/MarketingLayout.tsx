@@ -122,12 +122,15 @@ export function MarketingFooter() {
           <span className="text-xl font-bold text-gray-400 hidden">
             <span className="text-[#E8472F]">Fleet</span>Market
           </span>
-          <nav className="flex items-center gap-6">
+          <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             {NAV_LINKS.map(link => (
               <a key={link.href} href={link.href} className="text-sm text-gray-500 hover:text-gray-300 transition-colors">
                 {link.label}
               </a>
             ))}
+            <span className="text-slate-700">·</span>
+            <a href="/privacy" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">Privacy Policy</a>
+            <a href="/refund" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">Refund Policy</a>
           </nav>
           <p className="text-sm text-gray-500">© 2026 FleetMarket. All rights reserved.</p>
         </div>
