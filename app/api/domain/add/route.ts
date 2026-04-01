@@ -39,46 +39,42 @@ export async function POST(request: NextRequest) {
 
     if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 });
 
-    // If there was a previous custom domain, remove it from Vercel first
-    if (site.custom_domain && site.custom_domain !== domain) {
-      const teamQ = TEAM_ID ? `?teamId=${TEAM_ID}` : '';
-      await fetch(
-        `${VERCEL_API}/v9/projects/${PROJECT_ID}/domains/${site.custom_domain}${teamQ}`,
-        { method: 'DELETE', headers: vercelHeaders() }
-      );
-    }
+    // Normalize to apex domain (strip www if present)
+    const apexDomain = domain.replace(/^www\./, '');
+    const wwwDomain  = `www.${apexDomain}`;
 
-    // Add the new domain to Vercel
     const teamQ = TEAM_ID ? `?teamId=${TEAM_ID}` : '';
-    const addRes = await fetch(
-      `${VERCEL_API}/v10/projects/${PROJECT_ID}/domains${teamQ}`,
-      {
-        method: 'POST',
-        headers: vercelHeaders(),
-        body: JSON.stringify({ name: domain }),
-      }
-    );
 
-    const addData = await addRes.json();
-
-    if (!addRes.ok) {
-      // Domain already exists on this project is fine
-      if (addData.error?.code !== 'domain_already_in_use') {
-        console.error('Vercel domain add error:', addData);
-        return NextResponse.json(
-          { error: addData.error?.message || 'Failed to register domain with Vercel' },
-          { status: 500 }
-        );
-      }
+    // Remove old domains from Vercel if switching
+    if (site.custom_domain && site.custom_domain !== apexDomain) {
+      const oldApex = site.custom_domain.replace(/^www\./, '');
+      await fetch(`${VERCEL_API}/v9/projects/${PROJECT_ID}/domains/${oldApex}${teamQ}`,    { method: 'DELETE', headers: vercelHeaders() });
+      await fetch(`${VERCEL_API}/v9/projects/${PROJECT_ID}/domains/www.${oldApex}${teamQ}`, { method: 'DELETE', headers: vercelHeaders() });
     }
 
-    // Update Supabase with the new custom domain
+    // Register both apex and www with Vercel
+    const addDomain = async (d: string) => {
+      const res = await fetch(
+        `${VERCEL_API}/v10/projects/${PROJECT_ID}/domains${teamQ}`,
+        { method: 'POST', headers: vercelHeaders(), body: JSON.stringify({ name: d }) }
+      );
+      const data = await res.json();
+      if (!res.ok && data.error?.code !== 'domain_already_in_use') {
+        throw new Error(data.error?.message || `Failed to register ${d}`);
+      }
+      return data;
+    };
+
+    await addDomain(apexDomain);
+    await addDomain(wwwDomain);
+
+    // Store the apex domain in Supabase (without www)
     await supabase
       .from('sites')
-      .update({ custom_domain: domain })
+      .update({ custom_domain: apexDomain })
       .eq('id', siteId);
 
-    return NextResponse.json({ success: true, domain });
+    return NextResponse.json({ success: true, domain: apexDomain, www: wwwDomain });
 
   } catch (err: any) {
     console.error('Domain add error:', err);
@@ -109,12 +105,11 @@ export async function DELETE(request: NextRequest) {
 
     if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 });
 
-    // Remove from Vercel
+    // Remove both apex and www from Vercel
+    const apexDomain = domain.replace(/^www\./, '');
     const teamQ = TEAM_ID ? `?teamId=${TEAM_ID}` : '';
-    await fetch(
-      `${VERCEL_API}/v9/projects/${PROJECT_ID}/domains/${domain}${teamQ}`,
-      { method: 'DELETE', headers: vercelHeaders() }
-    );
+    await fetch(`${VERCEL_API}/v9/projects/${PROJECT_ID}/domains/${apexDomain}${teamQ}`,        { method: 'DELETE', headers: vercelHeaders() });
+    await fetch(`${VERCEL_API}/v9/projects/${PROJECT_ID}/domains/www.${apexDomain}${teamQ}`,    { method: 'DELETE', headers: vercelHeaders() });
 
     // Clear from Supabase
     await supabase
