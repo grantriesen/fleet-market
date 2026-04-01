@@ -192,28 +192,45 @@ function OnboardingPreflightInner() {
 
       if (tErr || !templateData) throw new Error('Template not found. Please contact support.');
 
-      // 2. Generate a slug from user's eventual business name (placeholder until onboarding step 5)
-      const timestamp   = Date.now().toString(36);
-      const siteSlug    = `dealer-${timestamp}`;
-
-      // 3. Create the site record
-      const { data: siteData, error: siteErr } = await supabase
+      // 2. Check for existing pending site — reuse to avoid duplicate key violation
+      const { data: existingSite } = await supabase
         .from('sites')
-        .insert({
-          user_id:     userId,
-          template_id: templateData.id,
-          slug:        siteSlug,
-          site_name:   'My Dealership', // placeholder — overwritten in step 5
-          addons:      selectedAddons,
-          onboarded:   false,
-          subscription_status: 'pending',
-        })
         .select('id')
-        .single();
+        .eq('user_id', userId)
+        .eq('subscription_status', 'pending')
+        .maybeSingle();
 
-      if (siteErr || !siteData) throw new Error(siteErr?.message || 'Failed to create site.');
+      let siteId: string;
 
-      const siteId = siteData.id;
+      if (existingSite) {
+        // Reuse and update template/addons
+        siteId = existingSite.id;
+        await supabase.from('sites').update({
+          template_id: templateData.id,
+          addons:      selectedAddons,
+        }).eq('id', siteId);
+      } else {
+        // 3. Create the site record
+        const timestamp = Date.now().toString(36);
+        const siteSlug  = `dealer-${timestamp}`;
+
+        const { data: siteData, error: siteErr } = await supabase
+          .from('sites')
+          .insert({
+            user_id:     userId,
+            template_id: templateData.id,
+            slug:        siteSlug,
+            site_name:   'My Dealership',
+            addons:      selectedAddons,
+            onboarded:   false,
+            subscription_status: 'pending',
+          })
+          .select('id')
+          .single();
+
+        if (siteErr || !siteData) throw new Error(siteErr?.message || 'Failed to create site.');
+        siteId = siteData.id;
+      }
 
 
       // 2. Redirect to Stripe checkout — site activates via webhook on success
