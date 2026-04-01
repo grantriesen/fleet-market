@@ -29,8 +29,10 @@ export async function POST(request: NextRequest) {
     const {
       site_id,
       addons = [],
-      billing = 'monthly', // 'monthly' | 'annual'
-    }: { site_id: string; addons: string[]; billing?: string } = await request.json();
+      billing = 'monthly',
+      success_url,
+      cancel_url,
+    }: { site_id: string; addons: string[]; billing?: string; success_url?: string; cancel_url?: string } = await request.json();
 
     if (!site_id) {
       return NextResponse.json({ error: 'Missing site_id' }, { status: 400 });
@@ -78,8 +80,8 @@ export async function POST(request: NextRequest) {
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       line_items: lineItems,
-      success_url: `${origin}/dashboard?subscribed=true`,
-      cancel_url:  `${origin}/pricing?cancelled=true`,
+      success_url: success_url || `${origin}/dashboard?subscribed=true`,
+      cancel_url:  cancel_url  || `${origin}/pricing?cancelled=true`,
       metadata: {
         site_id,
         addons:  JSON.stringify(addons),

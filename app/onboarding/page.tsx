@@ -234,18 +234,15 @@ function OnboardingPreflightInner() {
 
 
       // 2. Redirect to Stripe checkout — site activates via webhook on success
-      const res = await fetch('/api/create-checkout-session', {
+      const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          siteId,
-          features: selectedAddons.map((a: string) => ({
-            inventory: 'inventory_sync',
-            service:   'service_scheduling',
-            rentals:   'rental_scheduling',
-          } as Record<string, string>)[a] || a),
-          addons: selectedAddons,
-          billingInterval: 'month',
+          site_id: siteId,
+          addons:  selectedAddons,
+          billing: 'monthly',
+          success_url: `${window.location.origin}/onboarding/${siteId}`,
+          cancel_url:  `${window.location.origin}/onboarding?addons=${selectedAddons.join(',')}`,
         }),
       });
 
