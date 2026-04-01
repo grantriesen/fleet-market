@@ -24,6 +24,20 @@ const ANNUAL: Record<string, string> = {
   bundle_3:        process.env.STRIPE_PRICE_BUNDLE_3_ANNUAL!,
 };
 
+// Get product IDs for addon price items (needed for applies_to on coupon)
+async function getAddonProductIds(stripe: Stripe, items: Stripe.Checkout.SessionCreateParams.LineItem[]): Promise<string[]> {
+  const productIds: string[] = [];
+  for (const item of items) {
+    if (item.price) {
+      try {
+        const price = await stripe.prices.retrieve(item.price as string);
+        if (typeof price.product === 'string') productIds.push(price.product);
+      } catch {}
+    }
+  }
+  return productIds;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const {
@@ -77,11 +91,46 @@ export async function POST(request: NextRequest) {
 
     const origin = request.headers.get('origin') || 'https://app.fleetmarket.us';
 
+    // Check if this site is an early adopter and should get free addons
+    let discountParams: Partial<Stripe.Checkout.SessionCreateParams> = {};
+
+    if (addons.length > 0) {
+      const { data: siteRecord } = await supabase
+        .from('sites')
+        .select('early_adopter, early_adopter_free_until')
+        .eq('id', site_id)
+        .single();
+
+      if (siteRecord?.early_adopter && siteRecord?.early_adopter_free_until) {
+        const freeUntil = new Date(siteRecord.early_adopter_free_until);
+        if (freeUntil > new Date()) {
+          // Create a time-limited coupon for 100% off addons
+          // Duration is the number of free months remaining
+          const now = new Date();
+          const freeMonthsRemaining = Math.ceil((freeUntil.getTime() - now.getTime()) / (30 * 24 * 60 * 60 * 1000));
+
+          const coupon = await stripe.coupons.create({
+            percent_off:    100,
+            duration:       'repeating',
+            duration_in_months: Math.max(1, freeMonthsRemaining),
+            name:           `Early Adopter — ${freeMonthsRemaining} month${freeMonthsRemaining > 1 ? 's' : ''} free add-ons`,
+            metadata:       { site_id, early_adopter: 'true' },
+            applies_to: {
+              products: await getAddonProductIds(stripe, lineItems.slice(1)), // all items except base
+            },
+          });
+
+          discountParams = { discounts: [{ coupon: coupon.id }] };
+        }
+      }
+    }
+
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       line_items: lineItems,
       success_url: success_url || `${origin}/dashboard?subscribed=true`,
       cancel_url:  cancel_url  || `${origin}/pricing?cancelled=true`,
+      ...discountParams,
       metadata: {
         site_id,
         addons:  JSON.stringify(addons),
