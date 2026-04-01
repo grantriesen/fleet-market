@@ -1062,7 +1062,65 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                   placeholder="www.yourdealer.com"
                   className="w-full px-3 py-2 border rounded-lg text-sm"
                 />
-                <p className="text-xs text-gray-400 mt-1">Point your domain's CNAME to <code className="bg-gray-100 px-1 rounded">cname.vercel-dns.com</code></p>
+                <p className="text-xs text-gray-400 mt-1">Enter your domain exactly as you want it to appear (e.g. <code className="bg-gray-100 px-1 rounded">www.mydealer.com</code> or <code className="bg-gray-100 px-1 rounded">mydealer.com</code>).</p>
+
+                {/* DNS Setup Instructions */}
+                <div className="mt-3 border border-blue-100 rounded-lg overflow-hidden">
+                  <div className="bg-blue-50 px-4 py-3">
+                    <p className="text-sm font-semibold text-blue-800">📋 How to connect your domain</p>
+                    <p className="text-xs text-blue-600 mt-0.5">Follow these steps in your domain registrar (GoDaddy, Namecheap, Google Domains, etc.)</p>
+                  </div>
+                  <div className="px-4 py-3 space-y-3 text-sm">
+
+                    <div className="flex gap-3">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center mt-0.5">1</span>
+                      <div>
+                        <p className="font-medium text-gray-800">Log in to your domain registrar</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Go to the DNS settings or DNS Management section for your domain.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center mt-0.5">2</span>
+                      <div>
+                        <p className="font-medium text-gray-800">Add a CNAME record</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Create a new DNS record with these values:</p>
+                        <div className="mt-2 bg-gray-50 border border-gray-200 rounded p-2 font-mono text-xs space-y-1">
+                          <div className="grid grid-cols-3 gap-2 text-gray-400 uppercase text-[10px] font-sans font-semibold pb-1 border-b border-gray-200">
+                            <span>Type</span><span>Name / Host</span><span>Value / Points To</span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-gray-700">
+                            <span className="text-blue-600 font-bold">CNAME</span>
+                            <span>www</span>
+                            <span>cname.vercel-dns.com</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1.5">If connecting a root/apex domain (mydealer.com without www), use an <strong>A record</strong> pointing to <code className="bg-gray-100 px-0.5 rounded">76.76.21.21</code> instead.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center mt-0.5">3</span>
+                      <div>
+                        <p className="font-medium text-gray-800">Enter your domain above and save</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Type your domain in the field above, then click <strong>Update & Republish</strong>. SSL is provisioned automatically.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center mt-0.5">4</span>
+                      <div>
+                        <p className="font-medium text-gray-800">Wait for DNS to propagate</p>
+                        <p className="text-xs text-gray-500 mt-0.5">DNS changes typically take 5–30 minutes, sometimes up to 24 hours depending on your registrar. Your site will go live automatically once propagation completes.</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded p-2.5 text-xs text-amber-700 flex gap-2">
+                      <span className="flex-shrink-0">⚠️</span>
+                      <span>Need help? Contact us at <strong>support@fleetmarket.us</strong> and we'll walk you through it.</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Password Protection */}
