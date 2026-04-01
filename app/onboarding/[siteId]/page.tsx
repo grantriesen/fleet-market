@@ -444,17 +444,37 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
       }
 
       // Update the site name and slug on the sites record
-      const generatedSlug = form.businessName
+      const baseSlug = form.businessName
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
-        .substring(0, 40);
-      const uniqueSlug = `${generatedSlug}-${site.id.substring(0, 6)}`;
+        .substring(0, 50);
+
+      // Try the clean slug first, fall back to suffixed if taken
+      let finalSlug = baseSlug;
+      let slugHadCollision = false;
+
+      const { data: existing } = await supabase
+        .from('sites')
+        .select('id')
+        .eq('slug', baseSlug)
+        .neq('id', site.id)
+        .maybeSingle();
+
+      if (existing) {
+        finalSlug = `${baseSlug}-${site.id.substring(0, 4)}`;
+        slugHadCollision = true;
+      }
 
       await supabase
         .from('sites')
-        .update({ site_name: form.businessName, slug: uniqueSlug, onboarded: true })
+        .update({ site_name: form.businessName, slug: finalSlug, onboarded: true })
         .eq('id', site.id);
+
+      if (slugHadCollision) {
+        setGenStatus(`Your subdomain is ${finalSlug}.fleetmarket.us — a short suffix was added since the name was already taken.`);
+        await new Promise(r => setTimeout(r, 2500));
+      }
 
       setGenStatus('Almost done...');
       await new Promise(r => setTimeout(r, 800));
