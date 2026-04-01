@@ -1097,7 +1097,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                         </div>
                         <div className="mt-2 space-y-1">
                           <p className="text-xs text-gray-500">⚠️ <strong>GoDaddy note:</strong> GoDaddy may show a "Record data is invalid" error if you use the wrong value. Use the exact value above — not <code className="bg-gray-100 px-0.5 rounded">cname.vercel-dns.com</code>.</p>
-                          <p className="text-xs text-gray-500">⚠️ <strong>Root domain note:</strong> If you want <code className="bg-gray-100 px-0.5 rounded">mydealer.com</code> without www, you need an <strong>ALIAS</strong> or <strong>ANAME</strong> record with the same value. GoDaddy does not support this — use <code className="bg-gray-100 px-0.5 rounded">www.mydealer.com</code> instead.</p>
+                          <p className="text-xs text-gray-500">💡 <strong>Root domain (mydealer.com without www):</strong> Instead of a CNAME, add an <strong>A record</strong> with Name set to <code className="bg-gray-100 px-0.5 rounded">@</code> and Value set to <code className="bg-gray-100 px-0.5 rounded">76.76.21.21</code>. You can add both the A record and the CNAME so both <code className="bg-gray-100 px-0.5 rounded">mydealer.com</code> and <code className="bg-gray-100 px-0.5 rounded">www.mydealer.com</code> work.</p>
                         </div>
                       </div>
                     </div>
