@@ -1068,7 +1068,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                 <div className="mt-3 border border-blue-100 rounded-lg overflow-hidden">
                   <div className="bg-blue-50 px-4 py-3">
                     <p className="text-sm font-semibold text-blue-800">📋 How to connect your domain</p>
-                    <p className="text-xs text-blue-600 mt-0.5">Follow these steps in your domain registrar (GoDaddy, Namecheap, Google Domains, etc.)</p>
+                    <p className="text-xs text-blue-600 mt-0.5">Works with GoDaddy, Namecheap, Cloudflare, Google Domains, and most other registrars.</p>
                   </div>
                   <div className="px-4 py-3 space-y-3 text-sm">
 
@@ -1076,15 +1076,15 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                       <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center mt-0.5">1</span>
                       <div>
                         <p className="font-medium text-gray-800">Log in to your domain registrar</p>
-                        <p className="text-xs text-gray-500 mt-0.5">Go to the DNS settings or DNS Management section for your domain.</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Find the <strong>DNS Management</strong> or <strong>DNS Settings</strong> section for your domain. In GoDaddy this is under My Products → DNS.</p>
                       </div>
                     </div>
 
                     <div className="flex gap-3">
                       <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center mt-0.5">2</span>
                       <div>
-                        <p className="font-medium text-gray-800">Add a CNAME record</p>
-                        <p className="text-xs text-gray-500 mt-0.5">Create a new DNS record with these values:</p>
+                        <p className="font-medium text-gray-800">Add a CNAME record for your www subdomain</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Create a new record and enter these values <strong>exactly as shown</strong> — copy and paste the value to avoid typos:</p>
                         <div className="mt-2 bg-gray-50 border border-gray-200 rounded p-2 font-mono text-xs space-y-1">
                           <div className="grid grid-cols-3 gap-2 text-gray-400 uppercase text-[10px] font-sans font-semibold pb-1 border-b border-gray-200">
                             <span>Type</span><span>Name / Host</span><span>Value / Points To</span>
@@ -1092,18 +1092,21 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                           <div className="grid grid-cols-3 gap-2 text-gray-700">
                             <span className="text-blue-600 font-bold">CNAME</span>
                             <span>www</span>
-                            <span>cname.vercel-dns.com</span>
+                            <span className="break-all">1b7cb48aec69e65b.vercel-dns-017.com</span>
                           </div>
                         </div>
-                        <p className="text-xs text-gray-400 mt-1.5">If connecting a root/apex domain (mydealer.com without www), use an <strong>A record</strong> pointing to <code className="bg-gray-100 px-0.5 rounded">76.76.21.21</code> instead.</p>
+                        <div className="mt-2 space-y-1">
+                          <p className="text-xs text-gray-500">⚠️ <strong>GoDaddy note:</strong> GoDaddy may show a "Record data is invalid" error if you use the wrong value. Use the exact value above — not <code className="bg-gray-100 px-0.5 rounded">cname.vercel-dns.com</code>.</p>
+                          <p className="text-xs text-gray-500">⚠️ <strong>Root domain note:</strong> If you want <code className="bg-gray-100 px-0.5 rounded">mydealer.com</code> without www, you need an <strong>ALIAS</strong> or <strong>ANAME</strong> record with the same value. GoDaddy does not support this — use <code className="bg-gray-100 px-0.5 rounded">www.mydealer.com</code> instead.</p>
+                        </div>
                       </div>
                     </div>
 
                     <div className="flex gap-3">
                       <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center mt-0.5">3</span>
                       <div>
-                        <p className="font-medium text-gray-800">Enter your domain above and save</p>
-                        <p className="text-xs text-gray-500 mt-0.5">Type your domain in the field above, then click <strong>Update & Republish</strong>. SSL is provisioned automatically.</p>
+                        <p className="font-medium text-gray-800">Enter your domain in the field above and save</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Type <code className="bg-gray-100 px-0.5 rounded">www.yourdomain.com</code> in the field above, then click <strong>Update & Republish</strong>. SSL provisions automatically — no extra steps needed.</p>
                       </div>
                     </div>
 
@@ -1111,13 +1114,13 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                       <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center mt-0.5">4</span>
                       <div>
                         <p className="font-medium text-gray-800">Wait for DNS to propagate</p>
-                        <p className="text-xs text-gray-500 mt-0.5">DNS changes typically take 5–30 minutes, sometimes up to 24 hours depending on your registrar. Your site will go live automatically once propagation completes.</p>
+                        <p className="text-xs text-gray-500 mt-0.5">DNS changes usually take <strong>5–30 minutes</strong> with GoDaddy and Cloudflare, or up to 24 hours with some registrars. Your site goes live automatically once it propagates — no action needed on your end.</p>
                       </div>
                     </div>
 
                     <div className="bg-amber-50 border border-amber-200 rounded p-2.5 text-xs text-amber-700 flex gap-2">
                       <span className="flex-shrink-0">⚠️</span>
-                      <span>Need help? Contact us at <strong>support@fleetmarket.us</strong> and we'll walk you through it.</span>
+                      <span>Still stuck? Email us at <strong>support@fleetmarket.us</strong> and we'll walk you through it step by step.</span>
                     </div>
                   </div>
                 </div>
