@@ -965,19 +965,28 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
     }
   }, [tourActive, tourSteps.length, loading]);
 
-  // Debounced slug availability checker
+  // Slug input handler — allows free typing including dashes
+  const handleSlugInput = (val: string) => {
+    const raw = val.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    setSlugInput(raw);
+    setSlugStatus('idle');
+  };
+
+  // Check availability via server-side API route (uses service role to bypass RLS)
   const checkSlug = async (val: string) => {
-    const cleaned = val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '').replace(/-+/g, '-');
+    const cleaned = val.replace(/-+/g, '-').replace(/^-+|-+$/g, '');
     setSlugInput(cleaned);
     if (!cleaned || cleaned.length < 3) { setSlugStatus('idle'); return; }
     setSlugStatus('checking');
-    const { data } = await supabase
-      .from('sites')
-      .select('id')
-      .eq('slug', cleaned)
-      .neq('id', params.siteId)
-      .maybeSingle();
-    setSlugStatus(data ? 'taken' : 'available');
+    try {
+      const res = await fetch(`/api/slug-check?slug=${encodeURIComponent(cleaned)}&siteId=${params.siteId}`);
+      const data = await res.json();
+      if (!res.ok) { setSlugStatus('idle'); return; }
+      setSlugStatus(data.available ? 'available' : 'taken');
+    } catch (e) {
+      console.error('Slug check error:', e);
+      setSlugStatus('idle');
+    }
   };
 
   const saveSlug = async () => {
@@ -1098,7 +1107,8 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                     <input
                       type="text"
                       value={slugInput}
-                      onChange={(e) => checkSlug(e.target.value)}
+                      onChange={(e) => handleSlugInput(e.target.value)}
+                      onBlur={(e) => checkSlug(e.target.value)}
                       placeholder="your-business-name"
                       className="flex-1 px-3 py-2 text-sm outline-none"
                     />
