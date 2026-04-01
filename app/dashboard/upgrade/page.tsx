@@ -68,7 +68,7 @@ function UpgradePageInner() {
 
     const { data } = await supabase
       .from('sites')
-      .select('id, site_name, addons, stripe_customer_id')
+      .select('id, site_name, addons, stripe_customer_id, stripe_subscription_id')
       .eq('user_id', user.id)
       .single();
 
@@ -106,21 +106,37 @@ function UpgradePageInner() {
     setError('');
 
     try {
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          site_id: site.id,
-          addons:  selected,  // full set including existing + new
-          billing: 'monthly',
-          success_url: `${window.location.origin}/dashboard?upgrade=success`,
-          cancel_url:  `${window.location.origin}/dashboard/upgrade`,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Checkout failed');
-      window.location.href = data.url;
+      if (site.stripe_subscription_id) {
+        // Existing subscriber — update subscription with proration (no double-billing)
+        const res = await fetch('/api/stripe/subscription-update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            site_id: site.id,
+            addons:  selected,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to update subscription');
+        // Redirect to dashboard — addons are active immediately
+        router.push('/dashboard?upgrade=success');
+      } else {
+        // New subscriber — go through Stripe checkout to collect payment
+        const res = await fetch('/api/stripe/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            site_id:     site.id,
+            addons:      selected,
+            billing:     'monthly',
+            success_url: `${window.location.origin}/dashboard?upgrade=success`,
+            cancel_url:  `${window.location.origin}/dashboard/upgrade`,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Checkout failed');
+        window.location.href = data.url;
+      }
     } catch (err: any) {
       setError(err.message);
       setChecking(false);
