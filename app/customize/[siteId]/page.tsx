@@ -1144,7 +1144,7 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
             </div>
           </div>
         </div>
-      )
+      )}
       {/* Toast Notification */}
       {toast && (
         <div className={`fixed top-4 right-4 z-[100] flex items-center gap-3 px-5 py-3 rounded-lg shadow-lg transition-all animate-in slide-in-from-top-2 ${
