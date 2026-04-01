@@ -269,28 +269,7 @@ export default function FeaturesPage() {
   return (
     <div className="min-h-screen bg-slate-900">
 
-      {/* Header */}
-      <header className="bg-[#2C3E7D] border-b-2 border-[#E8472F]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <div className="flex items-center justify-between">
-            <a href="/" className="flex items-center gap-3">
-              <img src="/fmlogo3.jpg" alt="Fleet Market" className="h-10" onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                (e.currentTarget.nextElementSibling as HTMLElement)?.classList.remove('hidden');
-              }} />
-              <span className="text-2xl font-bold text-white uppercase tracking-tight hidden">
-                <span className="text-[#E8472F]">Fleet</span>Market
-              </span>
-            </a>
-            <div className="flex items-center gap-4">
-              <a href="/templates" className="text-gray-300 hover:text-white text-sm font-medium transition-colors hidden md:block">Templates</a>
-              <a href="/pricing" className="text-gray-300 hover:text-white text-sm font-medium transition-colors hidden md:block">Pricing</a>
-              <a href="/auth/login" className="px-5 py-2 text-gray-300 hover:text-white font-semibold transition-colors">Sign In</a>
-              <a href="/pricing" className="px-6 py-3 bg-[#E8472F] text-white font-bold rounded hover:bg-[#d13d25] transition-all">Sign Up</a>
-            </div>
-          </div>
-        </div>
-      </header>
+      <MarketingHeader activePath="/features" />
 
       {/* Hero */}
       <section className="bg-gradient-to-b from-slate-900 to-slate-800 py-20 text-center">
