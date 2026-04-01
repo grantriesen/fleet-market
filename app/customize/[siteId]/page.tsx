@@ -964,6 +964,17 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
   const handlePublish = async () => {
     setPublishing(true);
     try {
+      // If a custom domain is set, register it with Vercel first
+      if (customDomain) {
+        const domainRes = await fetch('/api/domain/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ siteId: params.siteId, domain: customDomain }),
+        });
+        const domainData = await domainRes.json();
+        if (!domainRes.ok) throw new Error(domainData.error || 'Failed to register domain');
+      }
+
       const deployedUrl = customDomain
         ? `https://${customDomain}`
         : `https://${siteSlug}.fleetmarket.us`;
@@ -1041,12 +1052,12 @@ export default function CustomizePage({ params }: { params: { siteId: string } }
                   <p className="font-semibold text-sm">{published ? 'Live' : 'Draft'}</p>
                   {published && (
                     <a
-                      href={`https://${siteSlug}.fleetmarket.us`}
+                      href={customDomain ? `https://${customDomain}` : `https://${siteSlug}.fleetmarket.us`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-blue-600 hover:underline"
                     >
-                      {siteSlug}.fleetmarket.us ↗
+                      {customDomain || `${siteSlug}.fleetmarket.us`} ↗
                     </a>
                   )}
                 </div>
