@@ -66,7 +66,9 @@ function RegisterContent() {
   const addonsParam    = params.get('addons') || '';
   const selectedAddons = addonsParam ? addonsParam.split(',').filter(Boolean) : [];
   const refCode        = params.get('ref') || '';
+  const promoCodeId    = params.get('promo') || '';
   if (refCode) storeReferralCode(refCode);
+  if (promoCodeId && typeof window !== 'undefined') sessionStorage.setItem('fm_promo_code_id', promoCodeId);
 
   const addonPrice = getAddonPrice(selectedAddons.length);
   const total      = 230 + addonPrice;
@@ -259,8 +261,8 @@ function RegisterContent() {
             </p>
             <p className="text-xs text-gray-500">
               By creating an account you agree to our{' '}
-              <a href="#" className="text-[#E8472F] hover:underline">Terms</a> and{' '}
-              <a href="#" className="text-[#E8472F] hover:underline">Privacy Policy</a>
+              <a href="/terms" className="text-[#E8472F] hover:underline">Terms</a> and{' '}
+              <a href="/privacy" className="text-[#E8472F] hover:underline">Privacy Policy</a>
             </p>
           </div>
         </div>
