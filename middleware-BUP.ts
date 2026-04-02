@@ -33,13 +33,28 @@ export async function middleware(request: NextRequest) {
 
     if (slug) {
       const url = request.nextUrl.clone();
+      // Preserve all original query params
+      const originalParams = request.nextUrl.searchParams;
+      
       // Map clean paths to ?page= param
       // e.g. /inventory → /site/slug?page=inventory
       const cleanPath = pathname === '/' ? 'home' : pathname.replace(/^\//, '').split('/')[0];
       url.pathname = `/site/${slug}`;
-      if (cleanPath && cleanPath !== 'home') {
-        url.searchParams.set('page', cleanPath);
+      
+      // Clear and re-set all search params to ensure they survive the rewrite
+      const allParams = new URLSearchParams();
+      originalParams.forEach((value, key) => {
+        allParams.set(key, value);
+      });
+      
+      // Only set page from pathname if not already in query string
+      if (!allParams.has('page') && cleanPath && cleanPath !== 'home') {
+        allParams.set('page', cleanPath);
       }
+      
+      // Apply all params to the rewritten URL
+      url.search = allParams.toString();
+      
       return NextResponse.rewrite(url);
     }
   }

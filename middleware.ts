@@ -128,14 +128,18 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/dashboard') ||
       pathname.startsWith('/customize') ||
       pathname.startsWith('/deploy') ||
-      pathname.startsWith('/onboarding')) {
+      pathname.startsWith('/onboarding') ||
+      (pathname.startsWith('/manufacturer') && !pathname.startsWith('/manufacturer/login'))) {
     if (!session) {
-      console.log('>>> BLOCKED: No session on protected route, redirecting to /auth/login')
-      return NextResponse.redirect(new URL('/auth/login', request.url))
+      // Redirect manufacturer paths to manufacturer login, others to regular login
+      const loginUrl = pathname.startsWith('/manufacturer') ? '/manufacturer/login' : '/auth/login';
+      console.log('>>> BLOCKED: No session on protected route, redirecting to', loginUrl)
+      return NextResponse.redirect(new URL(loginUrl, request.url))
     }
     console.log('>>> ALLOWED: Session exists for protected route')
 
     // If user hits /dashboard, check if they have a site — if not, send to onboarding
+    // Skip this check for /manufacturer paths
     if (pathname.startsWith('/dashboard')) {
       const { data: sites } = await supabase
         .from('sites')
