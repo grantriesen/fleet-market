@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getReferralCode, clearReferralCode } from '@/lib/referral';
+import ReferralBanner from '@/components/ReferralBanner';
 import {
   ChevronRight, ChevronLeft, Check, Loader2, Package,
   Wrench, Calendar, CreditCard, Sparkles, ArrowRight,
@@ -298,6 +299,7 @@ function OnboardingPreflightInner() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
+      <ReferralBanner />
       {/* Header */}
       <div className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">

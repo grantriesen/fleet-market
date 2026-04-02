@@ -5,6 +5,7 @@ import ImageUpload from '@/components/ImageUpload';
 import { buildOnboardingPrompt } from '@/lib/template-prompts';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import ReferralBanner from '@/components/ReferralBanner';
 import {
   Building2, Phone, Mail, MapPin, Clock, Wrench, BarChart3,
   ChevronRight, ChevronLeft, Check, Loader2, Sparkles,
@@ -548,6 +549,7 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
   // ─── Main render ─────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-950 text-white">
+      <ReferralBanner />
       {/* Header */}
       <div className="border-b border-slate-800">
         <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
