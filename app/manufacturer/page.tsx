@@ -2,19 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
-import { Users, Package, Truck, TrendingUp, DollarSign, ArrowRight } from 'lucide-react';
+import { Users, Truck, DollarSign, ArrowRight, Loader2 } from 'lucide-react';
 
 const FM = { navy: '#1E3A6E', orange: '#E85525' };
 
 export default function ManufacturerHome() {
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    dealerCount: 0,
-    totalProductsAtDealers: 0,
-    shipmentsThisMonth: 0,
-    pendingCommissions: 0,
-  });
+  const [stats, setStats] = useState({ dealerCount: 0, shipmentsThisMonth: 0, pendingCommissions: 0 });
   const [recentDealers, setRecentDealers] = useState<any[]>([]);
   const [recentShipments, setRecentShipments] = useState<any[]>([]);
 
@@ -23,64 +18,18 @@ export default function ManufacturerHome() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: membership } = await supabase
-        .from('manufacturer_users')
-        .select('partner_id')
-        .eq('user_id', user.id)
-        .eq('active', true)
-        .maybeSingle();
-
-      if (!membership) return;
-      const partnerId = membership.partner_id;
-
-      // Count tagged dealers
-      const { count: dealerCount } = await supabase
-        .from('dealer_manufacturer_tags')
-        .select('*', { count: 'exact', head: true })
-        .eq('partner_id', partnerId);
-
-      // Count shipments this month
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      const { count: shipmentsThisMonth } = await supabase
-        .from('shipments')
-        .select('*', { count: 'exact', head: true })
-        .eq('partner_id', partnerId)
-        .gte('created_at', startOfMonth.toISOString());
-
-      // Pending commissions
-      const { data: commissions } = await supabase
-        .from('partner_commissions')
-        .select('amount')
-        .eq('partner_id', partnerId)
-        .eq('status', 'pending');
-      const pendingCommissions = (commissions || []).reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
-
-      // Recent dealers (last 5 tagged)
-      const { data: dealers } = await supabase
-        .from('dealer_manufacturer_tags')
-        .select('tagged_at, site:sites(id, site_name, slug)')
-        .eq('partner_id', partnerId)
-        .order('tagged_at', { ascending: false })
-        .limit(5);
-
-      // Recent shipments
-      const { data: shipments } = await supabase
-        .from('shipments')
-        .select('id, shipment_code, status, item_count, created_at, site:sites(site_name)')
-        .eq('partner_id', partnerId)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      setStats({
-        dealerCount: dealerCount || 0,
-        totalProductsAtDealers: 0, // TODO: aggregate from inventory
-        shipmentsThisMonth: shipmentsThisMonth || 0,
-        pendingCommissions,
+      const res = await fetch('/api/manufacturer/dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id }),
       });
-      setRecentDealers(dealers || []);
-      setRecentShipments(shipments || []);
+
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data.stats);
+        setRecentDealers(data.recentDealers || []);
+        setRecentShipments(data.recentShipments || []);
+      }
       setLoading(false);
     }
     load();
@@ -89,7 +38,7 @@ export default function ManufacturerHome() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-slate-200 border-t-orange-500 rounded-full animate-spin" />
+        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
       </div>
     );
   }
@@ -107,7 +56,6 @@ export default function ManufacturerHome() {
         <p className="text-sm text-slate-500 mt-1">Overview of your dealer network and activity</p>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {kpis.map(kpi => (
           <div key={kpi.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
@@ -123,13 +71,10 @@ export default function ManufacturerHome() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Dealers */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-800">Recent Dealers</h2>
-            <a href="/manufacturer/dealers" className="text-xs font-medium flex items-center gap-1" style={{ color: FM.orange }}>
-              View All <ArrowRight className="w-3 h-3" />
-            </a>
+            <a href="/manufacturer/dealers" className="text-xs font-medium flex items-center gap-1" style={{ color: FM.orange }}>View All <ArrowRight className="w-3 h-3" /></a>
           </div>
           <div className="divide-y divide-slate-50">
             {recentDealers.length === 0 ? (
@@ -138,27 +83,22 @@ export default function ManufacturerHome() {
                 <p className="text-sm text-slate-400">No dealers tagged yet</p>
                 <p className="text-xs text-slate-300 mt-1">Dealers appear here when they select your brand during signup</p>
               </div>
-            ) : (
-              recentDealers.map((d: any) => (
-                <a key={d.site?.id} href={`/manufacturer/dealers/${d.site?.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition-colors">
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">{d.site?.site_name || 'Unknown Dealer'}</p>
-                    <p className="text-xs text-slate-400">{d.site?.slug ? `${d.site.slug}.fleetmarket.us` : ''}</p>
-                  </div>
-                  <span className="text-xs text-slate-400">{new Date(d.tagged_at).toLocaleDateString()}</span>
-                </a>
-              ))
-            )}
+            ) : recentDealers.map((d: any, i: number) => (
+              <a key={d.site?.id || i} href={`/manufacturer/dealers/${d.site?.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition-colors">
+                <div>
+                  <p className="text-sm font-medium text-slate-800">{d.site?.site_name || 'Unknown Dealer'}</p>
+                  <p className="text-xs text-slate-400">{d.site?.slug ? `${d.site.slug}.fleetmarket.us` : ''}</p>
+                </div>
+                <span className="text-xs text-slate-400">{new Date(d.tagged_at).toLocaleDateString()}</span>
+              </a>
+            ))}
           </div>
         </div>
 
-        {/* Recent Shipments */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-800">Recent Shipments</h2>
-            <a href="/manufacturer/shipments" className="text-xs font-medium flex items-center gap-1" style={{ color: FM.orange }}>
-              View All <ArrowRight className="w-3 h-3" />
-            </a>
+            <a href="/manufacturer/shipments" className="text-xs font-medium flex items-center gap-1" style={{ color: FM.orange }}>View All <ArrowRight className="w-3 h-3" /></a>
           </div>
           <div className="divide-y divide-slate-50">
             {recentShipments.length === 0 ? (
@@ -167,21 +107,19 @@ export default function ManufacturerHome() {
                 <p className="text-sm text-slate-400">No shipments yet</p>
                 <p className="text-xs text-slate-300 mt-1">Create a shipment to get started</p>
               </div>
-            ) : (
-              recentShipments.map((s: any) => (
-                <div key={s.id} className="flex items-center justify-between px-5 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">{s.shipment_code}</p>
-                    <p className="text-xs text-slate-400">{s.site?.site_name || 'Unknown'} · {s.item_count} items</p>
-                  </div>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                    s.status === 'received' ? 'bg-green-50 text-green-700' :
-                    s.status === 'shipped' ? 'bg-blue-50 text-blue-700' :
-                    'bg-slate-50 text-slate-500'
-                  }`}>{s.status}</span>
+            ) : recentShipments.map((s: any) => (
+              <div key={s.id} className="flex items-center justify-between px-5 py-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-800">{s.shipment_code}</p>
+                  <p className="text-xs text-slate-400">{s.site?.site_name || 'Unknown'} · {s.item_count} items</p>
                 </div>
-              ))
-            )}
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                  s.status === 'received' ? 'bg-green-50 text-green-700' :
+                  s.status === 'shipped' ? 'bg-blue-50 text-blue-700' :
+                  'bg-slate-50 text-slate-500'
+                }`}>{s.status}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
