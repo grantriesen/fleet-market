@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     // Look up the partner by referral code
     const { data: partner } = await supabase
       .from('manufacturer_partners')
-      .select('id, name, early_adopter_slots, early_adopter_used, active')
+      .select('id, name, early_adopter_slots, early_adopter_used, early_adopter_enabled, commission_enabled, active')
       .eq('referral_code', referralCode.toUpperCase())
       .eq('active', true)
       .maybeSingle();
@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid referral code' }, { status: 404 });
     }
 
-    // Check early adopter slot availability
+    // Check early adopter slot availability and whether it's enabled for this partner
     const slotsRemaining = partner.early_adopter_slots - partner.early_adopter_used;
-    const isEarlyAdopter = slotsRemaining > 0;
+    const isEarlyAdopter = (partner.early_adopter_enabled ?? true) && slotsRemaining > 0;
 
     // Free addon months: 3 for monthly, 6 for annual
     const freeMonths = billingInterval === 'annual' ? 6 : 3;
