@@ -137,6 +137,7 @@ export async function POST(request: NextRequest) {
         billing,
       },
       subscription_data: {
+        trial_period_days: 30,
         metadata: {
           site_id,
           addons:  JSON.stringify(addons),
