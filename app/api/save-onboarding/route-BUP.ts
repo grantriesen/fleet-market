@@ -74,39 +74,6 @@ export async function POST(request: NextRequest) {
         console.error('Manufacturers insert error:', mfgError);
         // Non-fatal — content already saved
       }
-
-      // ── Auto-tag dealer with manufacturer brands ──
-      // Look up each manufacturer name in the library and create tags
-      const brandNames = manufacturers.map((m: any) => m.name).filter(Boolean);
-      if (brandNames.length > 0) {
-        const { data: libraryMatches } = await supabase
-          .from('manufacturer_library')
-          .select('id, name, partner_id')
-          .in('name', brandNames);
-
-        if (libraryMatches && libraryMatches.length > 0) {
-          // Delete existing tags for this site to avoid duplicates on re-run
-          await supabase
-            .from('dealer_manufacturer_tags')
-            .delete()
-            .eq('site_id', siteId);
-
-          const tagRows = libraryMatches.map((lib: any) => ({
-            site_id: siteId,
-            manufacturer_library_id: lib.id,
-            partner_id: lib.partner_id || null,
-          }));
-
-          const { error: tagError } = await supabase
-            .from('dealer_manufacturer_tags')
-            .insert(tagRows);
-
-          if (tagError) {
-            console.error('Dealer manufacturer tags error:', tagError);
-            // Non-fatal — onboarding still succeeds
-          }
-        }
-      }
     }
 
     // Save brand colors to site_customizations
