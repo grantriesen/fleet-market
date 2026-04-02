@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { renderGreenValleyPage } from './templates/green-valley-industrial';
+import { renderVibeDynamicsPage } from './templates/vibe-dynamics';
+import { renderCorporateEdgePage } from './templates/corporate-edge';
+import { renderZenithLawnPage } from './templates/zenith-lawn';
+import { renderModernLawnPage } from './templates/modern-lawn-solutions';
+import { renderWarmEarthPage } from './templates/warm-earth-designs';
+import { injectCartSystem } from './templates/shared';
 
 export async function GET(
   request: NextRequest,
@@ -8,6 +15,7 @@ export async function GET(
   try {
     const { searchParams } = new URL(request.url);
     const page = searchParams.get('page') || 'home';
+    const productSlug = searchParams.get('slug') || null;
     
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,7 +33,7 @@ export async function GET(
       }
     );
 
-    // Load site data with subscription_tier
+    // Load site data
     const { data: site } = await supabase
       .from('sites')
       .select(`
@@ -33,6 +41,9 @@ export async function GET(
         site_name,
         slug,
         subscription_tier,
+        addons,
+        checkout_mode,
+        stripe_account_id,
         template:templates (
           name,
           slug,
@@ -79,23 +90,36 @@ export async function GET(
       }
     }
 
-    // Load manufacturers
-    const { data: manufacturers } = await supabase
-      .from('manufacturers')
-      .select('*')
-      .eq('site_id', params.siteId)
-      .order('display_order');
+    // Load manufacturers with library fallback for logos
+    const { data: manufacturersRaw } = await supabase.from('manufacturers').select('*').eq('site_id', params.siteId).order('display_order');
+    const mfgMissingLogos = (manufacturersRaw || []).filter((m: any) => !m.logo_url).map((m: any) => m.name);
+    const { data: libraryLogos } = mfgMissingLogos.length > 0
+      ? await supabase.from('manufacturer_library').select('name, logo_url').in('name', mfgMissingLogos)
+      : { data: [] };
+    const libraryLogoMap: Record<string, string> = {};
+    (libraryLogos || []).forEach((l: any) => { if (l.logo_url) libraryLogoMap[l.name] = l.logo_url; });
+    const manufacturers = (manufacturersRaw || []).map((m: any) => ({ ...m, logo_url: m.logo_url || libraryLogoMap[m.name] || null }));
 
-    // Generate HTML based on template
+    // Load featured inventory (same as live site)
+    const { data: featuredItems } = await supabase
+      .from('inventory_items')
+      .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, featured, status, hours, brand, sku, specifications, images, serial_number, financing_available')
+      .eq('site_id', params.siteId).eq('featured', true).eq('status', 'available')
+      .order('display_order').limit(8);
+
+    // Use the same render pipeline as the live site
     const html = await generateTemplateHTML(
-      site, 
-      content, 
-      customizations, 
-      manufacturers || [], 
+      site,
+      content,
+      customizations,
+      manufacturers || [],
+      featuredItems || [],
       sectionVisibility,
       pageVisibility,
       page,
-      supabase
+      supabase,
+      params.siteId,
+      productSlug
     );
 
     return new NextResponse(html, {
@@ -115,310 +139,132 @@ async function generateTemplateHTML(
   content: Record<string, string>,
   customizations: any,
   manufacturers: any[],
+  featuredItems: any[],
   sectionVisibility: Record<string, boolean>,
   pageVisibility: Record<string, boolean>,
   page: string,
-  supabase: any
+  supabase: any,
+  siteId: string,
+  productSlug?: string | null
 ): Promise<string> {
   const template = site.template;
   const config = template.config_json;
   const templateSlug = template.slug;
-  const siteId = site.id;
-  
-  // Helper to get content value
+
   const getContent = (key: string) => {
     if (content[key]) return content[key];
-    
-    // Try to get default from config
     const parts = key.split('.');
-    if (parts.length === 2) {
-      const [section, field] = parts;
-      return config.sections?.[section]?.[field]?.default || '';
-    }
+    if (parts.length === 2) { const [section, field] = parts; return config.sections?.[section]?.[field]?.default || ''; }
     return '';
   };
 
-  // Get colors
   const colors = {
     primary: customizations.colors?.primary || config.colors?.primary?.default || '#2D5016',
     secondary: customizations.colors?.secondary || config.colors?.secondary?.default || '#F97316',
     accent: customizations.colors?.accent || config.colors?.accent?.default || '#059669',
   };
-
-  // Get fonts
   const fonts = {
     heading: customizations.fonts?.heading || config.fonts?.heading?.default || 'Inter',
     body: customizations.fonts?.body || config.fonts?.body?.default || 'Inter',
   };
 
-  // Get available pages
+  // Build enabled features set from sites.addons (source of truth) + site_features (legacy cache)
+  // This is used for both nav gating and feature gating inside pages
+  console.log("DEBUG site.addons:", JSON.stringify(site.addons), "template:", site.template?.slug);
+  const enabledFeaturesForNav = new Set<string>();
+  const addonToFeatureMapNav: Record<string, string[]> = {
+    'inventory': ['inventory', 'inventory_sync'],
+    'service':   ['service', 'service_scheduling'],
+    'rentals':   ['rentals', 'rental_scheduling'],
+  };
+  (site.addons || []).forEach((addon: string) => {
+    enabledFeaturesForNav.add(addon);
+    addonToFeatureMapNav[addon]?.forEach((f: string) => enabledFeaturesForNav.add(f));
+  });
+
   const availablePages = (config.pages || []).filter((p: any) => {
     const isVisible = pageVisibility[p.slug] !== false;
     if (!isVisible) return false;
     if (!p.premium) return true;
-    return site.subscription_tier !== 'basic';
+    // Use requiredFeature from config if present
+    if (p.requiredFeature) return enabledFeaturesForNav.has(p.requiredFeature);
+    // Fallback slug-based check
+    return enabledFeaturesForNav.has(p.slug);
   });
 
-  // Route to template-specific renderer
- // Route to template-specific renderer
-  let pageContent = '';
-  
-  if (page === 'home' || page === 'index') {
-    switch (templateSlug) {
-      case 'green-valley-industrial':
-        pageContent = renderGreenValleyHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-        break;
-      case 'modern-lawn-solutions':
-        pageContent = renderModernLawnHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-        break;
-      case 'corporate-edge':
-        pageContent = renderCorporateEdgeHome(getContent, colors, manufacturers, sectionVisibility, site.subscription_tier || 'basic', siteId);
-        break;
-      case 'vibe-dynamics':
-        pageContent = renderVibeDynamicsHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-        break;
-      case 'zenith-lawn':
-        pageContent = renderZenithLawnHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-        break;
-      case 'warm-earth-designs':
-        pageContent = renderWarmEarthHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-        break;
-      default:
-        pageContent = renderGenericHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-    }
-  } else if (page === 'manufacturers') {
-    pageContent = renderManufacturersPageContent(config, getContent, colors, manufacturers, templateSlug);
-  } else if (page === 'contact') {
-    pageContent = renderContactPageContent(config, getContent, colors, templateSlug);
-  } else if (page === 'service') {
-    pageContent = await renderServicePageWithIntegration(site.id, config, getContent, colors, supabase, site.subscription_tier || 'basic', templateSlug);
-  } else if (page === 'inventory') {
-    if (site.subscription_tier === 'basic') {
-      pageContent = renderPremiumPlaceholder('Inventory', config, getContent, colors);
-    } else {
-      pageContent = await renderInventoryPageWithIntegration(site.id, config, getContent, colors, supabase);
-    }
-  } else if (page === 'rentals') {
-    if (site.subscription_tier === 'basic') {
-      pageContent = renderPremiumPlaceholder('Rentals', config, getContent, colors);
-    } else {
-      pageContent = await renderRentalsPageWithIntegration(site.id, config, getContent, colors, supabase);
-    }
-  } else {
-    pageContent = renderGenericHome(getContent, colors, manufacturers, sectionVisibility, siteId);
-  }
-
-  // Build Google Fonts URL
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const googleFontsUrl = Array.from(fontFamilies)
-    .map(font => `family=${font.replace(' ', '+')}:wght@300;400;500;600;700;800;900`)
+    .map((f: any) => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700;800;900`)
     .join('&');
 
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${site.site_name}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?${googleFontsUrl}&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --color-primary: ${colors.primary};
-      --color-secondary: ${colors.secondary};
-      --color-accent: ${colors.accent};
-      --font-heading: '${fonts.heading}', sans-serif;
-      --font-body: '${fonts.body}', sans-serif;
-    }
-    
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    html {
-      scroll-behavior: smooth;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    
-    body {
-      font-family: var(--font-body);
-      color: #1f2937;
-      line-height: 1.7;
-      font-size: 1rem;
-      background-color: #ffffff;
-    }
-    
-    h1, h2, h3, h4, h5, h6 {
-      font-family: var(--font-heading);
-      font-weight: 700;
-      line-height: 1.15;
-    }
+  const isRealProducts = featuredItems.length > 0;
+  const displayProducts = isRealProducts
+    ? featuredItems.slice(0, 4)
+    : [1,2,3,4].map(i => ({ id: `placeholder-${i}`, title: `Featured Product ${i}`, description: 'Professional-grade equipment', price: null, sale_price: null, primary_image: null, category: 'Equipment', condition: 'new', slug: null }));
 
-    img {
-      max-width: 100%;
-      height: auto;
-    }
+  const fmtPrice = (price: number | null) => {
+    if (price === null || price === undefined) return 'Call for Price';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(price);
+  };
 
-    a {
-      transition: opacity 0.2s ease, color 0.2s ease;
-    }
+  // Build enabled features
+  const enabledFeatures = new Set<string>();
+  const addonToFeatureMap: Record<string, string[]> = {
+    'inventory': ['inventory', 'inventory_sync'],
+    'service':   ['service', 'service_scheduling'],
+    'rentals':   ['rentals', 'rental_scheduling'],
+  };
+  (site.addons || []).forEach((addon: string) => {
+    enabledFeatures.add(addon);
+    addonToFeatureMap[addon]?.forEach((f: string) => enabledFeatures.add(f));
+  });
+  try {
+    const { data: features } = await supabase.from('site_features').select('feature_key').eq('site_id', siteId).eq('enabled', true);
+    if (features) features.forEach((f: any) => enabledFeatures.add(f.feature_key));
+  } catch {}
 
-    a:hover {
-      opacity: 0.85;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 2rem;
-    }
+  const vis: Record<string, boolean> = {};
+  Object.entries(sectionVisibility).forEach(([k, v]) => { vis[k] = v as boolean; });
 
-    @media (max-width: 768px) {
-      .container { padding: 0 1.25rem; }
-    }
-  </style>
-</head>
-<body>
-  <!-- Navigation -->
-  <nav style="background-color: white; box-shadow: 0 1px 2px rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 50; border-bottom: 1px solid #f1f5f9;">
-    <div class="container" style="display: flex; justify-content: space-between; align-items: center; padding-top: 1.25rem; padding-bottom: 1.25rem;">
-      <div style="display: flex; align-items: center; gap: 0.75rem;">
-        ${getContent('businessInfo.logoImage') ? 
-          `<img src="${getContent('businessInfo.logoImage')}" alt="${getContent('businessInfo.businessName')}" style="max-height: 60px; max-width: 200px; object-fit: contain;">` :
-          `<span style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${getContent('businessInfo.businessName')}</span>`
-        }
-      </div>
-      <div style="display: flex; gap: 2.5rem; align-items: center;">
-        ${availablePages.map((p: any) => `
-          <a href="/api/preview/${siteId}?page=${p.slug}" style="color: ${p.slug === page || (p.slug === 'index' && (page === 'home' || page === 'index')) ? colors.primary : '#64748b'}; text-decoration: none; font-weight: ${p.slug === page || (p.slug === 'index' && (page === 'home' || page === 'index')) ? '600' : '500'}; font-size: 0.9375rem; letter-spacing: 0.01em;">
-            ${p.name}
-          </a>
-        `).join('')}
-      </div>
-    </div>
-  </nav>
-  
-  ${pageContent}
+  // Use preview base URL so nav links stay within the preview iframe
+  const previewBase = `/api/preview/${siteId}?page=`;
 
-  <!-- Footer -->
-  <footer style="background-color: ${colors.primary}; color: white; padding: 4rem 0 2rem;">
-    <div class="container">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 3rem;">
-        <div>
-          <h3 style="color: white; margin-bottom: 1rem; font-size: 1.125rem;">${getContent('businessInfo.businessName')}</h3>
-          <p style="color: rgba(255,255,255,0.65); font-size: 0.9375rem; line-height: 1.7;">${getContent('businessInfo.tagline')}</p>
-        </div>
-        <div>
-          <h4 style="color: white; margin-bottom: 1rem; font-size: 0.9375rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Contact</h4>
-          <p style="color: rgba(255,255,255,0.65); font-size: 0.9375rem; line-height: 2;">${getContent('businessInfo.phone')}</p>
-          <p style="color: rgba(255,255,255,0.65); font-size: 0.9375rem; line-height: 2;">${getContent('businessInfo.email')}</p>
-        </div>
-        <div>
-          <h4 style="color: white; margin-bottom: 1rem; font-size: 0.9375rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Hours</h4>
-          <p style="color: rgba(255,255,255,0.65); font-size: 0.9375rem; line-height: 2;">${getContent('hours.weekdays') || getContent('hours.hours') || 'Mon-Fri: 8am-6pm'}</p>
-          <p style="color: rgba(255,255,255,0.65); font-size: 0.9375rem; line-height: 2;">${getContent('hours.saturday') || 'Sat: 9am-4pm'}</p>
-          <p style="color: rgba(255,255,255,0.65); font-size: 0.9375rem; line-height: 2;">${getContent('hours.sunday') || 'Sun: Closed'}</p>
-        </div>
-      </div>
-      <div style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.15); text-align: center; color: rgba(255,255,255,0.45); font-size: 0.8125rem;">
-        <p>&copy; ${new Date().getFullYear()} ${getContent('businessInfo.businessName')}. All rights reserved.</p>
-      </div>
-    </div>
-  </footer>
+  // ── Route to the SAME template functions used by the live site ──
+  let html = '';
+  if (templateSlug === 'green-valley-industrial') {
+    html = await renderGreenValleyPage(getContent, colors, fonts, manufacturers, sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only');
+  } else if (templateSlug === 'vibe-dynamics') {
+    html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers, sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only');
+  } else if (templateSlug === 'corporate-edge') {
+    html = await renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, productSlug);
+  } else if (templateSlug === 'zenith-lawn') {
+    html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || []);
+  } else if (templateSlug === 'modern-lawn-solutions') {
+    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || []);
+  } else if (templateSlug === 'warm-earth-designs') {
+    html = await renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
+  } else {
+    // Fallback for unknown templates
+    html = '<p style="padding:2rem;">Preview not available for this template.</p>';
+  }
 
-  <script>
-    // ── Page View Tracking ──
-    (function() {
-      try {
-        var siteId = '${siteId}';
-        var page = '${page}';
-        var sessionId = sessionStorage.getItem('sf_sid');
-        if (!sessionId) {
-          sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
-          sessionStorage.setItem('sf_sid', sessionId);
-        }
-        // Only track if not in customizer iframe
-        var isInCustomizer = false;
-        try { isInCustomizer = window.self !== window.top && document.referrer.includes('/customize'); } catch(e) {}
-        if (!isInCustomizer) {
-          fetch('/api/track', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ siteId: siteId, page: page, referrer: document.referrer, sessionId: sessionId }),
-            keepalive: true
-          }).catch(function() {});
-        }
-      } catch(e) {}
-    })();
+  // Inject cart system if needed
+  // Guard against double injection (green-valley, vibe-dynamics, and corporate-edge inject their own)
+  const needsCartSystem = templateSlug !== 'green-valley-industrial'
+    && templateSlug !== 'vibe-dynamics'
+    && templateSlug !== 'corporate-edge'
+    && (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync'));
 
-    console.log('🎨 [Preview] REALTIME UPDATES VERSION LOADED - Debug mode active');
-    
-    const sections = document.querySelectorAll('section[data-section]');
-    let currentSection = '';
+  if (needsCartSystem && !html.includes('fm-product-modal')) {
+    const cartHtml = injectCartSystem(siteId, site.checkout_mode || 'quote_only', colors.primary);
+    html = html.includes('</body>') ? html.replace('</body>', cartHtml + '\n</body>') : html + cartHtml;
+  }
 
-    function detectSection() {
-      const scrollPos = window.scrollY + window.innerHeight / 3;
-      sections.forEach((section) => {
-        const sectionId = section.getAttribute('data-section');
-        if (section.offsetTop <= scrollPos && section.offsetTop + section.offsetHeight > scrollPos) {
-          if (currentSection !== sectionId) {
-            currentSection = sectionId;
-            // REMOVED: This was causing snap-back issues in customizer
-            // window.parent.postMessage({ type: 'scroll', section: sectionId }, '*');
-          }
-        }
-      });
-    }
+  return html;
 
-    // Simple approach: Reload iframe on any change for instant preview
-    // This is fast enough and ensures accuracy
-    function reloadPreview() {
-      // Small delay to batch multiple rapid changes
-      clearTimeout(window.reloadTimer);
-      window.reloadTimer = setTimeout(() => {
-        window.location.reload();
-      }, 300); // 300ms debounce
-    }
 
-    // DISABLED: Scroll detection was causing snap-back issues
-    // window.addEventListener('scroll', detectSection);
-    
-    window.addEventListener('message', (event) => {
-      console.log('📨 [Preview] Received message:', event.data);
-      
-      if (event.data.type === 'scrollToSection') {
-        console.log('📍 [Preview] Scrolling to section:', event.data.section);
-        const section = document.querySelector(\`[data-section="\${event.data.section}"]\`);
-        console.log('🎯 [Preview] Section element found:', !!section);
-        if (section) {
-          console.log('⬇️ [Preview] Calling scrollIntoView');
-          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          console.log('✅ [Preview] scrollIntoView called');
-        } else {
-          console.log('❌ [Preview] Section not found for:', event.data.section);
-        }
-      }
-      
-      // Handle real-time updates - reload preview
-      if (event.data.type === 'updateContent' || event.data.type === 'updateColor' || event.data.type === 'updateFont') {
-        console.log('[Preview] Triggering reload for:', event.data.type);
-        reloadPreview();
-      }
-    });
-    
-    // DISABLED: detectSection() call removed
-    // detectSection();
-  </script>
-</body>
-</html>
-  `.trim();
 }
+
 
 // ============================================
 // TEMPLATE #1: GREEN VALLEY INDUSTRIAL
@@ -429,6 +275,19 @@ function getCtaSectionStyle(getContent: (key: string) => string, fallbackBg: str
     return `padding: 6rem 0; background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), url('${bgImage}'); background-size: cover; background-position: center; color: white; text-align: center; position: relative;`;
   }
   return `padding: 5rem 0; ${fallbackBg} color: white; text-align: center;`;
+}
+
+// ── Helper: resolve a buttonField destination to a preview URL ──────────────
+function resolveButtonHref(
+  getContent: (key: string) => string,
+  fieldKey: string,
+  defaultPage: string,
+  siteId: string
+): string {
+  const dest = getContent(`${fieldKey}.destination`);
+  if (!dest) return `/api/preview/${siteId}?page=${defaultPage}`;
+  if (dest === '__custom') return getContent(`${fieldKey}.destination_url`) || `/api/preview/${siteId}?page=${defaultPage}`;
+  return `/api/preview/${siteId}?page=${dest}`;
 }
 
 function renderGreenValleyHome(
@@ -450,7 +309,7 @@ function renderGreenValleyHome(
           <h1 style="color: white; font-size: 3.5rem; margin-bottom: 1.5rem; font-weight: 900;">${getContent('hero.heading')}</h1>
           <p style="font-size: 1.25rem; margin-bottom: 2rem; color: rgba(255,255,255,0.9);">${getContent('hero.subheading')}</p>
           <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <a href="/api/preview/${siteId}?page=contact" style="background-color: var(--color-secondary); color: white; padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${getContent('hero.ctaButton')}</a>
+            <a href="${resolveButtonHref(getContent, 'hero.ctaButton', 'contact', siteId)}" style="background-color: var(--color-secondary); color: white; padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${getContent('hero.ctaButton.text') || getContent('hero.ctaButton')}</a>
           </div>
         </div>
       </div>
@@ -533,7 +392,7 @@ function renderGreenValleyHome(
       <div class="container">
         <h2 style="color: white; font-size: 2.5rem; margin-bottom: 1.5rem;">${getContent('cta.heading')}</h2>
         <p style="font-size: 1.25rem; margin-bottom: 2rem; color: rgba(255,255,255,0.9); max-width: 700px; margin-left: auto; margin-right: auto;">${getContent('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background: white; color: var(--color-primary); padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 1.125rem;">${getContent('cta.button')}</a>
+        <a href="${resolveButtonHref(getContent, 'cta.primaryButton', 'inventory', siteId)}" style="display: inline-block; background: white; color: var(--color-primary); padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 1.125rem;">${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || getContent('cta.button')}</a>
       </div>
     </section>
     `;
@@ -563,7 +422,7 @@ function renderModernLawnHome(
         <div style="max-width: 500px;">
           <h1 style="font-size: 3rem; margin-bottom: 1.5rem; color: var(--color-primary); font-weight: 700;">${getContent('hero.heading')}</h1>
           <p style="font-size: 1.125rem; margin-bottom: 2rem; color: #6b7280;">${getContent('hero.subheading')}</p>
-          <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background-color: var(--color-primary); color: white; padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${getContent('hero.ctaButton')}</a>
+          <a href="${resolveButtonHref(getContent, 'hero.ctaButton', 'contact', siteId)}" style="display: inline-block; background-color: var(--color-primary); color: white; padding: 1rem 2rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${getContent('hero.ctaButton.text') || getContent('hero.ctaButton')}</a>
         </div>
       </div>
       <!-- Right Side - Image -->
@@ -651,7 +510,7 @@ function renderModernLawnHome(
       <div class="container" style="text-align: center;">
         <h2 style="color: white; font-size: 2.5rem; margin-bottom: 1.5rem;">${getContent('cta.heading')}</h2>
         <p style="font-size: 1.125rem; margin-bottom: 2rem; color: rgba(255,255,255,0.9); max-width: 600px; margin-left: auto; margin-right: auto;">${getContent('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background: white; color: var(--color-primary); padding: 1rem 2.5rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${getContent('cta.button')}</a>
+        <a href="${resolveButtonHref(getContent, 'cta.primaryButton', 'inventory', siteId)}" style="display: inline-block; background: white; color: var(--color-primary); padding: 1rem 2.5rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600;">${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || getContent('cta.button')}</a>
       </div>
     </section>
     `;
@@ -770,7 +629,7 @@ function renderCorporateEdgeHome(
       <div class="container" style="padding-top: 5rem; padding-bottom: 5rem;">
         <h2 style="color: white; font-size: 2.25rem; margin-bottom: 1.25rem; font-weight: 700; letter-spacing: -0.02em;">${getContent('cta.headline')}</h2>
         <p style="font-size: 1.0625rem; margin-bottom: 2.5rem; color: rgba(255,255,255,0.9); max-width: 640px; margin-left: auto; margin-right: auto; line-height: 1.7;">${getContent('cta.subheadline')}</p>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background: var(--color-secondary); color: white; padding: 1rem 2.5rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 1rem;">${getContent('cta.button')}</a>
+        <a href="${resolveButtonHref(getContent, 'cta.primaryButton', 'inventory', siteId)}" style="display: inline-block; background: var(--color-secondary); color: white; padding: 1rem 2.5rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 1rem;">${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || getContent('cta.button')}</a>
       </div>
     </section>
     `;
@@ -803,7 +662,7 @@ function renderVibeDynamicsHome(
           <h2 style="color: var(--color-accent); font-size: 2rem; margin-bottom: 1rem; font-weight: 700;">${getContent('hero.subtitle')}</h2>
           <p style="font-size: 1.125rem; margin-bottom: 2rem; color: rgba(255,255,255,0.9);">${getContent('hero.description')}</p>
           <div style="display: flex; gap: 1rem;">
-            <a href="/api/preview/${siteId}?page=contact" style="background: linear-gradient(135deg, var(--color-secondary), var(--color-accent)); color: white; padding: 1.25rem 2.5rem; border-radius: 9999px; text-decoration: none; font-weight: 700; font-size: 1.125rem;">${getContent('hero.ctaPrimary')}</a>
+            <a href="${resolveButtonHref(getContent, 'hero.ctaButton', 'contact', siteId)}" style="background: linear-gradient(135deg, var(--color-secondary), var(--color-accent)); color: white; padding: 1.25rem 2.5rem; border-radius: 9999px; text-decoration: none; font-weight: 700; font-size: 1.125rem;">${getContent('hero.ctaButton.text') || getContent('hero.ctaPrimary') || getContent('hero.ctaButton')}</a>
           </div>
         </div>
       </div>
@@ -934,7 +793,7 @@ function renderVibeDynamicsHome(
       <div class="container" style="position: relative; z-index: 10;">
         <h2 style="color: white; font-size: 3.5rem; margin-bottom: 1.5rem; font-weight: 900; text-transform: uppercase;">${getContent('cta.heading')}</h2>
         <p style="font-size: 1.25rem; margin-bottom: 2rem; color: rgba(255,255,255,0.95); max-width: 600px; margin-left: auto; margin-right: auto; font-weight: 600;">${getContent('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background: white; color: var(--color-primary); padding: 1.25rem 3rem; border-radius: 9999px; text-decoration: none; font-weight: 900; font-size: 1.25rem; text-transform: uppercase; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">${getContent('cta.button')}</a>
+        <a href="${resolveButtonHref(getContent, 'cta.primaryButton', 'inventory', siteId)}" style="display: inline-block; background: white; color: var(--color-primary); padding: 1.25rem 3rem; border-radius: 9999px; text-decoration: none; font-weight: 900; font-size: 1.25rem; text-transform: uppercase; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || getContent('cta.button')}</a>
       </div>
     </section>
     `;
@@ -963,7 +822,7 @@ function renderZenithLawnHome(
         <div style="max-width: 600px;">
           <h1 style="font-size: 3rem; line-height: 1.3; margin-bottom: 2rem; color: #171717; font-weight: 300; letter-spacing: -0.02em;">${getContent('hero.heading')}</h1>
           <p style="font-size: 1.125rem; margin-bottom: 3rem; color: #737373; font-weight: 300; line-height: 1.8;">${getContent('hero.subheading')}</p>
-          <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; color: #171717; padding: 1rem 2rem; text-decoration: none; font-weight: 400; border: 1px solid #d4d4d4; transition: all 0.3s;">${getContent('hero.ctaButton')}</a>
+          <a href="${resolveButtonHref(getContent, 'hero.ctaButton', 'contact', siteId)}" style="display: inline-block; color: #171717; padding: 1rem 2rem; text-decoration: none; font-weight: 400; border: 1px solid #d4d4d4; transition: all 0.3s;">${getContent('hero.ctaButton.text') || getContent('hero.ctaButton')}</a>
         </div>
       </div>
     </section>
@@ -1025,7 +884,7 @@ function renderZenithLawnHome(
     <section data-section="cta" style="padding: 8rem 0; border-top: 1px solid #e5e5e5; text-align: center;">
       <div class="container" style="max-width: 600px;">
         <h2 style="font-size: 2rem; margin-bottom: 2rem; color: #171717; font-weight: 300;">${getContent('cta.heading')}</h2>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; color: #171717; padding: 1rem 2rem; text-decoration: none; font-weight: 400; border: 1px solid #d4d4d4;">${getContent('cta.button')}</a>
+        <a href="${resolveButtonHref(getContent, 'cta.primaryButton', 'inventory', siteId)}" style="display: inline-block; color: #171717; padding: 1rem 2rem; text-decoration: none; font-weight: 400; border: 1px solid #d4d4d4;">${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || getContent('cta.button')}</a>
       </div>
     </section>
     `;
@@ -1056,8 +915,8 @@ function renderWarmEarthHome(
           <h1 style="color: #fef3c7; font-size: 3rem; margin-bottom: 1.5rem; font-weight: 700; line-height: 1.2; font-family: 'Merriweather', serif;">${getContent('hero.heading')}</h1>
           <p style="font-size: 1.125rem; margin-bottom: 2rem; color: rgba(254, 243, 199, 0.9); line-height: 1.7;">${getContent('hero.subheading')}</p>
           <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <a href="/api/preview/${siteId}?page=contact" style="background-color: var(--color-accent); color: white; padding: 1rem 2rem; border-radius: 9999px; text-decoration: none; font-weight: 600;">${getContent('hero.ctaPrimary')}</a>
-            <a href="/api/preview/${siteId}?page=inventory" style="background-color: transparent; border: 2px solid var(--color-accent); color: var(--color-accent); padding: 1rem 2rem; border-radius: 9999px; text-decoration: none; font-weight: 600;">${getContent('hero.ctaSecondary')}</a>
+            <a href="${resolveButtonHref(getContent, 'hero.ctaButton', 'contact', siteId)}" style="background-color: var(--color-accent); color: white; padding: 1rem 2rem; border-radius: 9999px; text-decoration: none; font-weight: 600;">${getContent('hero.ctaButton.text') || getContent('hero.ctaPrimary') || getContent('hero.ctaButton')}</a>
+            <a href="${resolveButtonHref(getContent, 'hero.secondaryButton', 'inventory', siteId)}" style="background-color: transparent; border: 2px solid var(--color-accent); color: var(--color-accent); padding: 1rem 2rem; border-radius: 9999px; text-decoration: none; font-weight: 600;">${getContent('hero.secondaryButton.text') || getContent('hero.ctaSecondary') || getContent('hero.secondaryButton')}</a>
           </div>
         </div>
       </div>
@@ -1146,7 +1005,7 @@ function renderWarmEarthHome(
       <div class="container">
         <h2 style="color: #fef3c7; font-size: 2.5rem; margin-bottom: 1.5rem; font-family: 'Merriweather', serif; font-weight: 700;">${getContent('cta.heading')}</h2>
         <p style="font-size: 1.125rem; margin-bottom: 2rem; color: rgba(254, 243, 199, 0.9); max-width: 700px; margin-left: auto; margin-right: auto; line-height: 1.7;">${getContent('cta.subheading')}</p>
-        <a href="/api/preview/${siteId}?page=contact" style="display: inline-block; background: var(--color-accent); color: white; padding: 1rem 2.5rem; border-radius: 9999px; text-decoration: none; font-weight: 600; font-size: 1.125rem;">${getContent('cta.button')}</a>
+        <a href="${resolveButtonHref(getContent, 'cta.primaryButton', 'inventory', siteId)}" style="display: inline-block; background: var(--color-accent); color: white; padding: 1rem 2.5rem; border-radius: 9999px; text-decoration: none; font-weight: 600; font-size: 1.125rem;">${getContent('cta.primaryButton.text') || getContent('cta.primaryButton') || getContent('cta.button')}</a>
       </div>
     </section>
     `;
@@ -1498,6 +1357,140 @@ async function renderServicePageWithIntegration(
 }
 
 // Rentals Page with Integration Support
+async function renderInventoryPageWithIntegration(
+  siteId: string,
+  config: any,
+  getContent: (key: string) => string,
+  colors: any,
+  supabase: any
+): Promise<string> {
+  const heading    = getContent('inventoryPage.heading')    || 'Equipment Inventory';
+  const subheading = getContent('inventoryPage.subheading') || 'Browse our complete selection of equipment.';
+  const heroImage  = getContent('inventoryPage.heroImage');
+  const ctaHeading = getContent('inventoryPage.ctaHeading') || "Don\'t see what you\'re looking for?";
+  const ctaText    = getContent('inventoryPage.ctaText')    || "Contact us and we\'ll help you find the right equipment.";
+  const ctaButton  = getContent('inventoryPage.ctaButton.text') || getContent('inventoryPage.ctaButton') || 'Contact Us';
+  const ctaDest    = getContent('inventoryPage.ctaButton.destination') || getContent('inventoryPage.ctaLink') || 'contact';
+  const ctaHref    = ctaDest === '__custom' ? getContent('inventoryPage.ctaButton.destination_url') : ctaDest;
+
+  const { data: inventory } = await supabase
+    .from('inventory_items')
+    .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, featured, status, hours, brand, sku, specifications, images, serial_number, financing_available')
+    .eq('site_id', siteId)
+    .eq('status', 'available')
+    .order('featured', { ascending: false })
+    .order('display_order')
+    .limit(50);
+
+  const items = inventory || [];
+
+  const fmtPrice = (v: number | null) => {
+    if (!v) return 'Contact for Price';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
+  };
+
+  const categories = [...new Set(items.map((p: any) => p.category).filter(Boolean))] as string[];
+  const conditions  = [...new Set(items.map((p: any) => p.condition).filter(Boolean))] as string[];
+
+  const itemCards = items.map((item: any) => {
+    const pd = JSON.stringify({
+      id: item.id, title: item.title || '', description: item.description || '',
+      price: item.price || null, sale_price: item.sale_price || null,
+      primary_image: item.primary_image || null, category: item.category || '',
+      model: item.model || '', slug: item.slug || ''
+    }).replace(/"/g, '&quot;');
+    return `
+      <div class="inv-card" data-category="${item.category || ''}" data-condition="${item.condition || ''}"
+        style="background:white;border-radius:0.75rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);cursor:pointer;"
+        onclick="fmOpenProduct(${pd})">
+        ${item.primary_image
+          ? `<div style="aspect-ratio:4/3;overflow:hidden;"><img src="${item.primary_image}" alt="${item.title}" loading="lazy" style="width:100%;height:100%;object-fit:cover;"></div>`
+          : `<div style="aspect-ratio:4/3;background:linear-gradient(135deg,${colors.primary},${colors.accent});opacity:0.7;"></div>`
+        }
+        <div style="padding:1rem;">
+          <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:0.25rem;">${[item.category, item.model, item.year].filter(Boolean).join(' · ')}</p>
+          <h3 style="font-size:1.125rem;font-weight:700;color:#111827;margin-bottom:0.5rem;line-height:1.3;">${item.title}</h3>
+          ${item.hours ? `<p style="font-size:0.75rem;color:#9ca3af;margin-bottom:0.5rem;">${item.hours} hours</p>` : ''}
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:0.75rem;border-top:1px solid #f3f4f6;">
+            <span style="font-size:1.25rem;font-weight:700;color:${colors.primary};">${fmtPrice(item.price)}</span>
+            <span style="font-size:0.875rem;font-weight:600;color:${colors.secondary};">Details →</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    ${renderPageHero(heading, subheading, colors, heroImage, 'inventoryPage')}
+
+    ${categories.length > 1 || conditions.length > 1 ? `
+    <section style="padding:1rem 0;background:#f9fafb;border-bottom:2px solid #e5e7eb;position:sticky;top:64px;z-index:30;">
+      <div class="container" style="display:flex;flex-wrap:wrap;gap:1rem;align-items:center;">
+        ${categories.length > 1 ? `
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <label style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Category</label>
+          <select id="catFilter" style="padding:0.5rem 0.75rem;border:2px solid #e5e7eb;border-radius:0.5rem;font-size:0.875rem;">
+            <option value="all">All Equipment</option>
+            ${categories.map((cat: string) => `<option value="${cat}">${cat}</option>`).join('')}
+          </select>
+        </div>` : ''}
+        ${conditions.length > 1 ? `
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <label style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Condition</label>
+          <select id="condFilter" style="padding:0.5rem 0.75rem;border:2px solid #e5e7eb;border-radius:0.5rem;font-size:0.875rem;">
+            <option value="all">All Conditions</option>
+            ${conditions.map((c: string) => `<option value="${c}">${c.charAt(0).toUpperCase() + c.slice(1)}</option>`).join('')}
+          </select>
+        </div>` : ''}
+      </div>
+    </section>` : ''}
+
+    <section style="padding:4rem 0;">
+      <div class="container">
+        ${items.length === 0 ? `
+          <div style="text-align:center;padding:4rem;color:#9ca3af;">
+            <div style="font-size:4rem;margin-bottom:1rem;">📦</div>
+            <h2 style="font-size:1.5rem;font-weight:700;color:#374151;margin-bottom:0.5rem;">No Equipment Listed Yet</h2>
+            <p style="margin-bottom:1.5rem;">Check back soon — we\'re adding inventory regularly.</p>
+            <a href="contact" style="display:inline-block;background-color:${colors.primary};color:white;padding:0.75rem 1.5rem;border-radius:0.375rem;font-weight:600;text-decoration:none;">Contact Us</a>
+          </div>
+        ` : `
+          <p style="color:#6b7280;margin-bottom:1.5rem;" id="invCount">Showing <strong>${items.length}</strong> items</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem;" id="invGrid">
+            ${itemCards}
+          </div>
+        `}
+        <div style="margin-top:3rem;background:#f9fafb;border-radius:0.75rem;padding:2rem;text-align:center;">
+          <h2 style="font-size:1.5rem;font-weight:700;color:${colors.primary};margin-bottom:0.5rem;">${ctaHeading}</h2>
+          <p style="color:#6b7280;margin-bottom:1.5rem;">${ctaText}</p>
+          <a href="${ctaHref}" style="display:inline-block;background-color:${colors.primary};color:white;padding:0.75rem 1.5rem;border-radius:0.375rem;font-weight:600;text-decoration:none;">${ctaButton}</a>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      (function(){
+        var cat  = document.getElementById('catFilter');
+        var cond = document.getElementById('condFilter');
+        var cards = document.querySelectorAll('.inv-card');
+        var countEl = document.getElementById('invCount');
+        function filter(){
+          var c = cat ? cat.value : 'all';
+          var d = cond ? cond.value : 'all';
+          var n = 0;
+          cards.forEach(function(el){
+            var ok = (c==='all'||el.getAttribute('data-category')===c) && (d==='all'||el.getAttribute('data-condition')===d);
+            el.style.display = ok ? '' : 'none';
+            if(ok) n++;
+          });
+          if(countEl) countEl.innerHTML = 'Showing <strong>'+n+'</strong> items';
+        }
+        if(cat)  cat.addEventListener('change', filter);
+        if(cond) cond.addEventListener('change', filter);
+      })();
+    </script>
+  `;
+}
+
 async function renderRentalsPageWithIntegration(
   siteId: string,
   config: any,
