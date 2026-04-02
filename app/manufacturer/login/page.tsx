@@ -37,15 +37,14 @@ export default function ManufacturerLoginPage() {
       return;
     }
 
-    // Check if user is a manufacturer team member
-    const { data: membership } = await supabase
-      .from('manufacturer_users')
-      .select('id, role, partner:manufacturer_partners(name)')
-      .eq('user_id', data.user.id)
-      .eq('active', true)
-      .maybeSingle();
+    // Check if user is a manufacturer team member (server-side to bypass RLS)
+    const verifyRes = await fetch('/api/manufacturer/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: data.user.id }),
+    });
 
-    if (!membership) {
+    if (!verifyRes.ok) {
       setError('This account is not linked to a manufacturer. Contact your administrator or Fleet Market support.');
       await supabase.auth.signOut();
       setLoading(false);

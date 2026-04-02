@@ -44,24 +44,26 @@ export default function ManufacturerLayout({ children }: { children: React.React
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/auth/login'); return; }
 
-      // Check if user is a manufacturer team member
-      const { data: membership } = await supabase
-        .from('manufacturer_users')
-        .select('*, partner:manufacturer_partners(*)')
-        .eq('user_id', user.id)
-        .eq('active', true)
-        .maybeSingle();
+      // Check if user is a manufacturer team member (server-side to bypass RLS)
+      const verifyRes = await fetch('/api/manufacturer/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id }),
+      });
 
-      if (!membership) {
+      if (!verifyRes.ok) {
         // Not a manufacturer user — redirect to dealer dashboard
         router.push('/dashboard');
         return;
       }
 
+      const verifyData = await verifyRes.json();
+      const membership = verifyData.membership;
+
       setCtx({
         user,
         partner: membership.partner,
-        membership: { id: membership.id, role: membership.role, full_name: membership.full_name, territory: membership.territory },
+        membership: { id: membership.id, role: membership.role, full_name: membership.full_name || '', territory: membership.territory || '' },
       });
       setLoading(false);
     }
