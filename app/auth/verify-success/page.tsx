@@ -15,15 +15,42 @@ function VerifySuccessContent() {
   useEffect(() => {
     const handleVerification = async () => {
       try {
-        // getSession() triggers Supabase to exchange the #access_token hash from the URL
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const params = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
 
+        // Check for error params first
+        const errorCode = params.get('error_code') || hashParams.get('error_code');
+        const errorDesc = params.get('error_description') || hashParams.get('error_description');
+        if (errorCode) {
+          setErrorMsg(
+            errorCode === 'otp_expired'
+              ? 'This verification link has expired. Please request a new one.'
+              : errorDesc?.replace(/\+/g, ' ') || 'Invalid verification link.'
+          );
+          setStatus('error');
+          return;
+        }
+
+        // PKCE flow — ?code= in URL query params
+        const code = params.get('code');
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            setErrorMsg(error.message);
+            setStatus('error');
+          } else {
+            setStatus('verified');
+          }
+          return;
+        }
+
+        // Legacy hash flow — #access_token= in URL hash
+        const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           setErrorMsg(error.message);
           setStatus('error');
           return;
         }
-
         if (session?.user?.email_confirmed_at) {
           setStatus('verified');
           return;
@@ -39,7 +66,6 @@ function VerifySuccessContent() {
           }
         });
 
-        // Timeout after 5s
         setTimeout(() => {
           setStatus(prev => {
             if (prev === 'loading') {
@@ -111,13 +137,13 @@ function VerifySuccessContent() {
             <p className="text-gray-400 mb-2">The link may have expired or already been used.</p>
             {errorMsg && <p className="text-red-400 text-sm mb-6">{errorMsg}</p>}
             <div className="flex flex-col gap-3">
-              <button onClick={() => router.push('/register')}
-                className="px-6 py-3 bg-[#E8472F] text-white font-bold rounded hover:bg-[#d13d25] transition-all">
-                Back to Sign Up
-              </button>
               <button onClick={() => router.push('/auth/login')}
+                className="px-6 py-3 bg-[#E8472F] text-white font-bold rounded hover:bg-[#d13d25] transition-all">
+                Sign In to Resend Verification
+              </button>
+              <button onClick={() => router.push('/register')}
                 className="px-6 py-3 border border-slate-600 text-gray-400 font-medium rounded hover:border-slate-500 hover:text-white transition-all">
-                Sign In Instead
+                Start Over
               </button>
             </div>
           </>
