@@ -284,9 +284,9 @@ function OnboardingPreflightInner() {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6">
         <div className="relative">
-          <div className="w-20 h-20 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+          <div className="w-20 h-20 rounded-full border-4 border-[#E85525]/20 border-t-[#E85525] animate-spin" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <Sparkles className="w-8 h-8 text-emerald-400" />
+            <Sparkles className="w-8 h-8 text-[#E85525]" />
           </div>
         </div>
         <div className="text-center">
@@ -304,8 +304,13 @@ function OnboardingPreflightInner() {
       <div className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[#E8472F] font-bold text-lg tracking-tight">Fleet</span>
-            <span className="text-white font-bold text-lg tracking-tight">Market</span>
+            <img src="/fmlogo3.jpg" alt="Fleet Market" className="h-8" onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              (e.currentTarget.nextElementSibling as HTMLElement)?.classList.remove('hidden');
+            }} />
+            <span className="text-white font-bold text-lg tracking-tight hidden">
+              <span className="text-[#E8472F]">Fleet</span>Market
+            </span>
           </div>
           <StepIndicator current={step} />
         </div>
@@ -372,7 +377,7 @@ function OnboardingPreflightInner() {
             <button
               onClick={advance}
               disabled={!canAdvance()}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold bg-[#E85525] hover:bg-[#d13d25] text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               Continue <ChevronRight className="w-4 h-4" />
             </button>
@@ -403,16 +408,16 @@ function StepIndicator({ current }: { current: Step }) {
         return (
           <div key={s.id} className="flex items-center gap-1">
             <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-              active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
-              done   ? 'text-emerald-500' : 'text-slate-600'
+              active ? 'bg-[#E85525]/20 text-[#E85525] border border-[#E85525]/40' :
+              done   ? 'text-[#E85525]' : 'text-slate-600'
             }`}>
               {done
                 ? <Check className="w-3 h-3" />
-                : <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] ${active ? 'border-emerald-500 text-emerald-400' : 'border-slate-700 text-slate-600'}`}>{i + 1}</span>
+                : <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] ${active ? 'border-[#E85525] text-[#E85525]' : 'border-slate-700 text-slate-600'}`}>{i + 1}</span>
               }
               <span className="hidden sm:inline">{s.label}</span>
             </div>
-            {i < steps.length - 1 && <div className={`w-4 h-px ${stepIdx < currentIdx ? 'bg-emerald-500/40' : 'bg-slate-800'}`} />}
+            {i < steps.length - 1 && <div className={`w-4 h-px ${stepIdx < currentIdx ? 'bg-[#E85525]/40' : 'bg-slate-800'}`} />}
           </div>
         );
       })}
@@ -435,7 +440,7 @@ function TemplateStep({ selected, onSelect }: { selected: TemplateSlug | null; o
             onClick={() => onSelect(t.slug)}
             className={`relative text-left rounded-2xl border-2 overflow-hidden transition-all group ${
               selected === t.slug
-                ? 'border-emerald-500 ring-2 ring-emerald-500/30'
+                ? 'border-[#E85525] ring-2 ring-[#E85525]/30'
                 : 'border-slate-800 hover:border-slate-600'
             }`}
           >
@@ -465,7 +470,7 @@ function TemplateStep({ selected, onSelect }: { selected: TemplateSlug | null; o
               <div className="flex items-start justify-between gap-2 mb-1">
                 <h3 className="font-semibold text-white text-sm leading-tight">{t.name}</h3>
                 {selected === t.slug && (
-                  <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="w-5 h-5 rounded-full bg-[#E85525] flex items-center justify-center flex-shrink-0 mt-0.5">
                     <Check className="w-3 h-3 text-slate-950" />
                   </div>
                 )}
@@ -497,8 +502,8 @@ function AddonStep({
   return (
     <div className="pb-24 max-w-2xl">
       <div className="mb-10">
-        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-5">
-          <Icon className="w-6 h-6 text-emerald-400" />
+        <div className="w-12 h-12 rounded-2xl bg-[#E85525]/10 border border-[#E85525]/20 flex items-center justify-center mb-5">
+          <Icon className="w-6 h-6 text-[#E85525]" />
         </div>
         <h1 className="text-2xl font-bold text-white mb-3">{title}</h1>
         <p className="text-slate-400 leading-relaxed">{description}</p>
@@ -509,17 +514,17 @@ function AddonStep({
           onClick={() => onChange(true)}
           className={`flex items-center gap-4 px-5 py-4 rounded-2xl border-2 text-left transition-all ${
             value === true
-              ? 'border-emerald-500 bg-emerald-500/10'
+              ? 'border-[#E85525] bg-[#E85525]/10'
               : 'border-slate-700 hover:border-slate-500 hover:bg-slate-900'
           }`}
         >
-          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${value === true ? 'border-emerald-500 bg-emerald-500' : 'border-slate-600'}`}>
+          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${value === true ? 'border-[#E85525] bg-[#E85525]' : 'border-slate-600'}`}>
             {value === true && <div className="w-2 h-2 bg-white rounded-full" />}
           </div>
           <div className="flex-1">
             <p className="font-medium text-white text-sm">{yesLabel}</p>
           </div>
-          <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+          <span className="text-xs font-semibold text-[#E85525] bg-[#E85525]/10 px-2.5 py-1 rounded-full border border-[#E85525]/20">
             +${price}/mo
           </span>
         </button>
@@ -541,9 +546,9 @@ function AddonStep({
 
       {/* Bundle nudge */}
       {value === true && bundleMsg && (
-        <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-start gap-3">
-          <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-emerald-300">{bundleMsg}</p>
+        <div className="p-4 rounded-xl bg-[#E85525]/5 border border-[#E85525]/20 flex items-start gap-3">
+          <Sparkles className="w-4 h-4 text-[#E85525] flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-[#f0875f]">{bundleMsg}</p>
         </div>
       )}
     </div>
@@ -576,8 +581,8 @@ function PaymentStep({
   return (
     <div className="pb-12 max-w-2xl">
       <div className="mb-10">
-        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-5">
-          <CreditCard className="w-6 h-6 text-emerald-400" />
+        <div className="w-12 h-12 rounded-2xl bg-[#E85525]/10 border border-[#E85525]/20 flex items-center justify-center mb-5">
+          <CreditCard className="w-6 h-6 text-[#E85525]" />
         </div>
         <h1 className="text-2xl font-bold text-white mb-3">Review your plan</h1>
         <p className="text-slate-400">Here's what you've selected. You can add or remove features anytime from your dashboard.</p>
@@ -608,11 +613,11 @@ function PaymentStep({
               {bundleLabel ? (
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-emerald-300">{bundleLabel}</p>
+                    <p className="text-sm font-medium text-[#f0875f]">{bundleLabel}</p>
                     <p className="text-xs text-slate-500">{selectedAddons.map(a => addonLabels[a]).join(', ')}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-emerald-400">+${addonPrice}/mo</p>
+                    <p className="text-sm font-semibold text-[#E85525]">+${addonPrice}/mo</p>
                     {selectedAddons.length === 2 && <p className="text-xs text-slate-500 line-through">$260/mo</p>}
                     {selectedAddons.length === 3 && <p className="text-xs text-slate-500 line-through">$390/mo</p>}
                   </div>
@@ -653,7 +658,7 @@ function PaymentStep({
         <button
           onClick={onPay}
           disabled={creating}
-          className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-semibold text-slate-950 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 transition-all text-base"
+          className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-semibold text-white bg-[#E85525] hover:bg-[#E85525] disabled:opacity-50 transition-all text-base"
         >
           {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <><ArrowRight className="w-5 h-5" /> Continue to Payment</>}
         </button>
@@ -667,7 +672,7 @@ export default function OnboardingPreflightPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-6 h-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+        <div className="w-6 h-6 animate-spin rounded-full border-2 border-[#E85525] border-t-transparent" />
       </div>
     }>
       <OnboardingPreflightInner />

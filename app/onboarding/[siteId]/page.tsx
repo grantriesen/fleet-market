@@ -213,7 +213,7 @@ export default function OnboardingPage({ params }: { params: { siteId: string } 
               </div>
             </div>
             <div className="p-4 bg-slate-900 border border-slate-700 rounded-xl flex gap-3">
-              <Info className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <Info className="w-4 h-4 text-[#E85525] flex-shrink-0 mt-0.5" />
               <p className="text-xs text-slate-400">Years in business and brand count are pulled from your earlier answers automatically.</p>
             </div>
           </div>
@@ -509,7 +509,7 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#E85525]" />
       </div>
     );
   }
@@ -527,9 +527,9 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6">
         <div className="relative">
-          <div className="w-20 h-20 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+          <div className="w-20 h-20 rounded-full border-4 border-[#E85525]/20 border-t-[#E85525] animate-spin" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <Sparkles className="w-8 h-8 text-emerald-400" />
+            <Sparkles className="w-8 h-8 text-[#E85525]" />
           </div>
         </div>
         <div className="text-center">
@@ -538,7 +538,7 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
         </div>
         <div className="flex gap-1.5 mt-4">
           {[0,1,2].map(i => (
-            <div key={i} className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce"
+            <div key={i} className="w-2 h-2 rounded-full bg-[#E85525] animate-bounce"
               style={{ animationDelay: `${i * 0.15}s` }} />
           ))}
         </div>
@@ -554,10 +554,17 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
       <div className="border-b border-slate-800">
         <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-white" />
+            <img src="/fmlogo3.jpg" alt="Fleet Market" className="h-8" onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+              if (fallback) fallback.classList.remove('hidden');
+            }} />
+            <div className="hidden items-center gap-3">
+              <div className="w-8 h-8 bg-[#E85525] rounded-lg flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-bold text-slate-100">Fleet Market</span>
             </div>
-            <span className="font-bold text-slate-100">Fleet Market</span>
             <span className="text-slate-600">·</span>
             <span className="text-slate-400 text-sm">Site Setup</span>
           </div>
@@ -578,19 +585,19 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
                   <button
                     onClick={() => i < step && setStep(i)}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                      isCurrent ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                      isCurrent ? 'bg-[#E85525]/15 text-[#E85525] border border-[#E85525]/30'
                       : isDone  ? 'text-slate-400 hover:text-slate-200 cursor-pointer'
                       : 'text-slate-600 cursor-default'
                     }`}
                   >
                     {isDone
-                      ? <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      ? <Check className="w-3.5 h-3.5 text-[#E85525]" />
                       : <Icon className="w-3.5 h-3.5" />
                     }
                     <span className="hidden sm:block">{s.label}</span>
                   </button>
                   {i < steps.length - 1 && (
-                    <div className={`w-6 h-px mx-1 flex-shrink-0 ${i < step ? 'bg-emerald-500/40' : 'bg-slate-700'}`} />
+                    <div className={`w-6 h-px mx-1 flex-shrink-0 ${i < step ? 'bg-[#E85525]/40' : 'bg-slate-700'}`} />
                   )}
                 </div>
               );
@@ -598,7 +605,7 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
           </div>
           <div className="mt-3 h-1 bg-slate-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+              className="h-full bg-[#E85525] rounded-full transition-all duration-500"
               style={{ width: `${((step + 1) / steps.length) * 100}%` }}
             />
           </div>
@@ -644,7 +651,7 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
             <button
               onClick={handleFinish}
               disabled={!canAdvance()}
-              className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 text-sm font-bold rounded-xl transition-colors"
+              className="flex items-center gap-2 px-6 py-2.5 bg-[#E85525] hover:bg-[#d13d25] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-colors"
             >
               <Sparkles className="w-4 h-4" /> Build My Site
             </button>
@@ -652,7 +659,7 @@ Write a warm, authentic 4-6 sentence "about us" description in first person plur
             <button
               onClick={() => setStep(s => s + 1)}
               disabled={!canAdvance()}
-              className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 text-sm font-bold rounded-xl transition-colors"
+              className="flex items-center gap-2 px-6 py-2.5 bg-[#E85525] hover:bg-[#d13d25] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-colors"
             >
               Continue <ChevronRight className="w-4 h-4" />
             </button>
@@ -669,7 +676,7 @@ function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
   brandCategory, setBrandCategory, siteName, siteId, error,
   aiAssisting, handleAiAssist, templateSlug }: any) {
 
-  const inputCls = "w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors text-sm";
+  const inputCls = "w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#E85525] focus:border-transparent transition-colors text-sm";
   const labelCls = "block text-sm font-medium text-slate-300 mb-2";
 
   switch (step) {
@@ -820,7 +827,7 @@ function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
             <button
               onClick={() => handleAiAssist('services')}
               disabled={aiAssisting === 'services'}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-[#E85525]/10 hover:bg-[#E85525]/20 text-[#E85525] border border-[#E85525]/30 disabled:opacity-50"
             >
               {aiAssisting === 'services' ? (
                 <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Writing...</>
@@ -851,7 +858,7 @@ function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
             <select
               value={brandCategory}
               onChange={e => setBrandCategory(e.target.value)}
-              className="px-3 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="px-3 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#E85525]"
             >
               {categories.map((c: string) => (
                 <option key={c} value={c}>{c === 'all' ? 'All Categories' : (CATEGORY_LABELS[c] || c)}</option>
@@ -860,7 +867,7 @@ function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
           </div>
 
           {form.selectedBrands.length > 0 && (
-            <div className="mb-4 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm text-emerald-400">
+            <div className="mb-4 px-4 py-2.5 bg-[#E85525]/10 border border-[#E85525]/20 rounded-xl text-sm text-[#E85525]">
               {form.selectedBrands.length} brand{form.selectedBrands.length !== 1 ? 's' : ''} selected
             </div>
           )}
@@ -881,11 +888,11 @@ function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
                           onClick={() => toggleBrand(brand.slug)}
                           className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm text-left transition-all ${
                             isSelected
-                              ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300'
+                              ? 'border-[#E85525] bg-[#E85525]/10 text-[#f0875f]'
                               : 'border-slate-700 hover:border-slate-500 text-slate-300 hover:bg-slate-800'
                           }`}
                         >
-                          <div className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center ${isSelected ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600'}`}>
+                          <div className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center ${isSelected ? 'bg-[#E85525] border-[#E85525]' : 'border-slate-600'}`}>
                             {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                           </div>
                           <span className="truncate font-medium">{brand.name}</span>
@@ -997,7 +1004,7 @@ function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
               </div>
             </div>
             <div className="p-4 bg-slate-900 border border-slate-700 rounded-xl flex gap-3">
-              <Info className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <Info className="w-4 h-4 text-[#E85525] flex-shrink-0 mt-0.5" />
               <p className="text-xs text-slate-400">Years in business and brand count are pulled from your earlier answers automatically.</p>
             </div>
           </div>
@@ -1026,7 +1033,7 @@ function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
             <button
               onClick={() => handleAiAssist('about')}
               disabled={aiAssisting === 'about'}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all bg-[#E85525]/10 hover:bg-[#E85525]/20 text-[#E85525] border border-[#E85525]/30 disabled:opacity-50"
             >
               {aiAssisting === 'about' ? (
                 <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Writing...</>
@@ -1038,7 +1045,7 @@ function StepContent({ step, form, update, toggleBrand, brands, brandsLoading,
             </button>
           </div>
           <div className="mt-4 p-4 bg-slate-900 border border-slate-700 rounded-xl flex gap-3">
-            <Info className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+            <Info className="w-4 h-4 text-[#E85525] flex-shrink-0 mt-0.5" />
             <p className="text-xs text-slate-400">
               After you click "Build My Site", our AI will generate your homepage headlines, section copy, page headings, and more — all in your voice. You can edit everything in the customizer afterward.
             </p>
@@ -1062,8 +1069,8 @@ function StepHeader({ icon: Icon, title, subtitle }: { icon: any; title: string;
   return (
     <div className="mb-8">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 bg-emerald-500/15 border border-emerald-500/30 rounded-xl flex items-center justify-center">
-          <Icon className="w-5 h-5 text-emerald-400" />
+        <div className="w-10 h-10 bg-[#E85525]/15 border border-[#E85525]/30 rounded-xl flex items-center justify-center">
+          <Icon className="w-5 h-5 text-[#E85525]" />
         </div>
         <h1 className="text-2xl font-bold text-white">{title}</h1>
       </div>
@@ -1084,11 +1091,11 @@ function AddonQuestion({ question, value, onChange, options, conditionalLabel,
             onClick={() => onChange(opt.value)}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm text-left transition-all ${
               value === opt.value
-                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300'
+                ? 'border-[#E85525] bg-[#E85525]/10 text-[#f0875f]'
                 : 'border-slate-700 hover:border-slate-500 text-slate-300 hover:bg-slate-800'
             }`}
           >
-            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${value === opt.value ? 'border-emerald-500 bg-emerald-500' : 'border-slate-600'}`}>
+            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${value === opt.value ? 'border-[#E85525] bg-[#E85525]' : 'border-slate-600'}`}>
               {value === opt.value && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
             </div>
             {opt.label}
