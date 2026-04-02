@@ -129,7 +129,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/customize') ||
       pathname.startsWith('/deploy') ||
       pathname.startsWith('/onboarding') ||
-      (pathname.startsWith('/manufacturer') && !pathname.startsWith('/manufacturer/login'))) {
+      (pathname.startsWith('/manufacturer') && !pathname.startsWith('/manufacturer/login') && !pathname.startsWith('/manufacturer/register'))) {
     if (!session) {
       // Redirect manufacturer paths to manufacturer login, others to regular login
       const loginUrl = pathname.startsWith('/manufacturer') ? '/manufacturer/login' : '/auth/login';
