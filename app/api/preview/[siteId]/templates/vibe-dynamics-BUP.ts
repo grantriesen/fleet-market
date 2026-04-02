@@ -8,7 +8,7 @@
 // thick borders, and rounded pill shapes.
 // ============================================
 
-import { sharedPreviewScript, pageHero, productCardButtons, productPageUrl, renderSharedProductPage } from './shared';
+import { sharedPreviewScript, pageHero } from './shared';
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
 import { serviceBookingSection, rentalBookingSection } from './product-modal';
 import { injectCartSystem } from './shared';
@@ -49,8 +49,7 @@ export async function renderVibeDynamicsPage(
   supabase?: any,
   baseUrl: string = '',
   siteAddons: string[] = [],
-  checkoutMode: 'online' | 'quote_only' = 'quote_only',
-  productSlug?: string | null
+  checkoutMode: 'online' | 'quote_only' = 'quote_only'
 ): Promise<string> {
   let enabledFeatures: Set<string> = new Set();
   const addonMap: Record<string, string[]> = {
@@ -97,9 +96,6 @@ export async function renderVibeDynamicsPage(
       break;
     case 'inventory':
       body = await vdInventoryPage(getContent, colors, siteId, supabase, displayProducts, isRealProducts, fmtPrice, vis, baseUrl);
-      break;
-    case 'product':
-      body = await renderSharedProductPage(siteId, productSlug || '', baseUrl, supabase, { primaryColor: colors.primary, borderRadius: '16px', checkoutMode, getContent });
       break;
     case 'rentals':
       body = await vdRentalsPage(getContent, colors, siteId, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals'), vis, baseUrl);
@@ -446,9 +442,9 @@ function vdHomeSections(
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           ${displayProducts.map((item: any, idx: number) => {
             const borderColor = idx % 3 === 0 ? 'var(--color-primary)' : idx % 3 === 1 ? 'var(--color-secondary)' : 'var(--color-accent)';
+            const pd = JSON.stringify({id:item.id||item.slug,title:item.title||'',description:item.description||'',price:item.price||null,sale_price:item.sale_price||null,primary_image:item.primary_image||null,category:item.category||'',model:item.model||'',slug:item.slug||''}).replace(/"/g,'&quot;');
             return `
-            <div class="bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2" style="border: 4px solid ${borderColor};">
-              <a href="${productPageUrl(baseUrl, item)}" class="block">
+            <div class="bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 cursor-pointer" style="border: 4px solid ${borderColor};" onclick="fmOpenProduct(${pd})">
               <div class="h-48" style="${item.primary_image ? `background: url('${item.primary_image}') center/cover no-repeat;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-secondary), var(--color-accent));`}"></div>
               <div class="p-5">
                 <h3 class="font-heading font-black text-lg mb-1" style="color: var(--color-primary);">${item.title.toUpperCase()}</h3>
@@ -456,10 +452,7 @@ function vdHomeSections(
                   ${isRealProducts && item.price ? fmtPrice(item.sale_price || item.price) : 'PREMIUM EQUIPMENT'}
                   ${isRealProducts && item.sale_price ? `<span class="text-sm text-gray-400 line-through ml-2">${fmtPrice(item.price)}</span>` : ''}
                 </p>
-              </div>
-              </a>
-              <div class="px-5 pb-5">
-                ${productCardButtons(baseUrl, item, colors.primary)}
+                <span class="inline-block text-white font-bold text-sm px-5 py-2 rounded-full" style="background-color: var(--color-secondary);">VIEW DETAILS</span>
               </div>
             </div>`;
           }).join('')}
@@ -881,21 +874,19 @@ async function vdInventoryPage(
         ${products.map((item: any, idx: number) => {
           const borderColor = idx % 3 === 0 ? 'var(--color-primary)' : idx % 3 === 1 ? 'var(--color-secondary)' : 'var(--color-accent)';
           return `
-          <div data-product data-category="${item.category || ''}" class="bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2" style="border: 4px solid ${borderColor};">
-            <a href="${productPageUrl(baseUrl, item)}" class="block">
+          <div data-product data-category="${item.category || ''}" class="bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 cursor-pointer" style="border: 4px solid ${borderColor};" onclick="(function(el){try{fmOpenProduct(JSON.parse(el.getAttribute('data-p')));}catch(e){}})(this)" data-p="${JSON.stringify({id:item.id||item.slug,title:item.title||'',description:item.description||'',price:item.price||null,sale_price:item.sale_price||null,primary_image:item.primary_image||null,category:item.category||'',model:item.model||'',slug:item.slug||''}).replace(/"/g,'&quot;')}">
             <div class="h-52" style="${item.primary_image ? `background: url('${item.primary_image}') center/cover no-repeat;` : `background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));`}"></div>
             <div class="p-5">
               ${item.category ? `<span class="inline-block text-xs font-bold uppercase tracking-wide mb-1" style="color: var(--color-primary);">${item.category}</span>` : ''}
               <h3 class="font-heading font-black text-lg text-gray-900 mb-1">${item.title}</h3>
               ${item.description ? `<p class="text-gray-500 text-sm mb-3 line-clamp-2">${item.description}</p>` : ''}
-              <span class="font-heading font-black text-xl" style="color: var(--color-primary);">
-                ${item.price ? fmtPrice(item.sale_price || item.price) : 'Call for Price'}
-                ${item.sale_price ? `<span class="text-sm text-gray-400 line-through ml-2">${fmtPrice(item.price)}</span>` : ''}
-              </span>
-            </div>
-            </a>
-            <div class="px-5 pb-5">
-              ${productCardButtons(baseUrl, item, colors.primary)}
+              <div class="flex items-center justify-between">
+                <span class="font-heading font-black text-xl" style="color: var(--color-primary);">
+                  ${item.price ? fmtPrice(item.sale_price || item.price) : 'Call for Price'}
+                  ${item.sale_price ? `<span class="text-sm text-gray-400 line-through ml-2">${fmtPrice(item.price)}</span>` : ''}
+                </span>
+                <span class="btn-gradient text-sm" style="padding: 0.5rem 1rem;">Details</span>
+              </div>
             </div>
           </div>`;
         }).join('')}

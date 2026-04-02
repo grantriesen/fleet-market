@@ -4,7 +4,7 @@
 //         shadcn-inspired card system, muted gray backgrounds.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { sharedPreviewScript, injectCartSystem, serviceFormHtml, productCardButtons, productPageUrl, renderSharedProductPage } from './shared';
+import { sharedPreviewScript, injectCartSystem, serviceFormHtml } from './shared';
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
 
 /* ── DEMO overrides ── */
@@ -91,8 +91,7 @@ export async function renderModernLawnPage(
   siteAddons: string[] = [],
   checkoutMode: string = 'quote_only',
   stripeConnected: boolean = false,
-  manufacturers: any[] = [],
-  productSlug?: string | null
+  manufacturers: any[] = []
 ) {
   // Content resolution: passed content (from route) > customizations > config > demo overrides
   const MLS_KEY_ALIASES: Record<string,string> = {
@@ -150,7 +149,6 @@ export async function renderModernLawnPage(
     case 'service': body = mlsServicePage(siteId, getContent, baseUrl, enabledFeatures, colors); break;
     case 'contact': body = mlsContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl); break;
     case 'inventory': body = mlsInventoryPage(siteId, getContent, products, fmtPrice, baseUrl); break;
-    case 'product': body = await renderSharedProductPage(siteId, productSlug || '', baseUrl, supabase, { primaryColor: colors.primary, borderRadius: '8px', checkoutMode, getContent }); break;
     case 'rentals': body = await mlsRentalsPage(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
     case 'manufacturers': body = mlsManufacturersPage(siteId, getContent, baseUrl, manufacturers || []); break;
     default: body = await mlsHome(siteId, getContent, products, vis, colors, fmtPrice, supabase, baseUrl, manufacturers || []); break;
@@ -605,8 +603,7 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
       <!-- Products Grid -->
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem;">
         ${products.map((p: any) => `
-        <div class="card-mls" data-category="${p.category || ''}" data-title="${(p.title || '').toLowerCase()}">
-          <a href="${productPageUrl(baseUrl, p)}" style="display:block;text-decoration:none;color:inherit;">
+        <div class="card-mls" data-category="${p.category || ''}" data-title="${(p.title || '').toLowerCase()}" style="cursor:pointer;" onclick="fmOpenProduct(${JSON.stringify({id:p.id,title:p.title,description:p.description,price:p.price,sale_price:p.sale_price,primary_image:p.primary_image,category:p.category,model:p.model,slug:p.slug}).replace(/"/g,'&quot;')})">
           <div style="height: 200px; overflow: hidden;">
             ${p.primary_image ? `<img src="${p.primary_image}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">` : `<div style="width:100%;height:100%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#9ca3af;">No Image</div>`}
           </div>
@@ -614,11 +611,10 @@ function mlsInventoryPage(siteId: string, gc: (k: string) => string, products: a
             <p style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.25rem;">${p.category || ''}</p>
             <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.375rem; color: #111827;">${p.title}</h3>
             <p style="font-size: 0.875rem; color: #6b7280; margin: 0 0 1rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${p.description || ''}</p>
-            ${p.price ? `<span style="font-size: 1.125rem; font-weight: 700; color: #111827; display:block; margin-bottom:0.75rem;">${fmtPrice(p.price)}</span>` : '<span style="font-size:0.875rem;color:#6b7280;display:block;margin-bottom:0.75rem;">Call for Price</span>'}
-          </div>
-          </a>
-          <div style="padding:0 1.25rem 1.25rem;">
-            ${productCardButtons(baseUrl, p, 'var(--color-primary, #16a34a)')}
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              ${p.price ? `<span style="font-size: 1.125rem; font-weight: 700; color: #111827;">${fmtPrice(p.price)}</span>` : '<span style="font-size:0.875rem;color:#6b7280;">Call for Price</span>'}
+              <span style="font-size:0.8125rem;font-weight:600;color:var(--color-primary, #16a34a);">View Details →</span>
+            </div>
           </div>
         </div>`).join('')}
       </div>

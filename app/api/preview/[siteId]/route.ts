@@ -232,17 +232,17 @@ async function generateTemplateHTML(
   // ── Route to the SAME template functions used by the live site ──
   let html = '';
   if (templateSlug === 'green-valley-industrial') {
-    html = await renderGreenValleyPage(getContent, colors, fonts, manufacturers, sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only');
+    html = await renderGreenValleyPage(getContent, colors, fonts, manufacturers, sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only', productSlug);
   } else if (templateSlug === 'vibe-dynamics') {
-    html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers, sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only');
+    html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers, sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only', productSlug);
   } else if (templateSlug === 'corporate-edge') {
     html = await renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, productSlug);
   } else if (templateSlug === 'zenith-lawn') {
-    html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || []);
+    html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || [], productSlug);
   } else if (templateSlug === 'modern-lawn-solutions') {
-    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || []);
+    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || [], productSlug);
   } else if (templateSlug === 'warm-earth-designs') {
-    html = await renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
+    html = await renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, productSlug);
   } else {
     // Fallback for unknown templates
     html = '<p style="padding:2rem;">Preview not available for this template.</p>';

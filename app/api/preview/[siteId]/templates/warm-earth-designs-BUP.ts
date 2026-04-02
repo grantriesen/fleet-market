@@ -5,7 +5,7 @@
 //         wood texture overlays, organic/rustic aesthetic.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { sharedPreviewScript, injectCartSystem, productCardButtons, productPageUrl, renderSharedProductPage } from './shared';
+import { sharedPreviewScript, injectCartSystem } from './shared';
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
 import { serviceBookingSection } from './product-modal';
 
@@ -97,8 +97,7 @@ export async function renderWarmEarthPage(
   supabase?: any,
   siteAddons: string[] = [],
   checkoutMode: string = 'quote_only',
-  stripeConnected: boolean = false,
-  productSlug?: string | null
+  stripeConnected: boolean = false
 ) {
   const WE_KEY_ALIASES: Record<string,string> = {
     'business.name':    'businessInfo.businessName',
@@ -142,7 +141,6 @@ export async function renderWarmEarthPage(
     case 'service': body = weServicePage(siteId, gc, C, enabledFeatures.has('service_scheduling'), baseUrl); break;
     case 'contact': body = weContactPage(siteId, gc, C, wkday, sat, sun, baseUrl); break;
     case 'inventory': body = weInventoryPage(siteId, gc, products, C, fmtPrice, baseUrl); break;
-    case 'product': body = await renderSharedProductPage(siteId, productSlug || '', baseUrl, supabase, { primaryColor: C.primary, borderRadius: '12px', checkoutMode, getContent: gc }); break;
     case 'rentals': body = await weRentalsPage(siteId, gc, C, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
     case 'manufacturers': body = weManufacturersPage(siteId, gc, C, manufacturers, baseUrl); break;
     default: body = weHome(siteId, gc, products, manufacturers, vis, C, fmtPrice, baseUrl); break;
@@ -549,8 +547,7 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
       <p style="font-size:0.875rem;color:${C.mutedFg};margin-bottom:1.5rem;">Showing ${products.length} products</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2rem;">
         ${products.map((p: any) => `
-        <div class="card-we" data-cat="${p.category||''}" data-name="${(p.title||'').toLowerCase()}">
-          <a href="${productPageUrl(baseUrl, p)}" style="display:block;text-decoration:none;color:inherit;">
+        <div class="card-we" data-cat="${p.category||''}" data-name="${(p.title||'').toLowerCase()}" style="cursor:pointer;" onclick="fmOpenProduct(${JSON.stringify({id:p.id,title:p.title,description:p.description,price:p.price,sale_price:p.sale_price,primary_image:p.primary_image,category:p.category,model:p.model,slug:p.slug}).replace(/"/g,'&quot;')})">
           <div style="overflow:hidden;position:relative;">
             ${p.primary_image ? `<img src="${p.primary_image}" alt="${p.title}" style="width:100%;height:220px;object-fit:cover;" loading="lazy">` : `<div style="width:100%;height:220px;background:${C.muted};display:flex;align-items:center;justify-content:center;color:${C.mutedFg};">No Image</div>`}
             <span style="position:absolute;top:1rem;left:1rem;background:${C.secondary};color:${C.bg};padding:0.25rem 0.75rem;border-radius:9999px;font-size:0.75rem;font-weight:600;">${p.category||''}</span>
@@ -558,11 +555,10 @@ function weInventoryPage(siteId: string, gc: (k: string) => string, products: an
           <div style="padding:1.5rem;">
             <h3 class="font-serif" style="font-size:1.0625rem;font-weight:600;margin:0 0 0.375rem;color:${C.fg};">${p.title}</h3>
             <p style="font-size:0.875rem;color:${C.mutedFg};margin:0 0 1rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.description||''}</p>
-            ${p.price ? `<span class="font-serif" style="font-size:1.25rem;font-weight:700;color:${C.accent};display:block;margin-bottom:0.75rem;">${fp(p.price)}</span>` : `<span style="font-size:0.875rem;color:${C.mutedFg};display:block;margin-bottom:0.75rem;">Call for Price</span>`}
-          </div>
-          </a>
-          <div style="padding:0 1.5rem 1.5rem;">
-            ${productCardButtons(baseUrl, p, C.primary)}
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              ${p.price ? `<span class="font-serif" style="font-size:1.25rem;font-weight:700;color:${C.accent};">${fp(p.price)}</span>` : `<span style="font-size:0.875rem;color:${C.mutedFg};">Call for Price</span>`}
+              <span style="font-size:0.8125rem;font-weight:600;color:${C.primary};">View Details →</span>
+            </div>
           </div>
         </div>`).join('')}
       </div>

@@ -6,7 +6,7 @@
 // (caller provides <head> shell and closing tags)
 // ============================================
 
-import { sharedPreviewScript, pageHero, serviceFormHtml, injectCartSystem, productCardButtons, productPageUrl, renderSharedProductPage } from './shared';
+import { sharedPreviewScript, pageHero, serviceFormHtml, injectCartSystem } from './shared';
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
 
 // ── Types ──
@@ -47,8 +47,7 @@ export async function renderGreenValleyPage(
   supabase?: any,
   baseUrl: string = '',
   siteAddons: string[] = [],
-  checkoutMode: 'online' | 'quote_only' = 'quote_only',
-  productSlug?: string | null
+  checkoutMode: 'online' | 'quote_only' = 'quote_only'
 ): Promise<string> {
   // Load site features from both sites.addons and site_features table
   let enabledFeatures: Set<string> = new Set();
@@ -93,9 +92,6 @@ export async function renderGreenValleyPage(
       break;
     case 'inventory':
       body = await gvInventoryPage(getContent, colors, siteId, supabase, displayProducts, isRealProducts, fmtPrice, sectionVisibility, baseUrl);
-      break;
-    case 'product':
-      body = await renderSharedProductPage(siteId, productSlug || '', baseUrl, supabase, { primaryColor: colors.primary, borderRadius: '8px', checkoutMode, getContent });
       break;
     case 'rentals':
       body = await gvRentalsPage(getContent, colors, siteId, supabase, enabledFeatures.has('rental_scheduling'), sectionVisibility, baseUrl);
@@ -518,9 +514,9 @@ function gvHomeSections(
         ${getContent('featured.subheading') ? `<p class="text-center text-muted-foreground text-lg mb-8">${getContent('featured.subheading')}</p>` : '<div class="mb-8"></div>'}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           ${displayProducts.map((item: any) => {
+            const pd = JSON.stringify({id:item.id||item.slug,title:item.title||'',description:item.description||'',price:item.price||null,sale_price:item.sale_price||null,primary_image:item.primary_image||null,category:item.category||'',model:item.model||'',slug:item.slug||''}).replace(/"/g,'&quot;');
             return `
-            <div class="industrial-card group overflow-hidden rounded-lg">
-              <a href="${productPageUrl(baseUrl, item)}" class="block">
+            <div class="industrial-card group overflow-hidden rounded-lg cursor-pointer" onclick="fmOpenProduct(${pd})">
               <div class="aspect-[4/3] bg-muted overflow-hidden relative">
                 ${item.primary_image
                   ? `<img src="${item.primary_image}" alt="${item.title}" loading="lazy" class="w-full h-full object-cover group-hover-scale">`
@@ -533,13 +529,10 @@ function gvHomeSections(
                   ${[item.category, item.model].filter(Boolean).join(' · ')}
                 </p>
                 <h3 class="font-bold text-lg text-foreground mb-2">${item.title}</h3>
-                <div class="flex items-center justify-between pt-3 border-t border-border mb-3">
+                <div class="flex items-center justify-between pt-3 border-t border-border">
                   <span class="text-xl font-bold text-primary">${fmtPrice(item.price)}</span>
+                  <span class="text-secondary font-semibold text-sm uppercase tracking-wide group-hover:underline">Details →</span>
                 </div>
-              </div>
-              </a>
-              <div class="px-4 pb-4">
-                ${productCardButtons(baseUrl, item, colors.primary)}
               </div>
             </div>`;
           }).join('')}
@@ -1298,9 +1291,9 @@ function gvInventoryPageStatic(
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="invGrid">
           ${displayProducts.map((item: any) => {
+            const pd2 = JSON.stringify({id:item.id||item.slug,title:item.title||'',description:item.description||'',price:item.price||null,sale_price:item.sale_price||null,primary_image:item.primary_image||null,category:item.category||'',model:item.model||'',slug:item.slug||''}).replace(/"/g,'&quot;');
             return `
-            <div class="inv-card industrial-card group overflow-hidden rounded-lg" data-category="${item.category || ''}" data-condition="${item.condition || ''}">
-              <a href="${productPageUrl(baseUrl, item)}" class="block">
+            <div class="inv-card industrial-card group overflow-hidden rounded-lg cursor-pointer" data-category="${item.category || ''}" data-condition="${item.condition || ''}" onclick="fmOpenProduct(${pd2})">
               <div class="aspect-[4/3] bg-muted overflow-hidden relative">
                 ${item.primary_image
                   ? `<img src="${item.primary_image}" alt="${item.title}" loading="lazy" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">`
@@ -1313,14 +1306,13 @@ function gvInventoryPageStatic(
                 <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">${[item.category, item.model, item.year].filter(Boolean).join(' · ')}</p>
                 <h3 class="font-bold text-lg text-foreground mb-1 leading-tight">${item.title}</h3>
                 ${item.hours ? `<p class="text-xs text-muted-foreground mb-2">${item.hours} hours</p>` : ''}
-                <div class="flex items-center pt-3 border-t border-border mb-3">
-                  <span class="text-xl font-bold text-primary">${fmtPrice(item.price)}</span>
-                  ${item.sale_price ? `<span class="text-sm text-red-500 line-through ml-2">${fmtPrice(item.sale_price)}</span>` : ''}
+                <div class="flex items-center justify-between pt-3 border-t border-border">
+                  <div>
+                    <span class="text-xl font-bold text-primary">${fmtPrice(item.price)}</span>
+                    ${item.sale_price ? `<span class="text-sm text-red-500 line-through ml-2">${fmtPrice(item.sale_price)}</span>` : ''}
+                  </div>
+                  <span class="text-secondary font-semibold text-sm uppercase tracking-wide group-hover:underline flex-shrink-0">Details →</span>
                 </div>
-              </div>
-              </a>
-              <div class="px-4 pb-4">
-                ${productCardButtons(baseUrl, item, colors.primary)}
               </div>
             </div>`;
           }).join('')}

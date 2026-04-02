@@ -60,8 +60,7 @@ export async function renderZenithLawnPage(
   siteAddons: string[] = [],
   checkoutMode: string = 'quote_only',
   stripeConnected: boolean = false,
-  manufacturers: any[] = [],
-  productSlug?: string | null
+  manufacturers: any[] = []
 ) {
   const ZL_KEY_ALIASES: Record<string, string> = {
     'business.name':    'businessInfo.businessName',
@@ -119,7 +118,6 @@ export async function renderZenithLawnPage(
     case 'service': body = zlService(siteId, getContent, baseUrl, colors, enabledFeatures.has('service_scheduling')); break;
     case 'contact': body = zlContact(siteId, getContent, hoursLine, baseUrl, colors); break;
     case 'inventory': body = await zlInventory(siteId, getContent, products, baseUrl, supabase); break;
-    case 'product': body = await renderSharedProductPage(siteId, productSlug || '', baseUrl, supabase, { primaryColor: colors.primary, borderRadius: '12px', checkoutMode, getContent }); break;
     case 'rentals': body = await zlRentals(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals')); break;
     case 'manufacturers': body = zlManufacturers(siteId, getContent, baseUrl, manufacturers || [], colors); break;
     default: body = zlHome(siteId, getContent, products, vis, colors, baseUrl, manufacturers || []); break;
@@ -256,8 +254,7 @@ function zlFooter(siteId: string, pages: any[], getContent: Function, hoursLine:
 // ── Home ──
 function zlHome(siteId: string, getContent: Function, products: any[], vis: Record<string, boolean>, colors: any,
   baseUrl: string = '',
-  manufacturers: any[] = [],
-  productSlug?: string | null
+  manufacturers: any[] = []
 ) {
   let html = '';
 
@@ -385,8 +382,7 @@ function zlProductCard(siteId: string, p: any, baseUrl: string = '') {
     primary_image: imgUrl, category: p.category, model: p.model, slug: p.slug,
   }).replace(/"/g, '&quot;');
   return `
-  <div class="group block">
-    <a href="${productPageUrl(baseUrl, p)}" class="block">
+  <div class="group block cursor-pointer" onclick="fmOpenProduct(${productData})">
     <div class="aspect-[4/3] overflow-hidden bg-neutral-100 mb-4">
       ${hasImage
         ? `<img src="${imgUrl}" alt="${productName}" class="w-full h-full object-cover transition-slow group-hover:scale-105 group-hover:opacity-90"/>`
@@ -394,17 +390,18 @@ function zlProductCard(siteId: string, p: any, baseUrl: string = '') {
             <svg class="w-12 h-12 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
           </div>`}
     </div>
-    <div class="space-y-1 mb-3">
+    <div class="space-y-1">
       <p class="text-xs text-neutral-400 uppercase tracking-wider">${p.brand || ''}</p>
       <h3 class="text-base font-medium group-hover:opacity-70 transition-slow">${productName}</h3>
-      <p class="text-sm text-neutral-500">
-        ${p.sale_price ? `<span class="line-through text-neutral-300 mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
-        ${price ? '$' + Number(price).toLocaleString() : 'Call for Price'}
-        ${p.condition === 'used' ? ` <span class="text-xs text-neutral-400">· Used${p.hours ? ` ${p.hours}hrs` : ''}</span>` : ''}
-      </p>
+      <div class="flex items-center justify-between">
+        <p class="text-sm text-neutral-500">
+          ${p.sale_price ? `<span class="line-through text-neutral-300 mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
+          ${price ? '$' + Number(price).toLocaleString() : 'Call for Price'}
+          ${p.condition === 'used' ? ` <span class="text-xs text-neutral-400">· Used${p.hours ? ` ${p.hours}hrs` : ''}</span>` : ''}
+        </p>
+        <span class="text-xs text-neutral-400 group-hover:text-neutral-900 transition-slow">View →</span>
+      </div>
     </div>
-    </a>
-    ${productCardButtons(baseUrl, p, '#111827')}
   </div>`;
 }
 
@@ -789,7 +786,6 @@ async function zlRentals(
 function zlManufacturers(siteId: string, getContent: Function,
   baseUrl: string = '',
   manufacturers: any[] = [],
-  productSlug?: string | null,
   colors: any = {}
 ) {
   const contentHeading = getContent('manufacturersPage.contentHeading');
@@ -916,4 +912,4 @@ function zlPageHero(getContent: Function, pageKey: string, defaultHeading: strin
 }
 
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
-import { injectCartSystem, sharedPreviewScript, productCardButtons, productPageUrl, renderSharedProductPage } from './shared';
+import { injectCartSystem, sharedPreviewScript } from './shared';

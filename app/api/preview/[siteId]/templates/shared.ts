@@ -863,6 +863,207 @@ export function productPageUrl(baseUrl: string, product: any): string {
   return `${baseUrl}?page=product&product=${slug}`;
 }
 
+// ── Shared Product Detail Page ──
+// Used by all templates — pass in colors and style options for template-specific look
+export async function renderSharedProductPage(
+  siteId: string,
+  slug: string,
+  baseUrl: string,
+  supabase: any,
+  options: {
+    primaryColor: string;
+    secondaryColor?: string;
+    accentColor?: string;
+    fontHeading?: string;
+    fontBody?: string;
+    borderRadius?: string; // e.g. '6px', '12px', '9999px'
+    checkoutMode?: string;
+    getContent?: (key: string) => string;
+  }
+): Promise<string> {
+  const { primaryColor, borderRadius = '8px', checkoutMode = 'quote_only', getContent } = options;
+
+  if (!supabase || !slug) {
+    return `<section style="padding:5rem 1.5rem;text-align:center;max-width:800px;margin:0 auto;">
+      <h2 style="font-size:1.5rem;font-weight:700;color:#111827;margin-bottom:1rem;">Product Not Found</h2>
+      <p style="color:#6b7280;margin-bottom:1.5rem;">The product you're looking for doesn't exist or has been removed.</p>
+      <a href="${baseUrl.includes('?') ? baseUrl + 'inventory' : baseUrl + '?page=inventory'}" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 1.5rem;border-radius:${borderRadius};font-weight:600;color:#fff;background:${primaryColor};text-decoration:none;">← Browse Inventory</a>
+    </section>`;
+  }
+
+  const { data: product } = await supabase
+    .from('inventory_items')
+    .select('*')
+    .eq('site_id', siteId)
+    .eq('slug', slug)
+    .eq('status', 'available')
+    .maybeSingle();
+
+  if (!product) {
+    return `<section style="padding:5rem 1.5rem;text-align:center;max-width:800px;margin:0 auto;">
+      <h2 style="font-size:1.5rem;font-weight:700;color:#111827;margin-bottom:1rem;">Product Not Found</h2>
+      <p style="color:#6b7280;margin-bottom:1.5rem;">The product you're looking for doesn't exist or has been removed.</p>
+      <a href="${baseUrl.includes('?') ? baseUrl + 'inventory' : baseUrl + '?page=inventory'}" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 1.5rem;border-radius:${borderRadius};font-weight:600;color:#fff;background:${primaryColor};text-decoration:none;">← Browse Inventory</a>
+    </section>`;
+  }
+
+  const p = product;
+  const imgUrl = p.primary_image || '';
+  const hasImage = imgUrl && !imgUrl.includes('placeholder');
+  const images = p.images && p.images.length > 0 ? p.images : (hasImage ? [imgUrl] : []);
+  const displayPrice = p.sale_price || p.price;
+  const specs = p.specifications || {};
+  const specEntries = Object.entries(specs).filter(([_, v]) => v);
+  const onclick = productCardOnclick(p);
+
+  const invUrl = baseUrl.includes('?') ? baseUrl + 'inventory' : baseUrl + '?page=inventory';
+  const homeUrl = baseUrl.includes('?') ? baseUrl + 'home' : baseUrl + '?page=home';
+  const contactUrl = baseUrl.includes('?') ? baseUrl + 'contact' : baseUrl + '?page=contact';
+
+  // Fetch related products
+  const { data: related } = await supabase
+    .from('inventory_items')
+    .select('id, title, category, price, sale_price, primary_image, slug, condition, hours')
+    .eq('site_id', siteId)
+    .eq('category', p.category)
+    .eq('status', 'available')
+    .neq('id', p.id)
+    .limit(4);
+
+  const relatedHtml = (related && related.length > 0) ? `
+    <section style="padding:4rem 0;background:#f9fafb;">
+      <div style="max-width:1200px;margin:0 auto;padding:0 1.5rem;">
+        <h2 style="font-size:1.5rem;font-weight:700;color:#111827;margin-bottom:2rem;">Related Equipment</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1.5rem;">
+          ${related.map((r: any) => {
+            const rImg = r.primary_image || '';
+            const rHasImg = rImg && !rImg.includes('placeholder');
+            const rPrice = r.sale_price || r.price;
+            const rUrl = productPageUrl(baseUrl, r);
+            return `
+            <a href="${rUrl}" style="display:block;background:#fff;border:1px solid #e5e7eb;border-radius:${borderRadius};overflow:hidden;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.boxShadow='0 10px 25px rgba(0,0,0,0.1)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform=''">
+              <div style="aspect-ratio:1;background:#f3f4f6;overflow:hidden;">
+                ${rHasImg ? `<img src="${rImg}" alt="${r.title}" loading="lazy" style="width:100%;height:100%;object-fit:cover;" />` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><svg width="40" height="40" fill="none" stroke="#d1d5db" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>`}
+              </div>
+              <div style="padding:1rem;">
+                <h3 style="font-weight:600;color:#111827;font-size:0.9375rem;margin:0 0 0.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</h3>
+                <p style="font-weight:700;color:${primaryColor};margin:0;">${rPrice ? '$' + Number(rPrice).toLocaleString() : 'Call for Price'}</p>
+              </div>
+            </a>`;
+          }).join('')}
+        </div>
+      </div>
+    </section>` : '';
+
+  return `
+  <!-- Breadcrumb -->
+  <div style="background:#f9fafb;border-bottom:1px solid #e5e7eb;">
+    <div style="max-width:1200px;margin:0 auto;padding:0.75rem 1.5rem;">
+      <nav style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem;color:#6b7280;">
+        <a href="${homeUrl}" style="color:#6b7280;text-decoration:none;">Home</a>
+        <span>›</span>
+        <a href="${invUrl}" style="color:#6b7280;text-decoration:none;">Inventory</a>
+        <span>›</span>
+        <span style="color:#111827;font-weight:500;">${p.title}</span>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Product Detail -->
+  <section style="padding:3rem 0;">
+    <div style="max-width:1200px;margin:0 auto;padding:0 1.5rem;">
+      <div class="fm-pdp-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start;">
+        
+        <!-- Image Gallery -->
+        <div>
+          <div style="border-radius:${borderRadius};overflow:hidden;background:#f3f4f6;aspect-ratio:1;margin-bottom:1rem;">
+            ${hasImage
+              ? `<img id="fm-pdp-main-img" src="${imgUrl}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;" />`
+              : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+                  <svg width="80" height="80" fill="none" stroke="#d1d5db" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </div>`}
+          </div>
+          ${images.length > 1 ? `
+          <div style="display:grid;grid-template-columns:repeat(${Math.min(images.length, 5)},1fr);gap:0.5rem;">
+            ${images.slice(0, 5).map((img: string, i: number) => `
+              <div style="border-radius:${borderRadius};overflow:hidden;aspect-ratio:1;cursor:pointer;border:2px solid ${i === 0 ? primaryColor : 'transparent'};transition:all 0.15s;"
+                   onclick="document.getElementById('fm-pdp-main-img').src='${img}';this.parentElement.querySelectorAll('div').forEach(function(d){d.style.borderColor='transparent'});this.style.borderColor='${primaryColor}';">
+                <img src="${img}" alt="" style="width:100%;height:100%;object-fit:cover;" />
+              </div>
+            `).join('')}
+          </div>` : ''}
+        </div>
+
+        <!-- Product Info -->
+        <div>
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap;">
+            ${p.category ? `<span style="display:inline-block;font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:4px 10px;border-radius:4px;background:${primaryColor}15;color:${primaryColor};">${p.category}</span>` : ''}
+            ${p.condition === 'used' ? `<span style="display:inline-block;font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:4px 10px;border-radius:4px;background:#f59e0b15;color:#d97706;">Pre-Owned${p.hours ? ' · ' + p.hours + ' hrs' : ''}</span>` : ''}
+            ${p.brand ? `<span style="display:inline-block;font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:4px 10px;border-radius:4px;background:#f3f4f6;color:#6b7280;">${p.brand}</span>` : ''}
+          </div>
+
+          <h1 style="font-size:2rem;font-weight:800;color:#111827;margin:0 0 0.5rem;line-height:1.2;">${p.title}</h1>
+          ${p.model ? `<p style="font-size:0.9375rem;color:#6b7280;margin:0 0 1.25rem;">Model: ${p.model}${p.year ? ' · ' + p.year : ''}${p.sku ? ' · SKU: ' + p.sku : ''}</p>` : ''}
+
+          <div style="margin-bottom:1.5rem;padding:1.25rem;background:#f9fafb;border-radius:${borderRadius};border:1px solid #e5e7eb;">
+            ${p.sale_price && p.price ? `
+              <span style="font-size:1rem;color:#9ca3af;text-decoration:line-through;margin-right:0.75rem;">$${Number(p.price).toLocaleString()}</span>
+              <span style="font-size:2rem;font-weight:800;color:#dc2626;">$${Number(p.sale_price).toLocaleString()}</span>
+              <span style="display:inline-block;margin-left:0.75rem;font-size:0.75rem;font-weight:700;padding:4px 8px;background:#dc262615;color:#dc2626;border-radius:4px;">SALE</span>
+            ` : displayPrice ? `
+              <span style="font-size:2rem;font-weight:800;color:${primaryColor};">$${Number(displayPrice).toLocaleString()}</span>
+            ` : `
+              <span style="font-size:1.5rem;font-weight:700;color:#6b7280;">Call for Price</span>
+            `}
+            ${p.financing_available ? `<p style="font-size:0.8125rem;color:#059669;margin:0.5rem 0 0;font-weight:600;">✓ Financing available</p>` : ''}
+          </div>
+
+          ${p.description ? `
+          <div style="margin-bottom:1.5rem;">
+            <h3 style="font-size:0.875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;margin:0 0 0.5rem;">Description</h3>
+            <p style="font-size:1rem;color:#374151;line-height:1.7;margin:0;">${p.description}</p>
+          </div>` : ''}
+
+          ${specEntries.length > 0 ? `
+          <div style="margin-bottom:1.5rem;">
+            <h3 style="font-size:0.875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;margin:0 0 0.75rem;">Specifications</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+              ${specEntries.map(([key, val]) => `
+                <div style="background:#f9fafb;border-radius:6px;padding:0.625rem 0.875rem;">
+                  <span style="display:block;font-size:0.6875rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;margin-bottom:2px;">${key}</span>
+                  <span style="font-size:0.875rem;font-weight:600;color:#374151;">${val}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>` : ''}
+
+          <div style="display:flex;gap:0.75rem;margin-bottom:1rem;">
+            <button onclick="${onclick}" style="flex:1;padding:1rem;background:${primaryColor};color:#fff;border:none;border-radius:${borderRadius};font-size:1rem;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+              ${checkoutMode === 'online' && displayPrice ? 'Add to Cart' : 'Request a Quote'}
+            </button>
+            <a href="${contactUrl}" style="display:flex;align-items:center;justify-content:center;padding:1rem 1.5rem;border:2px solid ${primaryColor}20;border-radius:${borderRadius};color:${primaryColor};font-weight:600;text-decoration:none;transition:all 0.15s;" onmouseover="this.style.borderColor='${primaryColor}'" onmouseout="this.style.borderColor='${primaryColor}20'">
+              Contact Us
+            </a>
+          </div>
+
+          <div style="display:flex;gap:1.5rem;padding:1rem;background:#f9fafb;border-radius:${borderRadius};font-size:0.8125rem;color:#6b7280;">
+            ${getContent?.('business.phone') ? `<span>📞 ${getContent('business.phone')}</span>` : ''}
+            ${getContent?.('business.email') ? `<span>✉ ${getContent('business.email')}</span>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  ${relatedHtml}
+
+  <style>
+    @media (max-width: 768px) {
+      .fm-pdp-grid { grid-template-columns: 1fr !important; }
+    }
+  </style>`;
+}
+
 export function productCardButtons(baseUrl: string, product: any, primaryColor: string): string {
   const pageUrl = productPageUrl(baseUrl, product);
   const onclick = productCardOnclick(product);
