@@ -97,7 +97,34 @@ export default function InventoryDashboard() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  // Brand management state
+  // Mark as Sold modal state
+  const [soldModal, setSoldModal] = useState<{ item: InventoryItem } | null>(null);
+  const [soldDate, setSoldDate] = useState(new Date().toISOString().split('T')[0]);
+  const [soldPrice, setSoldPrice] = useState<number | null>(null);
+  const [markingSold, setMarkingSold] = useState(false);
+
+  const handleMarkSold = async () => {
+    if (!soldModal) return;
+    setMarkingSold(true);
+    const { error } = await supabase.from('inventory_items').update({
+      sold_at: new Date(soldDate).toISOString(),
+      sale_price: soldPrice,
+      status: 'sold',
+      updated_at: new Date().toISOString(),
+    }).eq('id', soldModal.item.id);
+    if (error) { showToast('Failed to mark as sold', 'error'); }
+    else { showToast(`${soldModal.item.title} marked as sold`); loadItems(); loadAnalytics(); }
+    setMarkingSold(false);
+    setSoldModal(null);
+    setSoldDate(new Date().toISOString().split('T')[0]);
+    setSoldPrice(null);
+  };
+
+  const openSoldModal = (item: InventoryItem) => {
+    setSoldDate(new Date().toISOString().split('T')[0]);
+    setSoldPrice(item.sale_price || null);
+    setSoldModal({ item });
+  };
   const [brands, setBrands] = useState<Brand[]>([]);
   const [newBrandName, setNewBrandName] = useState('');
   const [addingBrand, setAddingBrand] = useState(false);
@@ -248,7 +275,7 @@ export default function InventoryDashboard() {
     setAnalyticsLoading(true);
     const { data: allItems } = await supabase
       .from('inventory_items')
-      .select('purchase_price, sale_price, date_received, sold_at, brand_id, status')
+      .select('purchase_price, sale_price, price, date_received, sold_at, brand_id, status')
       .eq('site_id', siteId);
 
     if (!allItems) { setAnalyticsLoading(false); return; }
@@ -256,7 +283,7 @@ export default function InventoryDashboard() {
     const sold = allItems.filter(i => i.sold_at);
     const unsold = allItems.filter(i => !i.sold_at);
 
-    const totalInventoryValue = unsold.reduce((sum, i) => sum + (i.purchase_price || 0), 0);
+    const totalInventoryValue = unsold.reduce((sum, i) => sum + (i.purchase_price || i.price || 0), 0);
     const soldWithDates = sold.filter(i => i.date_received && i.sold_at);
     const avgDaysOnLot = soldWithDates.length > 0
       ? soldWithDates.reduce((sum, i) => sum + Math.max(0, Math.floor((new Date(i.sold_at!).getTime() - new Date(i.date_received!).getTime()) / 86400000)), 0) / soldWithDates.length
@@ -312,7 +339,7 @@ export default function InventoryDashboard() {
     try {
       if (editingItem) { const {error}=await supabase.from('inventory_items').update(record).eq('id',editingItem.id); if(error)throw error; showToast('Product updated'); }
       else { const {error}=await supabase.from('inventory_items').insert(record); if(error)throw error; showToast('Product added'); }
-      setModalOpen(false); loadItems();
+      setModalOpen(false); loadItems(); loadAnalytics();
     } catch (err: any) { setFormError(err.message||'Failed to save'); }
     setSaving(false);
   };
@@ -628,6 +655,82 @@ export default function InventoryDashboard() {
         </div>
       </div>
       <div className="max-w-[1600px] mx-auto px-6 py-6">
+        {/* ═══ INVENTORY ANALYTICS ═══ */}
+        {siteData && analyticsData && (analyticsData.soldCount > 0 || analyticsData.unsoldCount > 0) && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" style={{ color: FM.orange }} />
+                <h2 className="text-base font-bold text-slate-800">Inventory Analytics</h2>
+              </div>
+              <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
+                <button onClick={() => setAnalyticsTab('overview')} className={`px-3 py-1.5 text-xs font-medium ${analyticsTab === 'overview' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>Overview</button>
+                <button onClick={() => setAnalyticsTab('brands')} className={`px-3 py-1.5 text-xs font-medium ${analyticsTab === 'brands' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>By Brand</button>
+              </div>
+            </div>
+            <div className="px-6 py-5">
+              {analyticsTab === 'overview' ? (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2"><DollarSign className="w-4 h-4 text-slate-400" /><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Inventory Value</span></div>
+                    <p className="text-2xl font-bold text-slate-800">{formatPrice(analyticsData.totalInventoryValue)}</p>
+                    <p className="text-xs text-slate-400 mt-1">{analyticsData.unsoldCount} unsold item{analyticsData.unsoldCount !== 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2"><Clock className="w-4 h-4 text-slate-400" /><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Days on Lot</span></div>
+                    <p className="text-2xl font-bold text-slate-800">{analyticsData.avgDaysOnLot > 0 ? Math.round(analyticsData.avgDaysOnLot) : '—'}</p>
+                    <p className="text-xs text-slate-400 mt-1">Based on {analyticsData.soldCount} sold item{analyticsData.soldCount !== 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2"><TrendingUp className="w-4 h-4 text-slate-400" /><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Profit Margin</span></div>
+                    <p className={`text-2xl font-bold ${analyticsData.avgMargin >= 0 ? 'text-green-700' : 'text-red-600'}`}>{analyticsData.avgMargin !== 0 ? analyticsData.avgMargin.toFixed(1) + '%' : '—'}</p>
+                    <p className="text-xs text-slate-400 mt-1">On items with cost & sale price</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2"><DollarSign className="w-4 h-4 text-slate-400" /><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Profit</span></div>
+                    <p className={`text-2xl font-bold ${analyticsData.totalProfit >= 0 ? 'text-green-700' : 'text-red-600'}`}>{formatPrice(analyticsData.totalProfit)}</p>
+                    <p className="text-xs text-slate-400 mt-1">Across all sold items</p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  {analyticsData.brandBreakdown.length === 0 ? (
+                    <div className="text-center py-6">
+                      <Tag className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                      <p className="text-sm text-slate-500">No brand data yet. Assign brands to your products to see per-brand analytics.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-slate-200">
+                            {['Brand', 'In Stock', 'Sold', 'Avg Days on Lot', 'Avg Margin', 'Total Revenue', 'Total Profit'].map(h => (
+                              <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analyticsData.brandBreakdown.map((row, i) => (
+                            <tr key={row.name} className={`border-b border-slate-50 ${i % 2 === 0 ? '' : 'bg-slate-50/50'}`}>
+                              <td className="px-3 py-3 text-sm font-semibold text-slate-800">{row.name}</td>
+                              <td className="px-3 py-3 text-sm text-slate-600">{row.inStock}</td>
+                              <td className="px-3 py-3 text-sm text-slate-600">{row.sold}</td>
+                              <td className="px-3 py-3 text-sm text-slate-600">{row.avgDays > 0 ? Math.round(row.avgDays) : '—'}</td>
+                              <td className="px-3 py-3 text-sm font-medium">{row.avgMargin !== 0 ? <span className={row.avgMargin >= 0 ? 'text-green-700' : 'text-red-600'}>{row.avgMargin.toFixed(1)}%</span> : <span className="text-slate-400">—</span>}</td>
+                              <td className="px-3 py-3 text-sm text-slate-600">{formatPrice(row.totalRevenue)}</td>
+                              <td className="px-3 py-3 text-sm font-medium"><span className={row.totalProfit >= 0 ? 'text-green-700' : 'text-red-600'}>{formatPrice(row.totalProfit)}</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6">
           <div className="px-5 py-4 flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[240px]">
@@ -692,6 +795,7 @@ export default function InventoryDashboard() {
                   <td className="px-3 py-3 text-xs text-slate-400">{new Date(item.updated_at).toLocaleDateString()}</td>
                   <td className="px-3 py-3"><div className="flex items-center gap-1">
                     <button onClick={()=>toggleFeatured(item)} className="p-1.5 rounded-md hover:bg-slate-100">{item.featured?<Star className="w-4 h-4 fill-amber-400 text-amber-400" />:<StarOff className="w-4 h-4 text-slate-300" />}</button>
+                    {item.status !== 'sold' && <button onClick={(e)=>{e.stopPropagation();openSoldModal(item);}} className="p-1.5 rounded-md hover:bg-green-50" title="Mark as Sold"><DollarSign className="w-4 h-4 text-slate-300 hover:text-green-600" /></button>}
                     <button onClick={()=>openEditModal(item)} className="p-1.5 rounded-md hover:bg-slate-100"><Edit2 className="w-4 h-4 text-slate-400" /></button>
                     <button onClick={()=>setDeleteConfirm(item.id)} className="p-1.5 rounded-md hover:bg-red-50"><Trash2 className="w-4 h-4 text-slate-300 hover:text-red-500" /></button>
                   </div></td>
@@ -722,95 +826,6 @@ export default function InventoryDashboard() {
               <button onClick={()=>setPage(p=>Math.max(0,p-1))} disabled={page===0} className="p-2 rounded-lg border border-slate-200 disabled:opacity-40"><ChevronLeft className="w-4 h-4" /></button>
               {Array.from({length:Math.min(totalPages,7)},(_,i)=>{const pn=totalPages<=7?i:page<=3?i:page>=totalPages-4?totalPages-7+i:page-3+i;return <button key={pn} onClick={()=>setPage(pn)} className={`w-9 h-9 rounded-lg text-sm font-medium ${page===pn?'text-white':'border border-slate-200 text-slate-600 hover:bg-slate-50'}`} style={page===pn?{background:FM.navy}:{}}>{pn+1}</button>;})}
               <button onClick={()=>setPage(p=>Math.min(totalPages-1,p+1))} disabled={page>=totalPages-1} className="p-2 rounded-lg border border-slate-200 disabled:opacity-40"><ChevronRight className="w-4 h-4" /></button>
-            </div>
-          </div>
-        )}
-
-        {/* ═══ INVENTORY ANALYTICS ═══ */}
-        {siteData && (
-          <div className="mt-10 bg-white rounded-xl border border-slate-200 shadow-sm">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" style={{ color: FM.orange }} />
-                  <h2 className="text-base font-bold text-slate-800">Inventory Analytics</h2>
-                </div>
-                <p className="text-sm text-slate-500 mt-0.5">Profitability and turnover metrics based on your tracked inventory.</p>
-              </div>
-              <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
-                <button onClick={() => setAnalyticsTab('overview')} className={`px-3 py-1.5 text-xs font-medium ${analyticsTab === 'overview' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>Overview</button>
-                <button onClick={() => setAnalyticsTab('brands')} className={`px-3 py-1.5 text-xs font-medium ${analyticsTab === 'brands' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>By Brand</button>
-              </div>
-            </div>
-            <div className="px-6 py-6">
-              {analyticsLoading ? (
-                <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
-              ) : !analyticsData || (analyticsData.soldCount === 0 && analyticsData.unsoldCount === 0) ? (
-                <div className="text-center py-12">
-                  <BarChart3 className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-slate-500">No tracking data yet</p>
-                  <p className="text-xs text-slate-400 mt-1">Add purchase prices and received dates to your inventory items to see analytics here.</p>
-                </div>
-              ) : analyticsTab === 'overview' ? (
-                <div>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-slate-50 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-2"><DollarSign className="w-4 h-4 text-slate-400" /><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Inventory Value</span></div>
-                      <p className="text-2xl font-bold text-slate-800">{formatPrice(analyticsData.totalInventoryValue)}</p>
-                      <p className="text-xs text-slate-400 mt-1">{analyticsData.unsoldCount} unsold item{analyticsData.unsoldCount !== 1 ? 's' : ''}</p>
-                    </div>
-                    <div className="bg-slate-50 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-2"><Clock className="w-4 h-4 text-slate-400" /><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Days on Lot</span></div>
-                      <p className="text-2xl font-bold text-slate-800">{analyticsData.avgDaysOnLot > 0 ? Math.round(analyticsData.avgDaysOnLot) : '—'}</p>
-                      <p className="text-xs text-slate-400 mt-1">Based on {analyticsData.soldCount} sold item{analyticsData.soldCount !== 1 ? 's' : ''}</p>
-                    </div>
-                    <div className="bg-slate-50 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-2"><TrendingUp className="w-4 h-4 text-slate-400" /><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Profit Margin</span></div>
-                      <p className={`text-2xl font-bold ${analyticsData.avgMargin >= 0 ? 'text-green-700' : 'text-red-600'}`}>{analyticsData.avgMargin !== 0 ? analyticsData.avgMargin.toFixed(1) + '%' : '—'}</p>
-                      <p className="text-xs text-slate-400 mt-1">On items with cost & sale price</p>
-                    </div>
-                    <div className="bg-slate-50 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-2"><DollarSign className="w-4 h-4 text-slate-400" /><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Profit</span></div>
-                      <p className={`text-2xl font-bold ${analyticsData.totalProfit >= 0 ? 'text-green-700' : 'text-red-600'}`}>{formatPrice(analyticsData.totalProfit)}</p>
-                      <p className="text-xs text-slate-400 mt-1">Across all sold items</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  {analyticsData.brandBreakdown.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Tag className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-                      <p className="text-sm text-slate-500">No brand data yet. Assign brands to your products to see per-brand analytics.</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-slate-200">
-                            {['Brand', 'In Stock', 'Sold', 'Avg Days on Lot', 'Avg Margin', 'Total Revenue', 'Total Profit'].map(h => (
-                              <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {analyticsData.brandBreakdown.map((row, i) => (
-                            <tr key={row.name} className={`border-b border-slate-50 ${i % 2 === 0 ? '' : 'bg-slate-50/50'}`}>
-                              <td className="px-3 py-3 text-sm font-semibold text-slate-800">{row.name}</td>
-                              <td className="px-3 py-3 text-sm text-slate-600">{row.inStock}</td>
-                              <td className="px-3 py-3 text-sm text-slate-600">{row.sold}</td>
-                              <td className="px-3 py-3 text-sm text-slate-600">{row.avgDays > 0 ? Math.round(row.avgDays) : '—'}</td>
-                              <td className="px-3 py-3 text-sm font-medium">{row.avgMargin !== 0 ? <span className={row.avgMargin >= 0 ? 'text-green-700' : 'text-red-600'}>{row.avgMargin.toFixed(1)}%</span> : <span className="text-slate-400">—</span>}</td>
-                              <td className="px-3 py-3 text-sm text-slate-600">{formatPrice(row.totalRevenue)}</td>
-                              <td className="px-3 py-3 text-sm font-medium"><span className={row.totalProfit >= 0 ? 'text-green-700' : 'text-red-600'}>{formatPrice(row.totalProfit)}</span></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -1073,6 +1088,45 @@ export default function InventoryDashboard() {
             <div className="flex gap-3 justify-end">
               <button onClick={()=>setDeleteConfirm(null)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
               <button onClick={()=>handleDelete(deleteConfirm)} className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MARK AS SOLD MODAL */}
+      {soldModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40" onClick={() => { if (!markingSold) setSoldModal(null); }} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
+            <div className="px-6 py-4 border-b border-slate-100">
+              <h3 className="font-bold text-slate-800">Mark as Sold</h3>
+              <p className="text-sm text-slate-500 mt-0.5 truncate">{soldModal.item.title}</p>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Date Sold</label>
+                <input type="date" value={soldDate} onChange={(e) => setSoldDate(e.target.value)} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Sale Price</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input type="number" value={soldPrice ?? ''} onChange={(e) => setSoldPrice(e.target.value ? parseFloat(e.target.value) : null)} placeholder="What it sold for" className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm" />
+                </div>
+              </div>
+              {soldModal.item.purchase_price && soldPrice ? (
+                <div className="bg-slate-50 rounded-lg px-4 py-3 grid grid-cols-2 gap-4">
+                  <div><p className="text-xs text-slate-500">Profit</p><p className={`text-sm font-bold ${soldPrice - soldModal.item.purchase_price >= 0 ? 'text-green-700' : 'text-red-600'}`}>{formatPrice(soldPrice - soldModal.item.purchase_price)}</p></div>
+                  <div><p className="text-xs text-slate-500">Margin</p><p className="text-sm font-bold text-slate-800">{((soldPrice - soldModal.item.purchase_price) / soldModal.item.purchase_price * 100).toFixed(1)}%</p></div>
+                </div>
+              ) : null}
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between rounded-b-xl">
+              <button onClick={() => setSoldModal(null)} disabled={markingSold} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+              <button onClick={handleMarkSold} disabled={markingSold || !soldDate} className="px-6 py-2.5 text-sm font-semibold text-white rounded-lg disabled:opacity-50 flex items-center gap-2" style={{ background: FM.orange }}>
+                {markingSold && <Loader2 className="w-4 h-4 animate-spin" />}
+                Confirm Sale
+              </button>
             </div>
           </div>
         </div>
