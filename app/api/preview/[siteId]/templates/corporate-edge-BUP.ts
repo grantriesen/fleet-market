@@ -180,7 +180,7 @@ export async function renderCorporateEdgePage(
 function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabledFeatures?: Set<string>, siteId?: string, checkoutMode: string = 'quote_only', stripeConnected: boolean = false) {
   const fontFamilies = new Set([fonts.heading, fonts.body]);
   const googleFontsUrl = Array.from(fontFamilies)
-    .map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700;800;900`)
+    .map(f => `family=${f.replace(/ /g, '+')}:wght@400;600;700`)
     .join('&');
 
   return `<!DOCTYPE html>
@@ -189,12 +189,15 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabl
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>${title}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?${googleFontsUrl}&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com" defer></script>
   <script>
   tailwind.config = { theme: { extend: { fontFamily: { heading: ['${fonts.heading}', 'sans-serif'], body: ['${fonts.body}', 'sans-serif'] } } } }
   </script>
   <style>
+    .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0; }
+    .focus\:not-sr-only:focus { position:static;width:auto;height:auto;padding:0;margin:0;overflow:visible;clip:auto;white-space:normal; }
     body { font-family: '${fonts.body}', sans-serif; background: #f8fafc; color: #1e293b; }
     .font-heading { font-family: '${fonts.heading}', sans-serif; }
     .transition-corporate { transition: all 0.3s ease-in-out; }
@@ -209,6 +212,7 @@ function ceHtmlShell(title: string, fonts: any, colors: any, body: string, enabl
   </style>
 </head>
 <body class="antialiased">
+<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-white focus:text-blue-900 focus:font-semibold focus:rounded focus:shadow-lg">Skip to main content</a>
 <script>
 function fmSubmitForm(form,siteId,formType,extraFn){
   var btn=form.querySelector('button[type="submit"]');
@@ -240,7 +244,7 @@ window.addEventListener('load', function() {
   };
 });
 </script>
-${body}`;
+<main id="main-content">${body}</main>`;
 }
 
 // ── Header ──
@@ -252,7 +256,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
   const phone = getContent('businessInfo.phone') || getContent('business.phone') || '';
   const initials = businessName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
   // Read weekday hours directly from plain text config fields (fallback to parsed JSON hours)
-  const mondayHours = getContent('hours.monday') || weekdayHours;
+  const mondayHours = getContent('businessInfo.hours') || getContent('hours.monday') || weekdayHours;
 
   const navLinks = pages
     .filter((p: any) => p.is_visible !== false)
@@ -262,6 +266,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
         class="px-4 py-2 text-sm font-medium rounded transition-corporate ${isActive
           ? 'bg-white/20 text-white'
           : 'text-white/80 hover:text-white hover:bg-white/10'}"
+        ${isActive ? 'aria-current="page"' : ''}
       >${p.name || p.title}</a>`;
     }).join('\n');
 
@@ -273,7 +278,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
         <div class="flex justify-between items-center text-sm text-white/80">
           ${mondayHours ? `<span class="hidden sm:inline">Mon–Fri: ${mondayHours}</span>` : '<span></span>'}
           ${phone ? `<a href="tel:${phone}" class="flex items-center gap-2 hover:text-white transition-corporate">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
             ${phone}
           </a>` : ''}
         </div>
@@ -281,11 +286,11 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
     </div>
 
     <!-- Main nav -->
-    <nav class="container-corporate">
+    <nav class="container-corporate" aria-label="Main navigation">
       <div class="flex items-center justify-between h-16">
         <a href="${baseUrl}index" class="flex items-center gap-3">
           ${logoImage
-            ? `<img src="${logoImage}" alt="${businessName}" style="max-height:48px;max-width:160px;object-fit:contain;">`
+            ? `<img src="${logoImage}" alt="${businessName}" width="160" height="48" style="max-height:48px;max-width:160px;object-fit:contain;">`
             : `<div class="bg-white rounded p-2"><span class="font-heading font-bold text-lg" style="color: ${colors.primary};">${initials}</span></div>`
           }
           <span class="hidden sm:block font-heading font-bold text-white text-lg">${businessName}</span>
@@ -305,8 +310,8 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
 
         <!-- Mobile: simplified -->
         <div class="lg:hidden flex items-center gap-3">
-          <a href="tel:${phone}" class="text-white/80 hover:text-white">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          <a href="tel:${phone}" class="text-white/80 hover:text-white" aria-label="Call us at ${phone}">
+            <svg class="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
           </a>
           <a href="${baseUrl}contact"
             class="inline-flex items-center px-4 py-1.5 rounded text-xs font-semibold text-white"
@@ -323,6 +328,7 @@ function ceHeader(siteId: string, currentPage: string, pages: any[], getContent:
               class="px-3 py-1.5 text-xs font-medium rounded whitespace-nowrap transition-corporate ${isActive
                 ? 'bg-white/20 text-white'
                 : 'text-white/70 hover:text-white hover:bg-white/10'}"
+              ${isActive ? 'aria-current="page"' : ''}
             >${p.name || p.title}</a>`;
           }).join('\n')}
         </div>
@@ -355,8 +361,8 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
       linkedin: '<path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>',
       youtube: '<path d="M22.54 6.42a2.78 2.78 0 00-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 00-1.94 2A29 29 0 001 11.75a29 29 0 00.46 5.33A2.78 2.78 0 003.4 19.1c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 001.94-2 29 29 0 00.46-5.25 29 29 0 00-.46-5.33z"/><polygon points="9.75,15.02 15.5,11.75 9.75,8.48"/>',
     };
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-white/50 hover:text-white transition-corporate">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">${icons[platform]}</svg>
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer" aria-label="${platform.charAt(0).toUpperCase() + platform.slice(1)}" class="text-white/50 hover:text-white transition-corporate">
+      <svg class="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">${icons[platform]}</svg>
     </a>`;
   }).filter(Boolean).join('');
 
@@ -372,13 +378,13 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
   const fullAddress = [address, city, state, zip].filter(Boolean).join(', ');
 
   return `
-  <footer style="background-color: ${primary};" class="text-white">
+  <footer style="background-color: ${primary};" class="text-white" aria-label="Site footer">
     <div class="container-corporate py-16">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
         <div>
           <div class="flex items-center gap-3 mb-6">
             ${logoImage
-              ? `<img src="${logoImage}" alt="${businessName}" style="max-height:48px;max-width:160px;object-fit:contain;">`
+              ? `<img src="${logoImage}" alt="${businessName}" width="160" height="48" style="max-height:48px;max-width:160px;object-fit:contain;">`
               : `<div class="bg-white rounded p-2"><span class="font-heading font-bold text-lg" style="color:${primary};">${initials}</span></div>`
             }
             <span class="font-heading font-bold text-xl">${businessName}</span>
@@ -404,11 +410,16 @@ function ceFooter(siteId: string, pages: any[], getContent: Function, weekdayHou
           <div class="mt-6 pt-6 border-t border-white/10">
             <h4 class="font-semibold mb-2">Business Hours</h4>
             <div class="text-white/70 text-sm space-y-1">
-              ${['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map(day => {
-                const h = getContent('hours.' + day);
-                if (!h) return '';
-                return `<p>${day.charAt(0).toUpperCase() + day.slice(1)}: ${h}</p>`;
-              }).filter(Boolean).join('')}
+              ${(() => {
+                const wkday = getContent('businessInfo.hours') || getContent('hours.monday') || weekdayHours;
+                const sat = getContent('businessInfo.saturdayHours') || getContent('hours.saturday') || saturdayHours;
+                const sun = getContent('businessInfo.sundayHours') || getContent('hours.sunday') || sundayHours;
+                const rows = [];
+                if (wkday) rows.push(`<p>Mon – Fri: ${wkday}</p>`);
+                if (sat) rows.push(`<p>Saturday: ${sat}</p>`);
+                if (sun) rows.push(`<p>Sunday: ${sun}</p>`);
+                return rows.join('');
+              })()}
             </div>
           </div>
         </div>
@@ -556,7 +567,7 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
           <div class="group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" onclick="${onclick}">
             <div class="aspect-square relative overflow-hidden bg-gray-100">
               ${hasImage
-                ? `<img src="${imgUrl}" alt="${p.name || p.title}" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
+                ? `<img src="${imgUrl}" alt="${p.name || p.title}" loading="lazy" width="400" height="300" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
                 : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
                     <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                   </div>`}
@@ -731,7 +742,7 @@ function ceServicePage(siteId: string, getContent: Function,
       <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         ${services.map((s: any) => `
         <div class="border border-gray-200 rounded transition-corporate hover:shadow-lg bg-white overflow-hidden">
-          ${s.image ? `<div class="aspect-video overflow-hidden"><img src="${s.image}" alt="${s.title}" class="w-full h-full object-cover"></div>` : ''}
+          ${s.image ? `<div class="aspect-video overflow-hidden"><img src="${s.image}" alt="${s.title}" loading="lazy" class="w-full h-full object-cover"></div>` : ''}
           <div class="p-6 text-center">
             <div class="w-12 h-12 bg-blue-50 rounded flex items-center justify-center mb-4 mx-auto">
               <span class="text-xl">${s.icon || '🔧'}</span>
@@ -775,7 +786,7 @@ function cePremiumServiceForm(siteId: string, inputCls: string): string {
     <div class="grid md:grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Preferred Date *</label>
-        <input type="date" id="ce-sf-date" class="${inputCls}" min="${new Date().toISOString().split('T')[0]}">
+        <input type="date" id="ce-sf-date" aria-label="Preferred service date" class="${inputCls}" min="${new Date().toISOString().split('T')[0]}">
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Available Times</label>
@@ -792,12 +803,12 @@ function cePremiumServiceForm(siteId: string, inputCls: string): string {
     <p class="text-xs font-bold text-blue-900 uppercase tracking-wider mb-3">3. Your Information</p>
     <div class="space-y-4">
       <div class="grid md:grid-cols-2 gap-4">
-        <div><label class="block text-sm font-medium text-gray-700 mb-1">Name *</label><input type="text" id="ce-sf-name" class="${inputCls}" placeholder="John Smith" required></div>
-        <div><label class="block text-sm font-medium text-gray-700 mb-1">Phone *</label><input type="tel" id="ce-sf-phone" class="${inputCls}" placeholder="(555) 123-4567" required></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Name *</label><input type="text" id="ce-sf-name" aria-label="Your full name" class="${inputCls}" placeholder="John Smith" required></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Phone *</label><input type="tel" id="ce-sf-phone" aria-label="Your phone number" class="${inputCls}" placeholder="(555) 123-4567" required></div>
       </div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" id="ce-sf-email" class="${inputCls}" placeholder="john@company.com" required></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">Equipment Make / Model</label><input type="text" id="ce-sf-equip" class="${inputCls}" placeholder='e.g. Toro TimeCutter 54"'></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label><textarea id="ce-sf-notes" rows="3" class="${inputCls} resize-y" placeholder="Describe the issue or any additional details..."></textarea></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" id="ce-sf-email" aria-label="Your email address" class="${inputCls}" placeholder="john@company.com" required></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Equipment Make / Model</label><input type="text" id="ce-sf-equip" aria-label="Equipment make and model" class="${inputCls}" placeholder='e.g. Toro TimeCutter 54"'></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label><textarea id="ce-sf-notes" aria-label="Additional notes" rows="3" class="${inputCls} resize-y" placeholder="Describe the issue or any additional details..."></textarea></div>
       <div id="ce-sf-error" style="display:none;" class="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm"></div>
       <div id="ce-sf-success" style="display:none;" class="p-4 bg-green-50 border border-green-200 rounded text-green-800 text-center font-medium">
         ✓ Service request submitted! We'll confirm your appointment within one business day.
@@ -995,16 +1006,16 @@ function ceContactPage(siteId: string, getContent: Function, weekdayHours: strin
             <h2 class="font-heading text-2xl font-bold text-gray-900 mb-6">Send Us a Message</h2>
             <form class="space-y-6" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'contact', null);">
               <div class="grid md:grid-cols-2 gap-6">
-                <div><label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="John" required></div>
-                <div><label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="Smith" required></div>
+                <div><label for="ce-cf-first" class="block text-sm font-medium text-gray-700 mb-1">First Name *</label><input id="ce-cf-first" type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="John" required aria-required="true"></div>
+                <div><label for="ce-cf-last" class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label><input id="ce-cf-last" type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="Smith" required aria-required="true"></div>
               </div>
-              <div><label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="Your Company LLC"></div>
+              <div><label for="ce-cf-company" class="block text-sm font-medium text-gray-700 mb-1">Company Name</label><input id="ce-cf-company" type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="Your Company LLC"></div>
               <div class="grid md:grid-cols-2 gap-6">
-                <div><label class="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="john@company.com" required></div>
-                <div><label class="block text-sm font-medium text-gray-700 mb-1">Phone *</label><input type="tel" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="(555) 123-4567" required></div>
+                <div><label for="ce-cf-email" class="block text-sm font-medium text-gray-700 mb-1">Email *</label><input id="ce-cf-email" type="email" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="john@company.com" required aria-required="true"></div>
+                <div><label for="ce-cf-phone" class="block text-sm font-medium text-gray-700 mb-1">Phone *</label><input id="ce-cf-phone" type="tel" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="(555) 123-4567" required aria-required="true"></div>
               </div>
-              <div><label class="block text-sm font-medium text-gray-700 mb-1">Subject *</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="How can we help you?" required></div>
-              <div><label class="block text-sm font-medium text-gray-700 mb-1">Message *</label><textarea rows="6" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none resize-y" placeholder="Please provide details about your inquiry..." required></textarea></div>
+              <div><label for="ce-cf-subject" class="block text-sm font-medium text-gray-700 mb-1">Subject *</label><input id="ce-cf-subject" type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" placeholder="How can we help you?" required aria-required="true"></div>
+              <div><label for="ce-cf-message" class="block text-sm font-medium text-gray-700 mb-1">Message *</label><textarea id="ce-cf-message" rows="6" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none resize-y" placeholder="Please provide details about your inquiry..." required aria-required="true"></textarea></div>
               <button type="submit" class="w-full py-3 rounded font-semibold text-white transition-corporate hover:brightness-110 bg-blue-900">Send Message</button>
             </form>
           </div>
@@ -1023,9 +1034,16 @@ function ceContactPage(siteId: string, getContent: Function, weekdayHours: strin
           <div class="border border-gray-200 rounded bg-white p-6">
             <h3 class="font-heading font-semibold text-lg text-gray-900 mb-4">Business Hours</h3>
             <div class="space-y-2 text-sm text-gray-600">
-              <div class="flex justify-between"><span>Monday – Friday</span><span class="font-medium text-gray-900">${weekdayHours}</span></div>
-              <div class="flex justify-between"><span>Saturday</span><span class="font-medium text-gray-900">${saturdayHours}</span></div>
-              <div class="flex justify-between"><span>Sunday</span><span class="font-medium text-gray-900">${sundayHours}</span></div>
+              ${(() => {
+                const wkday = getContent('businessInfo.hours') || getContent('business.hours') || weekdayHours;
+                const sat = getContent('businessInfo.saturdayHours') || saturdayHours;
+                const sun = getContent('businessInfo.sundayHours') || sundayHours;
+                const rows = [];
+                if (wkday) rows.push(`<div class="flex justify-between"><span>Mon – Fri</span><span class="font-medium text-gray-900">${wkday}</span></div>`);
+                if (sat) rows.push(`<div class="flex justify-between"><span>Saturday</span><span class="font-medium text-gray-900">${sat}</span></div>`);
+                if (sun) rows.push(`<div class="flex justify-between"><span>Sunday</span><span class="font-medium text-gray-900">${sun}</span></div>`);
+                return rows.join('');
+              })()}
             </div>
           </div>
         </div>
@@ -1070,7 +1088,7 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[],
         <div class="ce-product group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" data-category="${p.category || ''}" onclick="${productCardOnclick(p)}">
           <div class="aspect-square relative overflow-hidden bg-gray-100">
             ${hasImage
-              ? `<img src="${imgUrl}" alt="${p.name || p.title}" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
+              ? `<img src="${imgUrl}" alt="${p.name || p.title}" loading="lazy" width="400" height="300" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
               : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
                   <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                 </div>`}
@@ -1240,7 +1258,7 @@ function ceManufacturersPage(siteId: string, getContent: Function,
         <div class="border border-gray-200 rounded transition-corporate hover:shadow-lg hover:border-blue-200 group bg-white p-6">
           <div class="aspect-[3/2] flex items-center justify-center bg-gray-50 rounded mb-4 p-4">
             ${logoSrc
-              ? `<img src="${logoSrc}" alt="${m.name}" style="max-height: 60px; max-width: 80%; object-fit: contain;">`
+              ? `<img src="${logoSrc}" alt="${m.name}" loading="lazy" width="120" height="60" style="max-height: 60px; max-width: 80%; object-fit: contain;">`
               : `<span class="font-bold text-gray-400 text-lg">${m.name}</span>`
             }
           </div>
@@ -1309,14 +1327,14 @@ function ceFormSection(siteId: string, heading: string, description: string) {
       <div class="border border-gray-200 rounded bg-white p-8">
         <form class="space-y-6" onsubmit="event.preventDefault(); fmSubmitForm(this, '${siteId}', 'service', function(f){var s=f.querySelector('select');return s?{equipment_type:s.value}:null;}); ">
           <div class="grid md:grid-cols-2 gap-6">
-            <div><label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>
-            <div><label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label><input type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>
+            <div><label for="ce-svc-first" class="block text-sm font-medium text-gray-700 mb-1">First Name *</label><input id="ce-svc-first" type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required aria-required="true"></div>
+            <div><label for="ce-svc-last" class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label><input id="ce-svc-last" type="text" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required aria-required="true"></div>
           </div>
           <div class="grid md:grid-cols-2 gap-6">
-            <div><label class="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>
-            <div><label class="block text-sm font-medium text-gray-700 mb-1">Phone *</label><input type="tel" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required></div>
+            <div><label for="ce-svc-email" class="block text-sm font-medium text-gray-700 mb-1">Email *</label><input id="ce-svc-email" type="email" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required aria-required="true"></div>
+            <div><label for="ce-svc-phone" class="block text-sm font-medium text-gray-700 mb-1">Phone *</label><input id="ce-svc-phone" type="tel" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none" required aria-required="true"></div>
           </div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">Message *</label><textarea rows="4" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none resize-y" required></textarea></div>
+          <div><label for="ce-svc-message" class="block text-sm font-medium text-gray-700 mb-1">Message *</label><textarea id="ce-svc-message" rows="4" class="w-full px-4 py-2.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none resize-y" required aria-required="true"></textarea></div>
           <button type="submit" class="w-full py-3 rounded font-semibold text-white bg-blue-900 transition-corporate hover:brightness-110">Submit Request</button>
         </form>
       </div>

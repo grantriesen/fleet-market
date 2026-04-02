@@ -42,6 +42,7 @@ export async function GET(
         subscription_tier,
         addons,
         checkout_mode,
+        stripe_account_id,
         template:templates (
           name,
           slug,
@@ -88,12 +89,15 @@ export async function GET(
       }
     }
 
-    // Load manufacturers
-    const { data: manufacturers } = await supabase
-      .from('manufacturers')
-      .select('*')
-      .eq('site_id', params.siteId)
-      .order('display_order');
+    // Load manufacturers with library fallback for logos
+    const { data: manufacturersRaw } = await supabase.from('manufacturers').select('*').eq('site_id', params.siteId).order('display_order');
+    const mfgMissingLogos = (manufacturersRaw || []).filter((m: any) => !m.logo_url).map((m: any) => m.name);
+    const { data: libraryLogos } = mfgMissingLogos.length > 0
+      ? await supabase.from('manufacturer_library').select('name, logo_url').in('name', mfgMissingLogos)
+      : { data: [] };
+    const libraryLogoMap: Record<string, string> = {};
+    (libraryLogos || []).forEach((l: any) => { if (l.logo_url) libraryLogoMap[l.name] = l.logo_url; });
+    const manufacturers = (manufacturersRaw || []).map((m: any) => ({ ...m, logo_url: m.logo_url || libraryLogoMap[m.name] || null }));
 
     // Load featured inventory (same as live site)
     const { data: featuredItems } = await supabase
@@ -161,11 +165,28 @@ async function generateTemplateHTML(
     body: customizations.fonts?.body || config.fonts?.body?.default || 'Inter',
   };
 
+  // Build enabled features set from sites.addons (source of truth) + site_features (legacy cache)
+  // This is used for both nav gating and feature gating inside pages
+  console.log("DEBUG site.addons:", JSON.stringify(site.addons), "template:", site.template?.slug);
+  const enabledFeaturesForNav = new Set<string>();
+  const addonToFeatureMapNav: Record<string, string[]> = {
+    'inventory': ['inventory', 'inventory_sync'],
+    'service':   ['service', 'service_scheduling'],
+    'rentals':   ['rentals', 'rental_scheduling'],
+  };
+  (site.addons || []).forEach((addon: string) => {
+    enabledFeaturesForNav.add(addon);
+    addonToFeatureMapNav[addon]?.forEach((f: string) => enabledFeaturesForNav.add(f));
+  });
+
   const availablePages = (config.pages || []).filter((p: any) => {
     const isVisible = pageVisibility[p.slug] !== false;
     if (!isVisible) return false;
     if (!p.premium) return true;
-    return site.subscription_tier !== 'basic';
+    // Use requiredFeature from config if present
+    if (p.requiredFeature) return enabledFeaturesForNav.has(p.requiredFeature);
+    // Fallback slug-based check
+    return enabledFeaturesForNav.has(p.slug);
   });
 
   const fontFamilies = new Set([fonts.heading, fonts.body]);
@@ -212,23 +233,26 @@ async function generateTemplateHTML(
   } else if (templateSlug === 'vibe-dynamics') {
     html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers, sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only');
   } else if (templateSlug === 'corporate-edge') {
-    html = renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || []);
+    html = await renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
   } else if (templateSlug === 'zenith-lawn') {
-    html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, previewBase, supabase, site.addons || []);
+    html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || []);
   } else if (templateSlug === 'modern-lawn-solutions') {
-    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, previewBase, site.addons || []);
+    html = await renderModernLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || []);
   } else if (templateSlug === 'warm-earth-designs') {
-    html = await renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || []);
+    html = await renderWarmEarthPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
   } else {
     // Fallback for unknown templates
     html = '<p style="padding:2rem;">Preview not available for this template.</p>';
   }
 
   // Inject cart system if needed
-  if (
-    (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync')) &&
-    !html.includes('fm-product-modal')
-  ) {
+  // Guard against double injection (green-valley, vibe-dynamics, and corporate-edge inject their own)
+  const needsCartSystem = templateSlug !== 'green-valley-industrial'
+    && templateSlug !== 'vibe-dynamics'
+    && templateSlug !== 'corporate-edge'
+    && (enabledFeatures.has('inventory') || enabledFeatures.has('inventory_sync'));
+
+  if (needsCartSystem && !html.includes('fm-product-modal')) {
     const cartHtml = injectCartSystem(siteId, site.checkout_mode || 'quote_only', colors.primary);
     html = html.includes('</body>') ? html.replace('</body>', cartHtml + '\n</body>') : html + cartHtml;
   }

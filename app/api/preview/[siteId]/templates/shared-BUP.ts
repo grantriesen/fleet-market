@@ -852,27 +852,3 @@ export function productCardOnclick(product: any): string {
   }).replace(/"/g, '&quot;').replace(/'/g, "\\'");
   return `fmOpenProduct(${safe})`;
 }
-
-export function productPageUrl(baseUrl: string, product: any): string {
-  const slug = product.slug || product.id;
-  return `${baseUrl}product&slug=${slug}`;
-}
-
-export function productCardButtons(baseUrl: string, product: any, primaryColor: string): string {
-  const pageUrl = productPageUrl(baseUrl, product);
-  const onclick = productCardOnclick(product);
-  return `
-    <div class="fm-product-buttons" style="display:grid;grid-template-columns:3fr 1fr;gap:8px;" onclick="event.stopPropagation()">
-      <a href="${pageUrl}" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;background:${primaryColor};color:#fff;border-radius:6px;font-size:0.8125rem;font-weight:700;text-decoration:none;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-        View Product
-      </a>
-      <button onclick="${onclick}" style="display:flex;align-items:center;justify-content:center;padding:10px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'" title="Quick View">
-        <svg width="18" height="18" fill="none" stroke="#6b7280" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      </button>
-    </div>
-    <style>
-      @media (max-width: 640px) {
-        .fm-product-buttons { grid-template-columns: 1fr !important; }
-      }
-    </style>`;
-}

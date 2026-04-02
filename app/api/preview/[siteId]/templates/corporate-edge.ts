@@ -5,7 +5,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 
 import { rentalModalBlock, rentalReserveButton } from './shared-rental';
-import { productCardOnclick, injectCartSystem } from './shared';
+import { productCardOnclick, productCardButtons, productPageUrl, injectCartSystem } from './shared';
 
 /* ── DEMO overrides ── */
 export const CORPORATE_EDGE_DEMO_OVERRIDES = {
@@ -96,7 +96,8 @@ export async function renderCorporateEdgePage(
   supabase?: any,
   siteAddons: string[] = [],
   checkoutMode: string = 'quote_only',
-  stripeConnected: boolean = false
+  stripeConnected: boolean = false,
+  productSlug?: string | null
 ) {
   const CE_KEY_ALIASES: Record<string,string> = {
     'business.name':    'businessInfo.businessName',
@@ -152,6 +153,7 @@ export async function renderCorporateEdgePage(
     case 'service': body = ceServicePage(siteId, getContent, baseUrl, enabledFeatures, supabase, colors.primary); break;
     case 'contact': body = ceContactPage(siteId, getContent, weekdayHours, saturdayHours, sundayHours, baseUrl, colors.primary); break;
     case 'inventory': body = ceInventoryPage(siteId, getContent, products, baseUrl, colors.primary); break;
+    case 'product': body = await ceProductPage(siteId, getContent, productSlug || '', baseUrl, colors, supabase, checkoutMode); break;
     case 'rentals': body = await ceRentalsPage(siteId, getContent, baseUrl, supabase, enabledFeatures.has('rental_scheduling') || siteAddons.includes('rentals'), colors.primary); break;
     case 'manufacturers': body = ceManufacturersPage(siteId, getContent, baseUrl, manufacturers, colors.primary); break;
     default: body = ceHomeSections(siteId, getContent, products, enabledFeatures, vis, colors, manufacturers, baseUrl); break;
@@ -562,9 +564,9 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
           ${featured.map((p: any) => {
             const imgUrl = p.image_url || p.primary_image || ''; const hasImage = imgUrl && !imgUrl.includes('placeholder');
             const displayPrice = p.sale_price || p.price;
-            const onclick = productCardOnclick(p);
             return `
-          <div class="group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" onclick="${onclick}">
+          <div class="group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white">
+            <a href="${productPageUrl(baseUrl, p)}" class="block">
             <div class="aspect-square relative overflow-hidden bg-gray-100">
               ${hasImage
                 ? `<img src="${imgUrl}" alt="${p.name || p.title}" loading="lazy" width="400" height="300" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
@@ -577,14 +579,15 @@ function ceHomeSections(siteId: string, getContent: Function, products: any[], e
             <div class="p-5">
               <p class="text-sm text-gray-500 mb-1">${p.category || ''}</p>
               <h3 class="font-heading font-semibold text-gray-900 mb-2 truncate">${p.name || p.title}</h3>
-              <p class="text-gray-500 text-sm mb-4 line-clamp-2">${p.description || ''}</p>
-              <div class="flex items-center justify-between">
-                <div>
-                  ${p.sale_price ? `<span class="text-gray-400 line-through text-sm mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
-                  <span class="font-heading font-bold text-lg" style="color: ${colors.primary};">${displayPrice ? `$${Number(displayPrice).toLocaleString()}` : 'Call for Price'}</span>
-                </div>
-                <span class="text-sm font-semibold hover:underline" style="color: ${colors.primary};">View Details →</span>
+              <p class="text-gray-500 text-sm mb-3 line-clamp-2">${p.description || ''}</p>
+              <div class="mb-3">
+                ${p.sale_price ? `<span class="text-gray-400 line-through text-sm mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
+                <span class="font-heading font-bold text-lg" style="color: ${colors.primary};">${displayPrice ? `$${Number(displayPrice).toLocaleString()}` : 'Call for Price'}</span>
               </div>
+            </div>
+            </a>
+            <div class="px-5 pb-5">
+              ${productCardButtons(baseUrl, p, colors.primary)}
             </div>
           </div>`;
           }).join('')}
@@ -1085,7 +1088,8 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[],
           const imgUrl = p.image_url || p.primary_image || ''; const hasImage = imgUrl && !imgUrl.includes('placeholder');
           const displayPrice = p.sale_price || p.price;
           return `
-        <div class="ce-product group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white cursor-pointer" data-category="${p.category || ''}" onclick="${productCardOnclick(p)}">
+        <div class="ce-product group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white" data-category="${p.category || ''}">
+          <a href="${productPageUrl(baseUrl, p)}" class="block">
           <div class="aspect-square relative overflow-hidden bg-gray-100">
             ${hasImage
               ? `<img src="${imgUrl}" alt="${p.name || p.title}" loading="lazy" width="400" height="300" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
@@ -1098,14 +1102,15 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[],
           <div class="p-5">
             <p class="text-sm text-gray-500 mb-1">${p.category || ''}</p>
             <h3 class="font-heading font-semibold text-gray-900 mb-2 truncate">${p.name || p.title}</h3>
-            <p class="text-gray-500 text-sm mb-4 line-clamp-2">${p.description || ''}</p>
-            <div class="flex items-center justify-between">
-              <div>
-                ${p.sale_price ? `<span class="text-gray-400 line-through text-sm mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
-                <span class="font-heading font-bold text-lg text-blue-900">${displayPrice ? '$' + Number(displayPrice).toLocaleString() : 'Call for Price'}</span>
-              </div>
-              <span class="text-sm font-semibold text-blue-900">View Details →</span>
+            <p class="text-gray-500 text-sm mb-3 line-clamp-2">${p.description || ''}</p>
+            <div class="mb-3">
+              ${p.sale_price ? `<span class="text-gray-400 line-through text-sm mr-2">$${Number(p.price).toLocaleString()}</span>` : ''}
+              <span class="font-heading font-bold text-lg text-blue-900">${displayPrice ? '$' + Number(displayPrice).toLocaleString() : 'Call for Price'}</span>
             </div>
+          </div>
+          </a>
+          <div class="px-5 pb-5">
+            ${productCardButtons(baseUrl, p, primaryColor)}
           </div>
         </div>`;
         }).join('')}
@@ -1130,6 +1135,203 @@ function ceInventoryPage(siteId: string, getContent: Function, products: any[],
   }
   
 </script>`;
+}
+
+// ── Product Detail Page ──
+async function ceProductPage(
+  siteId: string,
+  getContent: Function,
+  slug: string,
+  baseUrl: string,
+  colors: any,
+  supabase?: any,
+  checkoutMode: string = 'quote_only'
+): Promise<string> {
+  if (!supabase || !slug) {
+    return `<section class="py-20"><div class="container-corporate text-center">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h2>
+      <p class="text-gray-500 mb-6">The product you're looking for doesn't exist or has been removed.</p>
+      <a href="${baseUrl}inventory" class="inline-flex items-center gap-2 px-6 py-3 rounded font-semibold text-white" style="background:${colors.primary}">← Browse Inventory</a>
+    </div></section>`;
+  }
+
+  const { data: product } = await supabase
+    .from('inventory_items')
+    .select('*')
+    .eq('site_id', siteId)
+    .eq('slug', slug)
+    .eq('status', 'available')
+    .maybeSingle();
+
+  if (!product) {
+    return `<section class="py-20"><div class="container-corporate text-center">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h2>
+      <p class="text-gray-500 mb-6">The product you're looking for doesn't exist or has been removed.</p>
+      <a href="${baseUrl}inventory" class="inline-flex items-center gap-2 px-6 py-3 rounded font-semibold text-white" style="background:${colors.primary}">← Browse Inventory</a>
+    </div></section>`;
+  }
+
+  const p = product;
+  const imgUrl = p.primary_image || '';
+  const hasImage = imgUrl && !imgUrl.includes('placeholder');
+  const images = p.images && p.images.length > 0 ? p.images : (hasImage ? [imgUrl] : []);
+  const displayPrice = p.sale_price || p.price;
+  const specs = p.specifications || {};
+  const specEntries = Object.entries(specs).filter(([_, v]) => v);
+  const onclick = productCardOnclick(p);
+
+  // Fetch related products (same category, exclude current)
+  const { data: related } = await supabase
+    .from('inventory_items')
+    .select('id, title, category, price, sale_price, primary_image, slug, condition, hours')
+    .eq('site_id', siteId)
+    .eq('category', p.category)
+    .eq('status', 'available')
+    .neq('id', p.id)
+    .limit(4);
+
+  const relatedHtml = (related && related.length > 0) ? `
+    <section class="py-16 bg-gray-50">
+      <div class="container-corporate">
+        <h2 class="font-heading text-2xl font-bold text-gray-900 mb-8">Related Equipment</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          ${related.map((r: any) => {
+            const rImg = r.primary_image || '';
+            const rHasImg = rImg && !rImg.includes('placeholder');
+            const rPrice = r.sale_price || r.price;
+            return `
+            <a href="${productPageUrl(baseUrl, r)}" class="group overflow-hidden border border-gray-200 rounded shadow-sm transition-corporate hover:shadow-lg bg-white block">
+              <div class="aspect-square relative overflow-hidden bg-gray-100">
+                ${rHasImg
+                  ? `<img src="${rImg}" alt="${r.title}" loading="lazy" class="w-full h-full object-cover transition-corporate group-hover:scale-105"/>`
+                  : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                      <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    </div>`}
+              </div>
+              <div class="p-4">
+                <h3 class="font-semibold text-gray-900 text-sm truncate">${r.title}</h3>
+                <p class="font-bold mt-1" style="color:${colors.primary}">${rPrice ? '$' + Number(rPrice).toLocaleString() : 'Call for Price'}</p>
+              </div>
+            </a>`;
+          }).join('')}
+        </div>
+      </div>
+    </section>` : '';
+
+  return `
+  <!-- Breadcrumb -->
+  <div class="bg-gray-50 border-b border-gray-200">
+    <div class="container-corporate py-3">
+      <nav class="flex items-center gap-2 text-sm text-gray-500">
+        <a href="${baseUrl}home" class="hover:text-gray-700">Home</a>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <a href="${baseUrl}inventory" class="hover:text-gray-700">Inventory</a>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <span class="text-gray-900 font-medium truncate">${p.title}</span>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Product Detail -->
+  <section class="py-12">
+    <div class="container-corporate">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start;">
+        
+        <!-- Image Gallery -->
+        <div>
+          <div style="border-radius:12px;overflow:hidden;background:#f3f4f6;aspect-ratio:1;margin-bottom:1rem;">
+            ${hasImage
+              ? `<img id="ce-product-main-img" src="${imgUrl}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;" />`
+              : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+                  <svg width="80" height="80" fill="none" stroke="#d1d5db" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </div>`}
+          </div>
+          ${images.length > 1 ? `
+          <div style="display:grid;grid-template-columns:repeat(${Math.min(images.length, 5)}, 1fr);gap:0.5rem;">
+            ${images.slice(0, 5).map((img: string, i: number) => `
+              <div style="border-radius:8px;overflow:hidden;aspect-ratio:1;cursor:pointer;border:2px solid ${i === 0 ? colors.primary : 'transparent'};transition:all 0.15s;"
+                   onclick="document.getElementById('ce-product-main-img').src='${img}';this.parentElement.querySelectorAll('div').forEach(d=>d.style.borderColor='transparent');this.style.borderColor='${colors.primary}';">
+                <img src="${img}" alt="" style="width:100%;height:100%;object-fit:cover;" />
+              </div>
+            `).join('')}
+          </div>` : ''}
+        </div>
+
+        <!-- Product Info -->
+        <div>
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
+            ${p.category ? `<span style="display:inline-block;font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:4px 10px;border-radius:4px;background:${colors.primary}12;color:${colors.primary};">${p.category}</span>` : ''}
+            ${p.condition === 'used' ? `<span style="display:inline-block;font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:4px 10px;border-radius:4px;background:#f59e0b15;color:#d97706;">Pre-Owned${p.hours ? ' · ' + p.hours + ' hrs' : ''}</span>` : ''}
+            ${p.brand ? `<span style="display:inline-block;font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:4px 10px;border-radius:4px;background:#f3f4f6;color:#6b7280;">${p.brand}</span>` : ''}
+          </div>
+
+          <h1 style="font-size:2rem;font-weight:800;color:#111827;margin:0 0 0.5rem;line-height:1.2;">${p.title}</h1>
+          ${p.model ? `<p style="font-size:0.9375rem;color:#6b7280;margin:0 0 1.25rem;">Model: ${p.model}${p.year ? ' · ' + p.year : ''}${p.sku ? ' · SKU: ' + p.sku : ''}</p>` : ''}
+
+          <!-- Price -->
+          <div style="margin-bottom:1.5rem;padding:1.25rem;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;">
+            ${p.sale_price && p.price ? `
+              <span style="font-size:1rem;color:#9ca3af;text-decoration:line-through;margin-right:0.75rem;">$${Number(p.price).toLocaleString()}</span>
+              <span style="font-size:2rem;font-weight:800;color:#dc2626;">$${Number(p.sale_price).toLocaleString()}</span>
+              <span style="display:inline-block;margin-left:0.75rem;font-size:0.75rem;font-weight:700;padding:4px 8px;background:#dc262615;color:#dc2626;border-radius:4px;">SALE</span>
+            ` : displayPrice ? `
+              <span style="font-size:2rem;font-weight:800;color:${colors.primary};">$${Number(displayPrice).toLocaleString()}</span>
+            ` : `
+              <span style="font-size:1.5rem;font-weight:700;color:#6b7280;">Call for Price</span>
+            `}
+            ${p.financing_available ? `<p style="font-size:0.8125rem;color:#059669;margin:0.5rem 0 0;font-weight:600;">✓ Financing available</p>` : ''}
+          </div>
+
+          <!-- Description -->
+          ${p.description ? `
+          <div style="margin-bottom:1.5rem;">
+            <h3 style="font-size:0.875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;margin:0 0 0.5rem;">Description</h3>
+            <p style="font-size:1rem;color:#374151;line-height:1.7;margin:0;">${p.description}</p>
+          </div>` : ''}
+
+          <!-- Specifications -->
+          ${specEntries.length > 0 ? `
+          <div style="margin-bottom:1.5rem;">
+            <h3 style="font-size:0.875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;margin:0 0 0.75rem;">Specifications</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+              ${specEntries.map(([key, val]) => `
+                <div style="background:#f9fafb;border-radius:6px;padding:0.625rem 0.875rem;">
+                  <span style="display:block;font-size:0.6875rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;margin-bottom:2px;">${key}</span>
+                  <span style="font-size:0.875rem;font-weight:600;color:#374151;">${val}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>` : ''}
+
+          <!-- Action Buttons -->
+          <div style="display:flex;gap:0.75rem;margin-bottom:1rem;">
+            <button onclick="${onclick}" style="flex:1;padding:1rem;background:${colors.primary};color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+              ${checkoutMode === 'online' && displayPrice ? 'Add to Cart' : 'Request a Quote'}
+            </button>
+            <a href="${baseUrl}contact" style="display:flex;align-items:center;justify-content:center;padding:1rem 1.5rem;border:2px solid ${colors.primary}20;border-radius:8px;color:${colors.primary};font-weight:600;text-decoration:none;transition:all 0.15s;" onmouseover="this.style.borderColor='${colors.primary}'" onmouseout="this.style.borderColor='${colors.primary}20'">
+              Contact Us
+            </a>
+          </div>
+
+          <!-- Contact info -->
+          <div style="display:flex;gap:1.5rem;padding:1rem;background:#f9fafb;border-radius:8px;font-size:0.8125rem;color:#6b7280;">
+            ${getContent('business.phone') ? `<span>📞 ${getContent('business.phone')}</span>` : ''}
+            ${getContent('business.email') ? `<span>✉ ${getContent('business.email')}</span>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  ${relatedHtml}
+
+  <style>
+    @media (max-width: 768px) {
+      .container-corporate > div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+      }
+    }
+  </style>`;
 }
 
 // ── Rentals Page ──

@@ -46,7 +46,7 @@ export function MarketingHeader({ activePath }: { activePath?: string }) {
             </div>
 
             <div className="flex items-center gap-4">
-              <a href="/auth/login" className="px-5 py-2 text-gray-300 hover:text-white font-semibold transition-colors hidden md:block">
+              <a href="/login" className="px-5 py-2 text-gray-300 hover:text-white font-semibold transition-colors hidden md:block">
                 Sign In
               </a>
               <a href="/pricing" className="px-6 py-3 bg-[#E8472F] text-white font-bold rounded hover:bg-[#d13d25] transition-all">
@@ -92,7 +92,7 @@ export function MarketingHeader({ activePath }: { activePath?: string }) {
                 </a>
               ))}
               <div className="border-t border-slate-700 my-4" />
-              <a href="/auth/login" onClick={() => setMobileOpen(false)}
+              <a href="/login" onClick={() => setMobileOpen(false)}
                 className="py-3 px-4 text-gray-300 hover:text-white hover:bg-slate-700/50 rounded font-medium transition-all">
                 Sign In
               </a>

@@ -15,6 +15,7 @@ export async function GET(
   try {
     const { searchParams } = new URL(request.url);
     const page = searchParams.get('page') || 'home';
+    const productSlug = searchParams.get('slug') || null;
     
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -102,7 +103,7 @@ export async function GET(
     // Load featured inventory (same as live site)
     const { data: featuredItems } = await supabase
       .from('inventory_items')
-      .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, featured, status')
+      .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, featured, status, hours, brand, sku, specifications, images, serial_number, financing_available')
       .eq('site_id', params.siteId).eq('featured', true).eq('status', 'available')
       .order('display_order').limit(8);
 
@@ -233,7 +234,7 @@ async function generateTemplateHTML(
   } else if (templateSlug === 'vibe-dynamics') {
     html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers, sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, previewBase, site.addons || [], site.checkout_mode || 'quote_only');
   } else if (templateSlug === 'corporate-edge') {
-    html = await renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
+    html = await renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, productSlug);
   } else if (templateSlug === 'zenith-lawn') {
     html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, previewBase, supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || []);
   } else if (templateSlug === 'modern-lawn-solutions') {
@@ -1372,7 +1373,7 @@ async function renderInventoryPageWithIntegration(
 
   const { data: inventory } = await supabase
     .from('inventory_items')
-    .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, featured, status, hours')
+    .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, featured, status, hours, brand, sku, specifications, images, serial_number, financing_available')
     .eq('site_id', siteId)
     .eq('status', 'available')
     .order('featured', { ascending: false })
