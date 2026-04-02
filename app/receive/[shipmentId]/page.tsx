@@ -37,7 +37,7 @@ interface Shipment {
   shipped_at: string | null;
   received_at: string | null;
   created_at: string;
-  partner: { company_name: string } | null;
+  partner: { name: string } | null;
   site_id: string;
 }
 
@@ -104,7 +104,7 @@ export default function ReceiveShipmentPage() {
       // Load shipment
       const { data: shipmentData, error: shipErr } = await supabase
         .from('shipments')
-        .select('*, partner:manufacturer_partners(company_name)')
+        .select('*, partner:manufacturer_partners(name)')
         .eq('id', shipmentId)
         .single();
 
@@ -315,7 +315,7 @@ export default function ReceiveShipmentPage() {
           </div>
           <h1 className="text-xl font-bold text-slate-800 mb-2">Shipment Received!</h1>
           <p className="text-sm text-slate-500 mb-1">
-            {shipment.shipment_code} from {shipment.partner?.company_name || 'manufacturer'}
+            {shipment.shipment_code} from {shipment.partner?.name || 'manufacturer'}
           </p>
           <p className="text-sm text-slate-500 mb-6">
             {shipment.item_count} product{shipment.item_count !== 1 ? 's' : ''} added to your inventory.
@@ -382,7 +382,7 @@ export default function ReceiveShipmentPage() {
               <Truck className="w-5 h-5" style={{ color: FM.orange }} />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="font-bold text-slate-800">{shipment?.partner?.company_name || 'Manufacturer'}</h2>
+              <h2 className="font-bold text-slate-800">{shipment?.partner?.name || 'Manufacturer'}</h2>
               <p className="text-sm text-slate-500 mt-0.5">
                 {items.length} product{items.length !== 1 ? 's' : ''} · {totalQuantity} total unit{totalQuantity !== 1 ? 's' : ''}
                 {shipment?.shipped_at && ` · Shipped ${new Date(shipment.shipped_at).toLocaleDateString()}`}

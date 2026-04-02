@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     // ── Verify partner exists ──
     const { data: partner, error: partnerErr } = await supabase
       .from('manufacturer_partners')
-      .select('id, company_name')
+      .select('id, name')
       .eq('id', partner_id)
       .single();
 
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
       },
       partner: {
         id: partner.id,
-        company_name: partner.company_name,
+        name: partner.name,
       },
     });
 
