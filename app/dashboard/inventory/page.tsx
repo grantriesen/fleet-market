@@ -7,7 +7,8 @@ import {
   Package, Plus, Search, ChevronLeft, ChevronRight,
   Edit2, Trash2, Star, StarOff, X, Upload, Image as ImageIcon,
   DollarSign, ArrowUpDown, ArrowUp, ArrowDown,
-  AlertCircle, Loader2, Grid, List, FolderPlus, FileUp, Download
+  AlertCircle, Loader2, Grid, List, FolderPlus, FileUp, Download,
+  TrendingUp, Clock, BarChart3, Tag, CalendarDays, CheckCircle2
 } from 'lucide-react';
 import CheckoutSettings from '@/components/CheckoutSettings';
 import ShippingTaxSettings from '@/components/ShippingTaxSettings';
@@ -21,7 +22,11 @@ interface InventoryItem {
   stock_quantity: number; sku: string | null; location: string | null;
   status: string; featured: boolean; display_order: number; slug: string | null;
   created_at: string; updated_at: string; sold_at: string | null;
+  brand_id: string | null; brand: string | null;
+  date_received: string | null; purchase_price: number | null;
+  is_allocated: boolean; sold_online: boolean;
 }
+interface Brand { id: string; name: string; site_id: string; }
 type SortField = 'title' | 'price' | 'created_at' | 'updated_at' | 'stock_quantity' | 'category' | 'status';
 type SortDir = 'asc' | 'desc';
 
@@ -52,6 +57,8 @@ const EMPTY_FORM = {
   images: [] as string[], primary_image: null as string | null,
   stock_quantity: 1, sku: '', location: '', status: 'available',
   featured: false, display_order: 0, slug: '',
+  brand_id: null as string | null, date_received: '' as string,
+  purchase_price: null as number | null, is_allocated: false,
 };
 
 export default function InventoryDashboard() {
@@ -80,7 +87,7 @@ export default function InventoryDashboard() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
-  const [activeFormTab, setActiveFormTab] = useState<'details' | 'specs' | 'images'>('details');
+  const [activeFormTab, setActiveFormTab] = useState<'details' | 'tracking' | 'specs' | 'images'>('details');
   const [newSpecKey, setNewSpecKey] = useState('');
   const [newSpecValue, setNewSpecValue] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -89,6 +96,21 @@ export default function InventoryDashboard() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // Brand management state
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [newBrandName, setNewBrandName] = useState('');
+  const [addingBrand, setAddingBrand] = useState(false);
+  const [showBrandInput, setShowBrandInput] = useState(false);
+
+  // Analytics state
+  const [analyticsTab, setAnalyticsTab] = useState<'overview' | 'brands'>('overview');
+  const [analyticsData, setAnalyticsData] = useState<{
+    totalInventoryValue: number; avgDaysOnLot: number; avgMargin: number;
+    totalProfit: number; unsoldCount: number; soldCount: number;
+    brandBreakdown: { name: string; inStock: number; sold: number; avgDays: number; avgMargin: number; totalRevenue: number; totalProfit: number; }[];
+  } | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   // Catalog search state
   const [catalogQuery, setCatalogQuery] = useState('');
@@ -199,17 +221,94 @@ export default function InventoryDashboard() {
     supabase.from('inventory_categories').select('name').eq('site_id', siteId).order('display_order').then(({ data }) => { if (data) setCustomCategories(data.map(c => c.name)); });
   }, [siteId]);
 
+  // Load brands for this site
+  useEffect(() => {
+    if (!siteId) return;
+    supabase.from('brands').select('*').eq('site_id', siteId).order('name').then(({ data }) => { if (data) setBrands(data); });
+  }, [siteId]);
+
+  const addBrand = async () => {
+    if (!newBrandName.trim() || !siteId) return;
+    setAddingBrand(true);
+    const { data, error } = await supabase.from('brands').insert({ site_id: siteId, name: newBrandName.trim() }).select().single();
+    if (data && !error) {
+      setBrands(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+      uf('brand_id', data.id);
+      setNewBrandName('');
+      setShowBrandInput(false);
+    } else if (error?.code === '23505') {
+      showToast('Brand already exists', 'error');
+    }
+    setAddingBrand(false);
+  };
+
+  // Compute analytics
+  const loadAnalytics = useCallback(async () => {
+    if (!siteId) return;
+    setAnalyticsLoading(true);
+    const { data: allItems } = await supabase
+      .from('inventory_items')
+      .select('purchase_price, sale_price, date_received, sold_at, brand_id, status')
+      .eq('site_id', siteId);
+
+    if (!allItems) { setAnalyticsLoading(false); return; }
+    const now = new Date();
+    const sold = allItems.filter(i => i.sold_at);
+    const unsold = allItems.filter(i => !i.sold_at);
+
+    const totalInventoryValue = unsold.reduce((sum, i) => sum + (i.purchase_price || 0), 0);
+    const soldWithDates = sold.filter(i => i.date_received && i.sold_at);
+    const avgDaysOnLot = soldWithDates.length > 0
+      ? soldWithDates.reduce((sum, i) => sum + Math.max(0, Math.floor((new Date(i.sold_at!).getTime() - new Date(i.date_received!).getTime()) / 86400000)), 0) / soldWithDates.length
+      : 0;
+    const soldWithPrices = sold.filter(i => i.purchase_price && i.sale_price);
+    const avgMargin = soldWithPrices.length > 0
+      ? soldWithPrices.reduce((sum, i) => sum + ((i.sale_price! - i.purchase_price!) / i.purchase_price! * 100), 0) / soldWithPrices.length
+      : 0;
+    const totalProfit = sold.reduce((sum, i) => sum + ((i.sale_price || 0) - (i.purchase_price || 0)), 0);
+
+    // By-brand breakdown
+    const brandMap = new Map<string | null, typeof allItems>();
+    allItems.forEach(i => {
+      const key = i.brand_id;
+      if (!brandMap.has(key)) brandMap.set(key, []);
+      brandMap.get(key)!.push(i);
+    });
+
+    const brandBreakdown = Array.from(brandMap.entries()).map(([brandId, items]) => {
+      const brand = brands.find(b => b.id === brandId);
+      const bSold = items.filter(i => i.sold_at);
+      const bUnsold = items.filter(i => !i.sold_at);
+      const bSoldDates = bSold.filter(i => i.date_received && i.sold_at);
+      const bSoldPrices = bSold.filter(i => i.purchase_price && i.sale_price);
+      return {
+        name: brand?.name || 'Unbranded',
+        inStock: bUnsold.length,
+        sold: bSold.length,
+        avgDays: bSoldDates.length > 0 ? bSoldDates.reduce((s, i) => s + Math.max(0, Math.floor((new Date(i.sold_at!).getTime() - new Date(i.date_received!).getTime()) / 86400000)), 0) / bSoldDates.length : 0,
+        avgMargin: bSoldPrices.length > 0 ? bSoldPrices.reduce((s, i) => s + ((i.sale_price! - i.purchase_price!) / i.purchase_price! * 100), 0) / bSoldPrices.length : 0,
+        totalRevenue: bSold.reduce((s, i) => s + (i.sale_price || 0), 0),
+        totalProfit: bSold.reduce((s, i) => s + ((i.sale_price || 0) - (i.purchase_price || 0)), 0),
+      };
+    }).sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+    setAnalyticsData({ totalInventoryValue, avgDaysOnLot, avgMargin, totalProfit, unsoldCount: unsold.length, soldCount: sold.length, brandBreakdown });
+    setAnalyticsLoading(false);
+  }, [siteId, brands]);
+
+  useEffect(() => { loadAnalytics(); }, [loadAnalytics]);
+
   const handleSort = (field: SortField) => { if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else { setSortField(field); setSortDir('asc'); } setPage(0); };
   const openAddModal = () => { setEditingItem(null); setForm({ ...EMPTY_FORM }); setActiveFormTab('details'); setFormError(''); setCatalogApplied(null); setCatalogQuery(''); setCatalogResults([]); setShowCatalogResults(false); setModalOpen(true); };
   const openEditModal = (item: InventoryItem) => {
     setEditingItem(item);
-    setForm({ title: item.title||'', description: item.description||'', category: item.category||'Mowers', condition: item.condition||'new', price: item.price, sale_price: item.sale_price, financing_available: item.financing_available||false, model: item.model||'', year: item.year||new Date().getFullYear(), serial_number: item.serial_number||'', hours: item.hours, specifications: item.specifications||{}, images: item.images||[], primary_image: item.primary_image, stock_quantity: item.stock_quantity||1, sku: item.sku||'', location: item.location||'', status: item.status||'available', featured: item.featured||false, display_order: item.display_order||0, slug: item.slug||'' });
+    setForm({ title: item.title||'', description: item.description||'', category: item.category||'Mowers', condition: item.condition||'new', price: item.price, sale_price: item.sale_price, financing_available: item.financing_available||false, model: item.model||'', year: item.year||new Date().getFullYear(), serial_number: item.serial_number||'', hours: item.hours, specifications: item.specifications||{}, images: item.images||[], primary_image: item.primary_image, stock_quantity: item.stock_quantity||1, sku: item.sku||'', location: item.location||'', status: item.status||'available', featured: item.featured||false, display_order: item.display_order||0, slug: item.slug||'', brand_id: item.brand_id||null, date_received: item.date_received||'', purchase_price: item.purchase_price, is_allocated: item.is_allocated||false });
     setActiveFormTab('details'); setFormError(''); setModalOpen(true);
   };
   const handleSave = async () => {
     if (!siteId) return; if (!form.title.trim()) { setFormError('Title is required'); return; }
     setSaving(true); setFormError('');
-    const record = { site_id: siteId, title: form.title.trim(), description: form.description?.trim()||null, category: form.category, condition: form.condition, price: form.price, sale_price: form.sale_price, financing_available: form.financing_available, model: form.model?.trim()||null, year: form.year, serial_number: form.serial_number?.trim()||null, hours: form.hours, specifications: form.specifications, images: form.images, primary_image: form.primary_image||(form.images.length>0?form.images[0]:null), stock_quantity: form.stock_quantity, sku: form.sku?.trim()||null, location: form.location?.trim()||null, status: form.status, featured: form.featured, display_order: form.display_order, slug: form.slug?.trim()||generateSlug(form.title), updated_at: new Date().toISOString() };
+    const record = { site_id: siteId, title: form.title.trim(), description: form.description?.trim()||null, category: form.category, condition: form.condition, price: form.price, sale_price: form.sale_price, financing_available: form.financing_available, model: form.model?.trim()||null, year: form.year, serial_number: form.serial_number?.trim()||null, hours: form.hours, specifications: form.specifications, images: form.images, primary_image: form.primary_image||(form.images.length>0?form.images[0]:null), stock_quantity: form.stock_quantity, sku: form.sku?.trim()||null, location: form.location?.trim()||null, status: form.status, featured: form.featured, display_order: form.display_order, slug: form.slug?.trim()||generateSlug(form.title), updated_at: new Date().toISOString(), brand_id: form.brand_id||null, date_received: form.date_received||null, purchase_price: form.purchase_price, is_allocated: form.is_allocated };
     try {
       if (editingItem) { const {error}=await supabase.from('inventory_items').update(record).eq('id',editingItem.id); if(error)throw error; showToast('Product updated'); }
       else { const {error}=await supabase.from('inventory_items').insert(record); if(error)throw error; showToast('Product added'); }
@@ -255,10 +354,13 @@ export default function InventoryDashboard() {
     { key: 'description', label: 'Description' },
     { key: 'category', label: 'Category' },
     { key: 'condition', label: 'Condition' },
+    { key: 'brand', label: 'Brand' },
     { key: 'model', label: 'Model' },
     { key: 'year', label: 'Year' },
     { key: 'price', label: 'Price' },
     { key: 'sale_price', label: 'Sale Price' },
+    { key: 'purchase_price', label: 'Purchase Price' },
+    { key: 'date_received', label: 'Date Received' },
     { key: 'status', label: 'Status' },
     { key: 'stock_quantity', label: 'Stock Qty' },
     { key: 'sku', label: 'SKU' },
@@ -369,6 +471,18 @@ export default function InventoryDashboard() {
         else updated++;
       } else {
         // INSERT — new product
+        // Resolve brand name to brand_id (create if needed)
+        let brandId: string | null = null;
+        const brandName = get('brand');
+        if (brandName) {
+          const existing = brands.find(b => b.name.toLowerCase() === brandName.toLowerCase());
+          if (existing) { brandId = existing.id; }
+          else {
+            const { data: newBrand } = await supabase.from('brands').insert({ site_id: siteId, name: brandName }).select().single();
+            if (newBrand) { brandId = newBrand.id; setBrands(prev => [...prev, newBrand].sort((a, b) => a.name.localeCompare(b.name))); }
+          }
+        }
+
         const record = {
           site_id: siteId,
           title,
@@ -379,6 +493,9 @@ export default function InventoryDashboard() {
           year: get('year') ? parseInt(get('year')) : null,
           price: get('price') ? parseFloat(get('price').replace(/[$,]/g, '')) : null,
           sale_price: get('sale_price') ? parseFloat(get('sale_price').replace(/[$,]/g, '')) : null,
+          purchase_price: get('purchase_price') ? parseFloat(get('purchase_price').replace(/[$,]/g, '')) : null,
+          date_received: get('date_received') || null,
+          brand_id: brandId,
           status: get('status') || 'available',
           stock_quantity: get('stock_quantity') ? parseInt(get('stock_quantity')) : 1,
           sku: get('sku') || null,
@@ -450,24 +567,30 @@ export default function InventoryDashboard() {
       return str;
     };
 
-    const headers = ['Title','Description','Category','Condition','Model','Year','Price','Sale Price','Status','Stock Qty','SKU','Serial Number','Hours','Location','Image URL'];
-    const rows = data.map((item: any) => [
-      escCsv(item.title),
-      escCsv(item.description),
-      escCsv(item.category),
-      escCsv(item.condition),
-      escCsv(item.model),
-      escCsv(item.year),
-      escCsv(item.price),
-      escCsv(item.sale_price),
-      escCsv(item.status),
-      escCsv(item.stock_quantity),
-      escCsv(item.sku),
-      escCsv(item.serial_number),
-      escCsv(item.hours),
-      escCsv(item.location),
-      escCsv(item.primary_image),
-    ].join(','));
+    const headers = ['Title','Description','Category','Condition','Brand','Model','Year','Price','Sale Price','Purchase Price','Date Received','Status','Stock Qty','SKU','Serial Number','Hours','Location','Image URL'];
+    const rows = data.map((item: any) => {
+      const brand = brands.find(b => b.id === item.brand_id);
+      return [
+        escCsv(item.title),
+        escCsv(item.description),
+        escCsv(item.category),
+        escCsv(item.condition),
+        escCsv(brand?.name || item.brand || ''),
+        escCsv(item.model),
+        escCsv(item.year),
+        escCsv(item.price),
+        escCsv(item.sale_price),
+        escCsv(item.purchase_price),
+        escCsv(item.date_received),
+        escCsv(item.status),
+        escCsv(item.stock_quantity),
+        escCsv(item.sku),
+        escCsv(item.serial_number),
+        escCsv(item.hours),
+        escCsv(item.location),
+        escCsv(item.primary_image),
+      ].join(',');
+    });
 
     const csv = [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -603,6 +726,95 @@ export default function InventoryDashboard() {
           </div>
         )}
 
+        {/* ═══ INVENTORY ANALYTICS ═══ */}
+        {siteData && (
+          <div className="mt-10 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" style={{ color: FM.orange }} />
+                  <h2 className="text-base font-bold text-slate-800">Inventory Analytics</h2>
+                </div>
+                <p className="text-sm text-slate-500 mt-0.5">Profitability and turnover metrics based on your tracked inventory.</p>
+              </div>
+              <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
+                <button onClick={() => setAnalyticsTab('overview')} className={`px-3 py-1.5 text-xs font-medium ${analyticsTab === 'overview' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>Overview</button>
+                <button onClick={() => setAnalyticsTab('brands')} className={`px-3 py-1.5 text-xs font-medium ${analyticsTab === 'brands' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>By Brand</button>
+              </div>
+            </div>
+            <div className="px-6 py-6">
+              {analyticsLoading ? (
+                <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
+              ) : !analyticsData || (analyticsData.soldCount === 0 && analyticsData.unsoldCount === 0) ? (
+                <div className="text-center py-12">
+                  <BarChart3 className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-slate-500">No tracking data yet</p>
+                  <p className="text-xs text-slate-400 mt-1">Add purchase prices and received dates to your inventory items to see analytics here.</p>
+                </div>
+              ) : analyticsTab === 'overview' ? (
+                <div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-slate-50 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2"><DollarSign className="w-4 h-4 text-slate-400" /><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Inventory Value</span></div>
+                      <p className="text-2xl font-bold text-slate-800">{formatPrice(analyticsData.totalInventoryValue)}</p>
+                      <p className="text-xs text-slate-400 mt-1">{analyticsData.unsoldCount} unsold item{analyticsData.unsoldCount !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2"><Clock className="w-4 h-4 text-slate-400" /><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Days on Lot</span></div>
+                      <p className="text-2xl font-bold text-slate-800">{analyticsData.avgDaysOnLot > 0 ? Math.round(analyticsData.avgDaysOnLot) : '—'}</p>
+                      <p className="text-xs text-slate-400 mt-1">Based on {analyticsData.soldCount} sold item{analyticsData.soldCount !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2"><TrendingUp className="w-4 h-4 text-slate-400" /><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Profit Margin</span></div>
+                      <p className={`text-2xl font-bold ${analyticsData.avgMargin >= 0 ? 'text-green-700' : 'text-red-600'}`}>{analyticsData.avgMargin !== 0 ? analyticsData.avgMargin.toFixed(1) + '%' : '—'}</p>
+                      <p className="text-xs text-slate-400 mt-1">On items with cost & sale price</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2"><DollarSign className="w-4 h-4 text-slate-400" /><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Profit</span></div>
+                      <p className={`text-2xl font-bold ${analyticsData.totalProfit >= 0 ? 'text-green-700' : 'text-red-600'}`}>{formatPrice(analyticsData.totalProfit)}</p>
+                      <p className="text-xs text-slate-400 mt-1">Across all sold items</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  {analyticsData.brandBreakdown.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Tag className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                      <p className="text-sm text-slate-500">No brand data yet. Assign brands to your products to see per-brand analytics.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-slate-200">
+                            {['Brand', 'In Stock', 'Sold', 'Avg Days on Lot', 'Avg Margin', 'Total Revenue', 'Total Profit'].map(h => (
+                              <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analyticsData.brandBreakdown.map((row, i) => (
+                            <tr key={row.name} className={`border-b border-slate-50 ${i % 2 === 0 ? '' : 'bg-slate-50/50'}`}>
+                              <td className="px-3 py-3 text-sm font-semibold text-slate-800">{row.name}</td>
+                              <td className="px-3 py-3 text-sm text-slate-600">{row.inStock}</td>
+                              <td className="px-3 py-3 text-sm text-slate-600">{row.sold}</td>
+                              <td className="px-3 py-3 text-sm text-slate-600">{row.avgDays > 0 ? Math.round(row.avgDays) : '—'}</td>
+                              <td className="px-3 py-3 text-sm font-medium">{row.avgMargin !== 0 ? <span className={row.avgMargin >= 0 ? 'text-green-700' : 'text-red-600'}>{row.avgMargin.toFixed(1)}%</span> : <span className="text-slate-400">—</span>}</td>
+                              <td className="px-3 py-3 text-sm text-slate-600">{formatPrice(row.totalRevenue)}</td>
+                              <td className="px-3 py-3 text-sm font-medium"><span className={row.totalProfit >= 0 ? 'text-green-700' : 'text-red-600'}>{formatPrice(row.totalProfit)}</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Checkout Settings */}
         {siteData && (
           <div className="mt-10 bg-white rounded-xl border border-slate-200 shadow-sm">
@@ -644,8 +856,8 @@ export default function InventoryDashboard() {
               <button onClick={()=>setModalOpen(false)} className="p-1 rounded-md hover:bg-slate-100"><X className="w-5 h-5 text-slate-400" /></button>
             </div>
             <div className="border-b border-slate-100 px-6 flex">
-              {(['details','specs','images'] as const).map(tab=>(
-                <button key={tab} onClick={()=>setActiveFormTab(tab)} className={`px-4 py-3 text-sm font-medium border-b-2 capitalize ${activeFormTab===tab?'':'border-transparent text-slate-400 hover:text-slate-600'}`} style={activeFormTab===tab?{borderColor:FM.navy,color:FM.navy}:{}}>{tab}</button>
+              {(['details','tracking','specs','images'] as const).map(tab=>(
+                <button key={tab} onClick={()=>setActiveFormTab(tab)} className={`px-4 py-3 text-sm font-medium border-b-2 capitalize ${activeFormTab===tab?'':'border-transparent text-slate-400 hover:text-slate-600'}`} style={activeFormTab===tab?{borderColor:FM.navy,color:FM.navy}:{}}>{tab === 'tracking' ? 'Inventory Tracking' : tab}</button>
               ))}
             </div>
             <div className="px-6 py-5 overflow-y-auto" style={{maxHeight:'calc(100vh - 16rem)'}}>
@@ -723,6 +935,24 @@ export default function InventoryDashboard() {
                     <div><label className="block text-sm font-medium text-slate-700 mb-1">Category</label><select value={form.category} onChange={(e)=>uf('category',e.target.value)} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-white">{allCategories.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
                     <div><label className="block text-sm font-medium text-slate-700 mb-1">Condition</label><select value={form.condition} onChange={(e)=>uf('condition',e.target.value)} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-white">{CONDITIONS.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}</select></div>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Brand</label>
+                    {showBrandInput ? (
+                      <div className="flex gap-2">
+                        <input type="text" value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addBrand()} placeholder="Enter brand name..." className="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2" style={{ '--tw-ring-color': FM.navy } as any} autoFocus />
+                        <button onClick={addBrand} disabled={!newBrandName.trim() || addingBrand} className="px-4 py-2.5 text-sm font-medium text-white rounded-lg disabled:opacity-40" style={{ background: FM.navy }}>{addingBrand ? '...' : 'Add'}</button>
+                        <button onClick={() => { setShowBrandInput(false); setNewBrandName(''); }} className="px-3 py-2.5 text-sm text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <select value={form.brand_id || ''} onChange={(e) => uf('brand_id', e.target.value || null)} className="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-white">
+                          <option value="">— No Brand —</option>
+                          {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                        <button onClick={() => setShowBrandInput(true)} className="px-3 py-2.5 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 whitespace-nowrap" style={{ color: FM.orange }}>+ New</button>
+                      </div>
+                    )}
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div><label className="block text-sm font-medium text-slate-700 mb-1">Model</label><input type="text" value={form.model||''} onChange={(e)=>uf('model',e.target.value)} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" /></div>
                     <div><label className="block text-sm font-medium text-slate-700 mb-1">Year</label><input type="number" value={form.year||''} onChange={(e)=>uf('year',e.target.value?parseInt(e.target.value):null)} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" /></div>
@@ -744,6 +974,50 @@ export default function InventoryDashboard() {
                   <div className="flex gap-6 pt-2">
                     <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.featured} onChange={(e)=>uf('featured',e.target.checked)} className="rounded border-slate-300" /><span className="text-sm text-slate-700">Featured product</span></label>
                     <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.financing_available} onChange={(e)=>uf('financing_available',e.target.checked)} className="rounded border-slate-300" /><span className="text-sm text-slate-700">Financing available</span></label>
+                  </div>
+                </div>
+              )}
+              {activeFormTab === 'tracking' && (
+                <div className="space-y-5">
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CalendarDays className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-semibold text-blue-900">Equipment Intake</span>
+                    </div>
+                    <p className="text-xs text-blue-700">Fill this in when you receive equipment. Tracks days on lot and cost basis for profit analytics.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Date Received</label><input type="date" value={form.date_received || ''} onChange={(e) => uf('date_received', e.target.value)} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" /></div>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Purchase Price (Cost)</label><div className="relative"><DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><input type="number" value={form.purchase_price ?? ''} onChange={(e) => uf('purchase_price', e.target.value ? parseFloat(e.target.value) : null)} placeholder="What you paid" className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm" /></div></div>
+                  </div>
+                  <label className="flex items-center gap-3 cursor-pointer bg-slate-50 rounded-lg px-4 py-3">
+                    <input type="checkbox" checked={form.is_allocated} onChange={(e) => uf('is_allocated', e.target.checked)} className="rounded border-slate-300" />
+                    <div>
+                      <span className="text-sm font-medium text-slate-700">Allocated on delivery</span>
+                      <p className="text-xs text-slate-500">Check if this equipment is already spoken for when it arrives</p>
+                    </div>
+                  </label>
+                  <div className="border-t border-slate-200 pt-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-semibold text-slate-800">Sale Information</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><label className="block text-sm font-medium text-slate-700 mb-1">Date Sold</label><input type="date" value={editingItem?.sold_at ? new Date(editingItem.sold_at).toISOString().split('T')[0] : ''} onChange={async (e) => { if (editingItem && e.target.value) { await supabase.from('inventory_items').update({ sold_at: new Date(e.target.value).toISOString(), status: 'sold' }).eq('id', editingItem.id); setEditingItem({ ...editingItem, sold_at: new Date(e.target.value).toISOString() }); uf('status', 'sold'); } }} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm" /></div>
+                      <div><label className="block text-sm font-medium text-slate-700 mb-1">Sale Price</label><div className="relative"><DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><input type="number" value={form.sale_price ?? ''} onChange={(e) => uf('sale_price', e.target.value ? parseFloat(e.target.value) : null)} placeholder="What it sold for" className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm" /></div></div>
+                    </div>
+                    {editingItem && form.purchase_price && form.sale_price ? (
+                      <div className="mt-4 bg-slate-50 rounded-lg px-4 py-3 grid grid-cols-3 gap-4">
+                        <div><p className="text-xs text-slate-500">Profit</p><p className={`text-sm font-bold ${form.sale_price - form.purchase_price >= 0 ? 'text-green-700' : 'text-red-600'}`}>{formatPrice(form.sale_price - form.purchase_price)}</p></div>
+                        <div><p className="text-xs text-slate-500">Margin</p><p className="text-sm font-bold text-slate-800">{((form.sale_price - form.purchase_price) / form.purchase_price * 100).toFixed(1)}%</p></div>
+                        {editingItem.date_received && editingItem.sold_at ? (
+                          <div><p className="text-xs text-slate-500">Days on Lot</p><p className="text-sm font-bold text-slate-800">{Math.max(0, Math.floor((new Date(editingItem.sold_at).getTime() - new Date(editingItem.date_received).getTime()) / 86400000))}</p></div>
+                        ) : form.date_received ? (
+                          <div><p className="text-xs text-slate-500">Days on Lot</p><p className="text-sm font-bold text-slate-800">{Math.max(0, Math.floor((Date.now() - new Date(form.date_received).getTime()) / 86400000))}<span className="text-xs font-normal text-slate-400 ml-1">and counting</span></p></div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {!editingItem && <p className="text-xs text-slate-400 mt-3 italic">Sale date is available after saving the product.</p>}
                   </div>
                 </div>
               )}
