@@ -43,7 +43,7 @@ export default function ReferralBanner() {
   if (!info || dismissed) return null;
 
   return (
-    <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 text-white px-4 py-3 relative">
+    <div className="bg-gradient-to-r from-[#E85525] to-[#d13d25] text-white px-4 py-3 relative">
       <div className="max-w-4xl mx-auto flex items-center justify-center gap-3 text-sm">
         <Gift className="w-4 h-4 flex-shrink-0" />
         <span className="font-medium">{info.message}</span>
