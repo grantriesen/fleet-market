@@ -855,7 +855,12 @@ export function productCardOnclick(product: any): string {
 
 export function productPageUrl(baseUrl: string, product: any): string {
   const slug = product.slug || product.id;
-  return `${baseUrl}product&slug=${slug}`;
+  // Preview route uses baseUrl like "/api/preview/SITEID?page=" so we append directly
+  // Live site uses baseUrl like "/" so we need "?page=product&slug="
+  if (baseUrl.includes('?')) {
+    return `${baseUrl}product&slug=${slug}`;
+  }
+  return `${baseUrl}?page=product&slug=${slug}`;
 }
 
 export function productCardButtons(baseUrl: string, product: any, primaryColor: string): string {
