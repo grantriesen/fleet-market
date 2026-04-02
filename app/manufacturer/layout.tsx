@@ -34,7 +34,12 @@ export default function ManufacturerLayout({ children }: { children: React.React
   const [ctx, setCtx] = useState<ManufacturerContext | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Skip auth check for login and register pages
+  const isAuthPage = pathname === '/manufacturer/login' || pathname === '/manufacturer/register';
+
   useEffect(() => {
+    if (isAuthPage) { setLoading(false); return; }
+
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/auth/login'); return; }
@@ -77,6 +82,11 @@ export default function ManufacturerLayout({ children }: { children: React.React
         </div>
       </div>
     );
+  }
+
+  // Auth pages (login/register) render without the dashboard shell
+  if (isAuthPage) {
+    return <>{children}</>;
   }
 
   if (!ctx) return null;
