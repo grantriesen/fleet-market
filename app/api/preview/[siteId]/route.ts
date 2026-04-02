@@ -15,7 +15,7 @@ export async function GET(
   try {
     const { searchParams } = new URL(request.url);
     const page = searchParams.get('page') || 'home';
-    const productSlug = searchParams.get('slug') || null;
+    const productSlug = searchParams.get('product') || null;
     
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

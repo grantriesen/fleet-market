@@ -206,7 +206,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
   try {
     const { searchParams } = new URL(request.url);
     const page = searchParams.get('page') || 'home';
-    const productSlug = searchParams.get('slug') || null;
+    const productSlug = searchParams.get('product') || null;
     const supabase = createSupabase();
     const isCustomDomain = params.slug.includes('.');
 
@@ -241,7 +241,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
 
     let html: string;
     try {
-      console.log("PRODUCT DEBUG:", { page, productSlug, siteSlug: params.slug }); html = await loadAndRender(site, page, supabase, productSlug);
+      html = await loadAndRender(site, page, supabase, productSlug);
     } catch (renderError: any) {
       console.error('Render error:', { message: renderError?.message, template: site?.template?.slug, page, siteSlug: params.slug });
       throw renderError;
