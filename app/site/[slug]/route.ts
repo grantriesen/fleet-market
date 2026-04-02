@@ -241,7 +241,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
 
     let html: string;
     try {
-      html = await loadAndRender(site, page, supabase, productSlug);
+      console.log("PRODUCT DEBUG:", { page, productSlug, siteSlug: params.slug }); html = await loadAndRender(site, page, supabase, productSlug);
     } catch (renderError: any) {
       console.error('Render error:', { message: renderError?.message, template: site?.template?.slug, page, siteSlug: params.slug });
       throw renderError;
