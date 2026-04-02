@@ -155,13 +155,18 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
 
   // Force-hide inventory-related sections if addon not purchased
   if (!enabledFeatures.has('inventory') && !enabledFeatures.has('inventory_sync')) {
-    vis['featured']       = false;
-    vis['inventoryPage']  = false;
+    vis['featured']         = false;
+    vis['inventoryPage']    = false;
     vis['featuredProducts'] = false;
+    // Also set on sectionVisibility directly for templates that read it instead of vis (e.g. GVI)
+    sectionVisibility['featured']         = false;
+    sectionVisibility['inventoryPage']    = false;
+    sectionVisibility['featuredProducts'] = false;
   }
   // Force-hide rental-related sections if addon not purchased
   if (!enabledFeatures.has('rentals') && !enabledFeatures.has('rental_scheduling')) {
-    vis['rentalsPage'] = false;
+    vis['rentalsPage']            = false;
+    sectionVisibility['rentalsPage'] = false;
   }
 
   let html = '';

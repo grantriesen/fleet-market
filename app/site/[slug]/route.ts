@@ -56,7 +56,7 @@ function injectAddonLinkRewriter(html: string, addons: string[]): string {
   return html.includes('</body>') ? html.replace('</body>', script + '\n</body>') : html + script;
 }
 
-async function loadAndRender(site: any, page: string, supabase: any): Promise<string> {
+async function loadAndRender(site: any, page: string, supabase: any, productSlug?: string | null): Promise<string> {
   const siteId = site.id;
   const template = site.template;
   const config = template.config_json;
@@ -83,10 +83,10 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   const manufacturers = (manufacturersRaw || []).map((m: any) => ({ ...m, logo_url: m.logo_url || libraryLogoMap[m.name] || null }));
 
   // For the inventory page, fetch all available items; otherwise just featured ones for homepage
-  const isInventoryPage = page === 'inventory';
+  const isInventoryPage = page === 'inventory' || page === 'product';
   const inventoryQuery = supabase
     .from('inventory_items')
-    .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, featured, status')
+    .select('id, title, description, category, condition, price, sale_price, model, year, primary_image, slug, featured, status, hours, brand, sku, specifications, images, serial_number, financing_available')
     .eq('site_id', siteId)
     .eq('status', 'available')
     .order('display_order');
@@ -175,7 +175,7 @@ async function loadAndRender(site: any, page: string, supabase: any): Promise<st
   } else if (templateSlug === 'vibe-dynamics') {
     html = await renderVibeDynamicsPage(getContent, colors, fonts, manufacturers || [], sectionVisibility, siteId, site.site_name, displayProducts, isRealProducts, fmtPrice, availablePages, page, googleFontsUrl, supabase, '/', site.addons || [], site.checkout_mode || 'quote_only');
   } else if (templateSlug === 'corporate-edge') {
-    html = await renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id);
+    html = await renderCorporateEdgePage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, manufacturers || [], '/', supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, productSlug);
   } else if (templateSlug === 'zenith-lawn') {
     html = await renderZenithLawnPage(siteId, page, availablePages, displayProducts, config, customizations, enabledFeatures, vis, content, '/', supabase, site.addons || [], site.checkout_mode || 'quote_only', !!site.stripe_account_id, manufacturers || []);
   } else if (templateSlug === 'modern-lawn-solutions') {
@@ -206,6 +206,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
   try {
     const { searchParams } = new URL(request.url);
     const page = searchParams.get('page') || 'home';
+    const productSlug = searchParams.get('slug') || null;
     const supabase = createSupabase();
     const isCustomDomain = params.slug.includes('.');
 
@@ -240,7 +241,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
 
     let html: string;
     try {
-      html = await loadAndRender(site, page, supabase);
+      html = await loadAndRender(site, page, supabase, productSlug);
     } catch (renderError: any) {
       console.error('Render error:', { message: renderError?.message, template: site?.template?.slug, page, siteSlug: params.slug });
       throw renderError;
